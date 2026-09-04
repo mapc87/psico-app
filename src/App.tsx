@@ -1,11 +1,12 @@
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Pacientes from './pages/Pacientes';
 import Agenda from './pages/Agenda';
 import NuevoPaciente from './pages/NuevoPaciente';
 import PacienteDetalle from './pages/PacienteDetalle';
+import FinanzasGlobal from './pages/FinanzasGlobal';
 import Login from './pages/Login';
 import RegistroInicial from './pages/RegistroInicial';
 import CrearUsuario from './pages/CrearUsuario';
@@ -14,12 +15,15 @@ import Personal from './pages/Personal';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 
+import RegistroInvitado from './pages/RegistroInvitado';
+
 function AppRoutes() {
   return (
     <Routes>
       {/* Rutas Públicas */}
       <Route path="/login" element={<Login />} />
       <Route path="/registro-inicial" element={<RegistroInicial />} />
+      <Route path="/registro" element={<RegistroInvitado />} />
 
       {/* Rutas Privadas (Protegidas) */}
       <Route element={<ProtectedRoute />}>
@@ -30,6 +34,7 @@ function AppRoutes() {
           <Route path="/pacientes/nuevo" element={<NuevoPaciente />} />
           <Route path="/pacientes/:id" element={<PacienteDetalle />} />
           <Route path="/agenda" element={<Agenda />} />
+          <Route path="/finanzas" element={<FinanzasGlobal />} />
           <Route path="/roles" element={<Roles />} />
           <Route path="/personal" element={<Personal />} />
           
@@ -48,10 +53,10 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
       </AuthProvider>
-    </HashRouter>
+    </BrowserRouter>
   );
 }

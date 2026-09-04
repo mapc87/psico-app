@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Phone, MapPin, Mail, CreditCard, FileText, Save, X } from 'lucide-react';
-import { db } from '../services/db/localDb';
+import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 
 export default function NuevoPaciente() {
@@ -9,21 +9,21 @@ export default function NuevoPaciente() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nombre: '',
-    fechaNacimiento: '',
+    fecha_nacimiento: '',
     dpi: '',
     telefono: '',
     correo: '',
     direccion: '',
     nit: 'CF',
-    fechaIngreso: new Date().toISOString().split('T')[0], // Por defecto hoy
+    fecha_ingreso: new Date().toISOString().split('T')[0], // Por defecto hoy
     
     // Datos del responsable (menores)
-    nombreResponsable: '',
+    nombre_responsable: '',
     parentesco: '',
-    telefonoResponsable: '',
-    ocupacionResponsable: '',
-    estadoCivilPadres: '',
-    notasDinamica: ''
+    telefono_responsable: '',
+    ocupacion_responsable: '',
+    estado_civil_padres: '',
+    notas_dinamica: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,11 +36,12 @@ export default function NuevoPaciente() {
     try {
       const nuevoPaciente = {
         ...formData,
-        medicoId: usuarioActual.id
+        clinica_id: usuarioActual.clinica_id
       };
       
-      // Guardar en IndexedDB local
-      await db.pacientes.add(nuevoPaciente);
+      const { error } = await supabase.from('pacientes').insert([nuevoPaciente]);
+      
+      if (error) throw error;
       
       // Mostrar feedback y redirigir
       navigate('/pacientes', { state: { mensaje: 'Paciente guardado exitosamente.' } });
@@ -53,6 +54,17 @@ export default function NuevoPaciente() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  if (!usuarioActual?.clinica_id) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 mt-12 p-8 bg-red-50 border border-red-200 rounded-2xl text-center">
+        <h2 className="text-2xl font-bold text-red-600 mb-4">Error Crítico: Clínica no asignada</h2>
+        <p className="text-slate-700">Tu usuario actual ({usuarioActual?.email}) <strong>NO tiene una clínica asignada</strong> (clinica_id es nulo).</p>
+        <p className="text-slate-700 mt-2">Por las reglas de seguridad (RLS), es imposible guardar un paciente sin asignar a qué clínica pertenece. Si estás usando la cuenta "SuperAdmin" del sistema, recuerda que los SuperAdmins no pueden crear pacientes directamente; debes crear una clínica y luego iniciar sesión con el administrador de esa clínica.</p>
+        <button onClick={() => navigate(-1)} className="mt-6 px-6 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700">Regresar</button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -111,10 +123,12 @@ export default function NuevoPaciente() {
               <label className="block text-sm font-bold text-slate-600 mb-2">Fecha de Nacimiento <span className="text-red-500">*</span></label>
               <input 
                 type="date" 
-                name="fechaNacimiento"
+                name="fecha_nacimiento"
                 required
+                min="1900-01-01"
+                max={new Date().toISOString().split('T')[0]}
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 text-slate-700"
-                value={formData.fechaNacimiento}
+                value={formData.fecha_nacimiento}
                 onChange={handleChange}
               />
             </div>
@@ -123,10 +137,10 @@ export default function NuevoPaciente() {
               <label className="block text-sm font-bold text-slate-600 mb-2">Fecha de Ingreso al Consultorio <span className="text-red-500">*</span></label>
               <input 
                 type="date" 
-                name="fechaIngreso"
+                name="fecha_ingreso"
                 required
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 text-slate-700"
-                value={formData.fechaIngreso}
+                value={formData.fecha_ingreso}
                 onChange={handleChange}
               />
             </div>
@@ -150,10 +164,10 @@ export default function NuevoPaciente() {
               <label className="block text-sm font-bold text-slate-600 mb-2">Nombre Completo del Responsable</label>
               <input 
                 type="text" 
-                name="nombreResponsable"
+                name="nombre_responsable"
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300"
                 placeholder="Ej. María Sánchez"
-                value={formData.nombreResponsable}
+                value={formData.nombre_responsable}
                 onChange={handleChange}
               />
             </div>
@@ -183,10 +197,10 @@ export default function NuevoPaciente() {
                 </div>
                 <input 
                   type="text" 
-                  name="telefonoResponsable"
+                  name="telefono_responsable"
                   className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300"
                   placeholder="Ej. 5555-4321"
-                  value={formData.telefonoResponsable}
+                  value={formData.telefono_responsable}
                   onChange={handleChange}
                 />
               </div>
@@ -196,10 +210,10 @@ export default function NuevoPaciente() {
               <label className="block text-sm font-bold text-slate-600 mb-2">Ocupación</label>
               <input 
                 type="text" 
-                name="ocupacionResponsable"
+                name="ocupacion_responsable"
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300"
                 placeholder="Ej. Comerciante, Docente..."
-                value={formData.ocupacionResponsable}
+                value={formData.ocupacion_responsable}
                 onChange={handleChange}
               />
             </div>
@@ -207,9 +221,9 @@ export default function NuevoPaciente() {
             <div>
               <label className="block text-sm font-bold text-slate-600 mb-2">Estado Civil de los Padres</label>
               <select 
-                name="estadoCivilPadres"
+                name="estado_civil_padres"
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 text-slate-700"
-                value={formData.estadoCivilPadres}
+                value={formData.estado_civil_padres}
                 onChange={handleChange as any}
               >
                 <option value="">Seleccione...</option>
@@ -224,11 +238,11 @@ export default function NuevoPaciente() {
             <div className="md:col-span-2">
               <label className="block text-sm font-bold text-slate-600 mb-2">Notas de Dinámica Familiar</label>
               <textarea 
-                name="notasDinamica"
+                name="notas_dinamica"
                 rows={3}
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 resize-none"
                 placeholder="Ej. El niño vive principalmente con los abuelos maternos durante la semana..."
-                value={formData.notasDinamica}
+                value={formData.notas_dinamica}
                 onChange={handleChange as any}
               />
             </div>

@@ -2,23 +2,31 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, Mail, ActivitySquare, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../services/supabase/client';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, needsFirstAdmin } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { needsFirstAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     
-    const exito = await login(email, password);
-    if (exito) {
-      navigate('/dashboard');
-    } else {
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError) {
       setError('Credenciales incorrectas. Inténtalo de nuevo.');
+      setLoading(false);
+    } else {
+      navigate('/dashboard');
     }
   };
 
@@ -101,10 +109,20 @@ export default function Login() {
 
           <button 
             type="submit"
-            className="w-full py-3.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer mt-4"
+            disabled={loading}
+            className="w-full py-3.5 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 cursor-pointer mt-4"
           >
-            Iniciar Sesión
+            {loading ? 'Iniciando...' : 'Iniciar Sesión'}
           </button>
+
+          <div className="text-center mt-6">
+            <p className="text-sm text-slate-500">
+              ¿Tienes un código de invitación?{' '}
+              <Link to="/registro" className="text-violet-600 font-bold hover:underline">
+                Únete aquí
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>

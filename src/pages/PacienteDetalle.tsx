@@ -1,19 +1,22 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Calendar, Activity, FileText, Pill, Heart, Thermometer, Wind, Scale, AlertTriangle, CalendarPlus, ClipboardList, Printer, Clock } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../services/db/localDb';
+import { ArrowLeft, User, Calendar, Activity, FileText, Pill, Heart, Thermometer, Wind, Scale, AlertTriangle, CalendarPlus, ClipboardList, Printer, Clock, Wallet, DollarSign, Receipt, AlertCircle, BrainCircuit, Sparkles } from 'lucide-react';
+import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
+import { useEffect } from 'react';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
 import ModalNuevoExamen from '../components/examenes/ModalNuevoExamen';
 import OrdenExamenPrint from '../components/examenes/OrdenExamenPrint';
 import ModalNuevoSigno from '../components/signos/ModalNuevoSigno';
 import ModalNuevaNota from '../components/historial/ModalNuevaNota';
+import ModalNuevaNotaIA from '../components/notas/ModalNuevaNotaIA';
 import ModalNuevoDiagnostico from '../components/diagnosticos/ModalNuevoDiagnostico';
 import ModalNuevoMedicamento from '../components/medicamentos/ModalNuevoMedicamento';
 import RecetaPrint from '../components/medicamentos/RecetaPrint';
+import ModalNuevaFactura from '../components/finanzas/ModalNuevaFactura';
+import ModalRegistrarPago from '../components/finanzas/ModalRegistrarPago';
 import { useReactToPrint } from 'react-to-print';
-import type { Examen, SignosVitales } from '../types';
+import type { Examen, SignosVitales, Factura } from '../types';
 
 export default function PacienteDetalle() {
   const { id } = useParams();
@@ -23,150 +26,202 @@ export default function PacienteDetalle() {
   const [isExamenModalOpen, setIsExamenModalOpen] = useState(false);
   const [isSignoModalOpen, setIsSignoModalOpen] = useState(false);
   const [isNotaModalOpen, setIsNotaModalOpen] = useState(false);
+  const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
   const [isDiagnosticoModalOpen, setIsDiagnosticoModalOpen] = useState(false);
   const [isMedicamentoModalOpen, setIsMedicamentoModalOpen] = useState(false);
+  const [isFacturaModalOpen, setIsFacturaModalOpen] = useState(false);
+  const [isPagoModalOpen, setIsPagoModalOpen] = useState(false);
   const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
+  const [facturaSeleccionada, setFacturaSeleccionada] = useState<Factura | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const recetaPrintRef = useRef<HTMLDivElement>(null);
 
-  // Obtener paciente desde la base de datos local
-  const paciente = useLiveQuery(
-    () => db.pacientes.get(Number(id)),
-    [id]
-  );
+  const [paciente, setPaciente] = useState<any>(undefined);
+  const [permisos, setPermisos] = useState<any>(null);
+  const [citas, setCitas] = useState<any[]>([]);
+  const [examenes, setExamenes] = useState<Examen[]>([]);
+  const [signos, setSignos] = useState<SignosVitales[]>([]);
+  const [notas, setNotas] = useState<any[]>([]);
+  const [diagnosticos, setDiagnosticos] = useState<any[]>([]);
+  const [medicamentos, setMedicamentos] = useState<any[]>([]);
+  const [facturas, setFacturas] = useState<Factura[]>([]);
 
-  // Obtener rol y permisos si es personal
-  const rolActual = useLiveQuery(
-    () => usuarioActual?.rolId ? db.roles.get(usuarioActual.rolId) : null,
-    [usuarioActual?.rolId]
-  );
-  const permisos = rolActual?.permisos;
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id || !usuarioActual?.clinica_id) return;
+      
+      const pId = id;
+      
+      const { data: pData } = await supabase.from('pacientes').select('*').eq('id', pId).single();
+      setPaciente(pData || null);
+      
+      if (usuarioActual.rol_id) {
+        const { data: rData } = await supabase.from('roles').select('permisos').eq('id', usuarioActual.rol_id).single();
+        if (rData) setPermisos(rData.permisos);
+      }
+
+      const { data: cData } = await supabase.from('citas').select('*').eq('paciente_id', pId).order('fecha_hora', { ascending: false });
+      if (cData) setCitas(cData);
+
+      const { data: eData } = await supabase.from('examenes').select('*').eq('paciente_id', pId).order('fecha_solicitud', { ascending: false });
+      if (eData) setExamenes(eData);
+
+      const { data: sData } = await supabase.from('signos_vitales').select('*').eq('paciente_id', pId).order('fecha', { ascending: false });
+      if (sData) setSignos(sData);
+
+      const { data: nData } = await supabase.from('notas_clinicas').select('*').eq('paciente_id', pId).order('fecha', { ascending: false });
+      if (nData) setNotas(nData);
+
+      const { data: dData } = await supabase.from('diagnosticos').select('*').eq('paciente_id', pId).order('fecha', { ascending: false });
+      if (dData) setDiagnosticos(dData);
+
+      const { data: mData } = await supabase.from('medicamentos').select('*').eq('paciente_id', pId).order('fecha_prescripcion', { ascending: false });
+      if (mData) setMedicamentos(mData);
+
+      const { data: fData } = await supabase.from('facturas').select('*').eq('paciente_id', pId).order('fecha_emision', { ascending: false });
+      if (fData) setFacturas(fData);
+    };
+    
+    fetchData();
+  }, [id, usuarioActual?.clinica_id, usuarioActual?.rol_id]);
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Orden_Examen_${paciente?.nombre?.replace(/\s+/g, '_') || 'Paciente'}`,
   });
 
-  const citas = useLiveQuery(
-    () => db.citas.where('pacienteId').equals(Number(id)).reverse().sortBy('fechaHora'),
-    [id]
-  );
-
-  const examenes = useLiveQuery(
-    () => db.examenes.where('pacienteId').equals(Number(id)).reverse().sortBy('fechaSolicitud'),
-    [id]
-  );
-
-  const signos = useLiveQuery(
-    () => db.signosVitales.where('pacienteId').equals(Number(id)).reverse().sortBy('fecha'),
-    [id]
-  );
   const ultimoSigno = signos && signos.length > 0 ? signos[0] : null;
 
-  const notas = useLiveQuery(
-    () => db.notasClinicas.where('pacienteId').equals(Number(id)).reverse().sortBy('fecha'),
-    [id]
-  );
-
-  const diagnosticos = useLiveQuery(
-    () => db.diagnosticos.where('pacienteId').equals(Number(id)).reverse().sortBy('fecha'),
-    [id]
-  );
-
-  const medicamentos = useLiveQuery(
-    () => db.medicamentos.where('pacienteId').equals(Number(id)).reverse().sortBy('fechaPrescripcion'),
-    [id]
-  );
-
-  const handleSaveCita = async (fechaHora: string, motivo: string) => {
+  const handleSaveCita = async (fecha_hora: string, motivo: string) => {
     if (!usuarioActual) return;
-    await db.citas.add({
-      pacienteId: Number(id),
-      medicoId: usuarioActual.id,
-      fechaHora,
+    const nuevaCita = {
+      clinica_id: usuarioActual.clinica_id,
+      paciente_id: id,
+      medico_id: usuarioActual.id,
+      fecha_hora,
       motivo,
       estado: 'programada'
-    });
-  };
-
-  const handleSaveExamen = async (tipoExamen: string, fechaSolicitud: string) => {
-    if (!usuarioActual) return;
-    await db.examenes.add({
-      pacienteId: Number(id),
-      medicoId: usuarioActual.id,
-      tipoExamen,
-      fechaSolicitud,
-      estado: 'pendiente'
-    });
-  };
-
-  const cambiarEstadoExamen = async (examenId: number, nuevoEstado: 'pendiente' | 'completado') => {
-    try {
-      await db.examenes.update(examenId, { estado: nuevoEstado });
-    } catch (error) {
-      console.error('Error al actualizar examen:', error);
+    };
+    const { data, error } = await supabase.from('citas').insert([nuevaCita]).select().single();
+    if (error) {
+      console.error("Error exacto de Supabase:", error);
+      throw new Error(error.message);
     }
+    if (data) setCitas([data, ...citas].sort((a, b) => new Date(b.fecha_hora).getTime() - new Date(a.fecha_hora).getTime()));
   };
 
-  const handleSaveSignos = async (data: Omit<SignosVitales, 'id' | 'pacienteId'>) => {
-    await db.signosVitales.add({
-      pacienteId: Number(id),
-      ...data
-    });
+  const handleSaveExamen = async (tipo_examen: string, fecha_solicitud: string) => {
+    if (!usuarioActual) return;
+    const nuevoExamen = {
+      clinica_id: usuarioActual.clinica_id,
+      paciente_id: id,
+      medico_id: usuarioActual.id,
+      tipo_examen,
+      fecha_solicitud,
+      estado: 'pendiente'
+    };
+    const { data, error } = await supabase.from('examenes').insert([nuevoExamen]).select().single();
+    if (error) {
+      console.error("Error exacto de Supabase:", error);
+      throw new Error(error.message);
+    }
+    if (data) setExamenes([data, ...examenes].sort((a, b) => new Date(b.fecha_solicitud).getTime() - new Date(a.fecha_solicitud).getTime()));
+  };
+
+  const cambiarEstadoExamen = async (examenId: string, nuevoEstado: 'pendiente' | 'completado') => {
+    const { data } = await supabase.from('examenes').update({ estado: nuevoEstado }).eq('id', examenId).select().single();
+    if (data) setExamenes(examenes.map(e => e.id === examenId ? data : e));
+  };
+
+  const handleSaveSignos = async (data: any) => {
+    if (!usuarioActual) return;
+    const nuevoSigno = {
+      clinica_id: usuarioActual.clinica_id,
+      paciente_id: id,
+      fecha: new Date().toISOString(),
+      presion_arterial: data.presionArterial,
+      frecuencia_cardiaca: data.frecuenciaCardiaca,
+      saturacion_oxigeno: data.saturacionOxigeno,
+      temperatura: data.temperatura,
+      peso: data.peso,
+      talla: data.talla,
+      imc: data.imc
+    };
+    const { data: res, error } = await supabase.from('signos_vitales').insert([nuevoSigno]).select().single();
+    if (error) {
+      console.error("Error exacto de Supabase:", error);
+      throw new Error(error.message);
+    }
+    if (res) setSignos([res, ...signos].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()));
   };
 
   const handleSaveNota = async (titulo: string, contenido: string, fecha: string) => {
     if (!usuarioActual) return;
-    await db.notasClinicas.add({
-      pacienteId: Number(id),
-      medicoId: usuarioActual.id,
+    const nuevaNota = {
+      clinica_id: usuarioActual.clinica_id,
+      paciente_id: id,
+      medico_id: usuarioActual.id,
       titulo,
       contenido,
       fecha
-    });
+    };
+    const { data, error } = await supabase.from('notas_clinicas').insert([nuevaNota]).select().single();
+    if (error) {
+      console.error("Error exacto de Supabase:", error);
+      throw new Error(error.message);
+    }
+    if (data) setNotas([data, ...notas].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()));
   };
 
-  const handleSaveDiagnostico = async (enfermedad: string, planTratamiento: string, fecha: string) => {
+  const handleSaveDiagnostico = async (enfermedad: string, plan_tratamiento: string, fecha: string) => {
     if (!usuarioActual) return;
-    await db.diagnosticos.add({
-      pacienteId: Number(id),
-      medicoId: usuarioActual.id,
+    const nuevoDiag = {
+      clinica_id: usuarioActual.clinica_id,
+      paciente_id: id,
+      medico_id: usuarioActual.id,
       enfermedad,
-      planTratamiento,
+      plan_tratamiento,
       fecha,
       estado: 'activo'
-    });
-  };
-
-  const cambiarEstadoDiagnostico = async (diagnosticoId: number, nuevoEstado: 'activo' | 'resuelto') => {
-    try {
-      await db.diagnosticos.update(diagnosticoId, { estado: nuevoEstado });
-    } catch (error) {
-      console.error('Error al actualizar diagnostico:', error);
+    };
+    const { data, error } = await supabase.from('diagnosticos').insert([nuevoDiag]).select().single();
+    if (error) {
+      console.error("Error exacto de Supabase:", error);
+      throw new Error(error.message);
     }
+    if (data) setDiagnosticos([data, ...diagnosticos].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()));
   };
 
-  const handleSaveMedicamento = async (nombre: string, dosis: string, frecuencia: string, duracion: string, indicaciones: string, fechaPrescripcion: string) => {
+  const cambiarEstadoDiagnostico = async (diagnosticoId: string, nuevoEstado: 'activo' | 'resuelto') => {
+    const { data } = await supabase.from('diagnosticos').update({ estado: nuevoEstado }).eq('id', diagnosticoId).select().single();
+    if (data) setDiagnosticos(diagnosticos.map(d => d.id === diagnosticoId ? data : d));
+  };
+
+  const handleSaveMedicamento = async (nombre: string, dosis: string, frecuencia: string, duracion: string, indicaciones: string, fecha_prescripcion: string) => {
     if (!usuarioActual) return;
-    await db.medicamentos.add({
-      pacienteId: Number(id),
-      medicoId: usuarioActual.id,
+    const nuevoMed = {
+      clinica_id: usuarioActual.clinica_id,
+      paciente_id: id,
+      medico_id: usuarioActual.id,
       nombre,
       dosis,
       frecuencia,
       duracion,
       indicaciones,
-      fechaPrescripcion,
+      fecha_prescripcion,
       estado: 'activo'
-    });
+    };
+    const { data, error } = await supabase.from('medicamentos').insert([nuevoMed]).select().single();
+    if (error) {
+      console.error("Error exacto de Supabase:", error);
+      throw new Error(error.message);
+    }
+    if (data) setMedicamentos([data, ...medicamentos].sort((a, b) => new Date(b.fecha_prescripcion).getTime() - new Date(a.fecha_prescripcion).getTime()));
   };
 
-  const suspenderMedicamento = async (medicamentoId: number) => {
-    try {
-      await db.medicamentos.update(medicamentoId, { estado: 'suspendido' });
-    } catch (error) {
-      console.error('Error al suspender medicamento:', error);
-    }
+  const suspenderMedicamento = async (medicamentoId: string) => {
+    const { data } = await supabase.from('medicamentos').update({ estado: 'suspendido' }).eq('id', medicamentoId).select().single();
+    if (data) setMedicamentos(medicamentos.map(m => m.id === medicamentoId ? data : m));
   };
 
   const handlePrintReceta = useReactToPrint({
@@ -191,16 +246,18 @@ export default function PacienteDetalle() {
     { id: 'citas', label: 'Citas', icon: <CalendarPlus size={18} />, key: 'verCitas' },
     { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={18} />, key: 'verExamenes' },
     { id: 'signos', label: 'Signos Vitales', icon: <Heart size={18} />, key: 'verSignos' },
+    { id: 'notas', label: 'Notas IA', icon: <BrainCircuit size={18} />, key: 'verHistorial' },
     { id: 'historial', label: 'Historial', icon: <FileText size={18} />, key: 'verHistorial' },
     { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
     { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={18} />, key: 'verMedicamentos' },
+    { id: 'finanzas', label: 'Finanzas', icon: <Wallet size={18} />, key: 'verFinanzas' },
   ];
 
   // Filtrar tabs según permisos
   const tabs = allTabs.filter(tab => {
-    if (usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'doctor') return true;
+    if (usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'doctor') return true;
     if (usuarioActual?.rol === 'personal' && permisos) {
-      return permisos[tab.key as keyof typeof permisos];
+      return permisos[tab.key as keyof typeof permisos] === true;
     }
     return false;
   });
@@ -411,6 +468,62 @@ export default function PacienteDetalle() {
                   <ClipboardList size={48} className="mx-auto text-slate-300 mb-4" />
                   <p className="text-lg font-semibold">No hay exámenes solicitados</p>
                   <p className="text-sm mt-1">Prescribe un nuevo examen médico para este paciente.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Pestaña: Notas IA */}
+          {activeTab === 'notas' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Notas de Evolución (IA)</h3>
+                  <p className="text-sm text-slate-500">Redacta tus notas clínicas usando formato SOAP estructurado.</p>
+                </div>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setIsNotaModalOpen(true)}
+                    className="px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm rounded-xl text-sm font-bold transition-all cursor-pointer"
+                  >
+                    Nota Manual
+                  </button>
+                  <button 
+                    onClick={() => setIsNotaIAModalOpen(true)}
+                    className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-600/20 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center"
+                  >
+                    <Sparkles size={16} className="mr-2" />
+                    Redactar con IA
+                  </button>
+                </div>
+              </div>
+              
+              {notas && notas.length > 0 ? (
+                <div className="relative pl-8 border-l-2 border-violet-200/50 space-y-8 py-2">
+                  {notas.map((nota) => (
+                    <div key={nota.id} className="relative group">
+                      <div className="absolute -left-[41px] bg-white w-5 h-5 rounded-full border-4 border-violet-500 shadow-sm group-hover:scale-125 transition-transform duration-300"></div>
+                      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm group-hover:border-violet-200 group-hover:shadow-md transition-all duration-300">
+                        <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-50">
+                          <span className="text-sm font-bold text-violet-700 bg-violet-50 border border-violet-100 px-3 py-1 rounded-full flex items-center">
+                            <BrainCircuit size={14} className="mr-1.5" />
+                            {nota.titulo}
+                          </span>
+                          <span className="text-sm font-medium text-slate-400 flex items-center">
+                            <Clock size={14} className="mr-1.5" />
+                            {new Date(nota.fecha).toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <p className="text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">{nota.contenido}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center border-2 border-dashed border-violet-200 rounded-3xl bg-violet-50/30">
+                  <BrainCircuit size={48} className="mx-auto text-violet-300 mb-4" />
+                  <p className="text-lg font-semibold text-violet-800">Aún no hay notas con IA</p>
+                  <p className="text-sm text-violet-600/70 mt-2 max-w-md mx-auto">Haz clic en "Redactar con IA" para registrar la evolución de tu paciente y convertir ideas sueltas en una nota profesional SOAP.</p>
                 </div>
               )}
             </div>
@@ -722,6 +835,117 @@ export default function PacienteDetalle() {
             </div>
           )}
 
+          {/* Pestaña: Finanzas */}
+          {activeTab === 'finanzas' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Estado de Cuenta</h3>
+                  <p className="text-slate-500">Gestión de facturación y pagos del paciente</p>
+                </div>
+                <button 
+                  onClick={() => setIsFacturaModalOpen(true)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-emerald-600/20 flex items-center hover:scale-105"
+                >
+                  <Receipt size={18} className="mr-2" />
+                  Emitir Factura
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 rounded-2xl border border-emerald-100 flex items-center">
+                  <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-emerald-600 mr-4">
+                    <Wallet size={24} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-emerald-600/80 uppercase tracking-wider mb-1">Saldo Adeudado</p>
+                    <h4 className="text-2xl font-black text-emerald-900">
+                      Q. {facturas.reduce((acc, f) => acc + (f.saldo_pendiente || 0), 0).toFixed(2)}
+                    </h4>
+                  </div>
+                </div>
+                
+                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex items-center">
+                  <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-slate-600 mr-4">
+                    <Receipt size={24} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Facturas Pendientes</p>
+                    <h4 className="text-2xl font-black text-slate-700">
+                      {facturas.filter(f => f.estado === 'pendiente' || f.estado === 'parcial').length}
+                    </h4>
+                  </div>
+                </div>
+              </div>
+
+              {facturas && facturas.length > 0 ? (
+                <div className="space-y-4">
+                  {facturas.map(factura => (
+                    <div key={factura.id} className="p-6 border border-slate-200 rounded-2xl bg-white hover:shadow-md transition-all duration-300 flex justify-between items-center">
+                      <div className="flex items-center">
+                        <div className={`p-3 rounded-xl mr-5 ${
+                          factura.estado === 'pagada' ? 'bg-emerald-50 text-emerald-600' :
+                          factura.estado === 'parcial' ? 'bg-amber-50 text-amber-600' :
+                          'bg-rose-50 text-rose-600'
+                        }`}>
+                          <Receipt size={24} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-lg mb-1">{factura.concepto}</h4>
+                          <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
+                            <span className="flex items-center"><Calendar size={14} className="mr-1.5" /> Emitida: {new Date(factura.fecha_emision).toLocaleDateString()}</span>
+                            {factura.fecha_vencimiento && (
+                              <span className="flex items-center text-rose-500"><AlertCircle size={14} className="mr-1.5" /> Vence: {new Date(factura.fecha_vencimiento).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className="text-sm text-slate-500 font-medium">Monto Total</p>
+                          <p className="font-bold text-slate-800">Q. {factura.monto_total.toFixed(2)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-slate-500 font-medium">Saldo Pendiente</p>
+                          <p className={`font-bold ${factura.saldo_pendiente > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            Q. {factura.saldo_pendiente.toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end min-w-[120px]">
+                          <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-lg mb-2 ${
+                            factura.estado === 'pagada' ? 'bg-emerald-100 text-emerald-700' :
+                            factura.estado === 'parcial' ? 'bg-amber-100 text-amber-700' :
+                            'bg-rose-100 text-rose-700'
+                          }`}>
+                            {factura.estado}
+                          </span>
+                          {(factura.estado === 'pendiente' || factura.estado === 'parcial') && (
+                            <button 
+                              onClick={() => {
+                                setFacturaSeleccionada(factura);
+                                setIsPagoModalOpen(true);
+                              }}
+                              className="text-xs text-teal-600 hover:text-teal-700 font-bold underline transition-colors"
+                            >
+                              Registrar Pago
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                  <Wallet size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-lg font-semibold text-slate-500">Sin historial de facturación</p>
+                  <p className="text-sm text-slate-400 mt-2">Haz clic en "Emitir Factura" para generar el primer cobro del paciente.</p>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
       
@@ -751,6 +975,12 @@ export default function PacienteDetalle() {
         onSave={handleSaveNota}
       />
 
+      <ModalNuevaNotaIA
+        isOpen={isNotaIAModalOpen}
+        onClose={() => setIsNotaIAModalOpen(false)}
+        onSave={handleSaveNota}
+      />
+
       <ModalNuevoDiagnostico 
         isOpen={isDiagnosticoModalOpen}
         onClose={() => setIsDiagnosticoModalOpen(false)}
@@ -762,6 +992,39 @@ export default function PacienteDetalle() {
         onClose={() => setIsMedicamentoModalOpen(false)}
         onSave={handleSaveMedicamento}
       />
+
+      <ModalNuevaFactura 
+        isOpen={isFacturaModalOpen}
+        onClose={() => setIsFacturaModalOpen(false)}
+        onSave={() => {
+          // Refetch facturas
+          const fetchData = async () => {
+            const { data } = await supabase.from('facturas').select('*').eq('paciente_id', id).order('fecha_emision', { ascending: false });
+            if (data) setFacturas(data);
+          };
+          fetchData();
+        }}
+        pacienteId={id!}
+      />
+
+      {facturaSeleccionada && (
+        <ModalRegistrarPago 
+          isOpen={isPagoModalOpen}
+          onClose={() => {
+            setIsPagoModalOpen(false);
+            setFacturaSeleccionada(null);
+          }}
+          onSave={() => {
+            // Refetch facturas
+            const fetchData = async () => {
+              const { data } = await supabase.from('facturas').select('*').eq('paciente_id', id).order('fecha_emision', { ascending: false });
+              if (data) setFacturas(data);
+            };
+            fetchData();
+          }}
+          factura={facturaSeleccionada}
+        />
+      )}
 
       {/* Contenedor Oculto para Impresión de Exámenes */}
       <div className="hidden">

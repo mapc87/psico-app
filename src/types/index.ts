@@ -1,11 +1,20 @@
+export interface Clinica {
+  id: string;
+  nombre: string;
+  direccion?: string;
+  telefono?: string;
+  estado: string;
+  created_at: string;
+}
+
 export interface Usuario {
-  id?: number;
+  id: string;
+  clinica_id: string;
   nombre: string;
   email: string;
-  password?: string; // En Dexie se guarda texto plano (o un hash simple) para simular
-  rol: 'admin' | 'doctor' | 'personal';
-  rolId?: number; // Referencia al ID en tabla roles (si es personal)
-  medicoId?: number; // Referencia al médico dueño de la clínica (si es personal)
+  rol: 'superadmin' | 'admin' | 'personal';
+  rol_id?: string;
+  created_at: string;
 }
 
 export interface Permisos {
@@ -18,96 +27,140 @@ export interface Permisos {
   verHistorial: boolean;
   verDiagnosticos: boolean;
   verMedicamentos: boolean;
+  verFinanzas: boolean;
 }
 
 export interface Rol {
-  id?: number;
-  medicoId: number; // Médico que creó este rol
-  nombre: string; // ej. "Enfermera", "Secretaria"
+  id: string;
+  clinica_id: string;
+  nombre: string;
   permisos: Permisos;
+  created_at: string;
 }
 
 export interface Paciente {
-  id?: number; // Opcional porque Dexie lo auto-genera
-  medicoId?: number; // Para multi-tenant
+  id: string;
+  clinica_id: string;
   nombre: string;
   dpi?: string;
-  fechaNacimiento: string;
-  fechaIngreso: string;
-  telefono: string;
+  fecha_nacimiento?: string;
+  fecha_ingreso: string;
+  telefono?: string;
   correo?: string;
   direccion?: string;
   nit?: string;
   
   // Datos del responsable
-  nombreResponsable?: string;
+  nombre_responsable?: string;
   parentesco?: string;
-  telefonoResponsable?: string;
-  ocupacionResponsable?: string;
-  estadoCivilPadres?: string;
-  notasDinamica?: string;
+  telefono_responsable?: string;
+  ocupacion_responsable?: string;
+  estado_civil_padres?: string;
+  notas_dinamica?: string;
+  created_at: string;
 }
 
 export interface SignosVitales {
-  id?: number;
-  pacienteId: number;
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
   fecha: string;
-  presionArterial: string;
-  frecuenciaCardiaca: number;
-  saturacionOxigeno: number;
-  temperatura: number;
-  peso: number;
-  talla: number;
-  imc: number;
+  presion_arterial?: string;
+  frecuencia_cardiaca?: number;
+  saturacion_oxigeno?: number;
+  temperatura?: number;
+  peso?: number;
+  talla?: number;
+  imc?: number;
+  created_at: string;
 }
 
 export interface Cita {
-  id?: number;
-  pacienteId: number;
-  medicoId: number;
-  fechaHora: string;
-  motivo: string;
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  medico_id: string;
+  fecha_hora: string;
+  motivo?: string;
   estado: 'programada' | 'completada' | 'cancelada';
+  created_at: string;
 }
 
 export interface Examen {
-  id?: number;
-  pacienteId: number;
-  medicoId: number;
-  tipoExamen: string;
-  fechaSolicitud: string;
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  medico_id: string;
+  tipo_examen: string;
+  fecha_solicitud: string;
   estado: 'pendiente' | 'completado';
   resultados?: string;
+  created_at: string;
 }
 
 export interface NotaClinica {
-  id?: number;
-  pacienteId: number;
-  medicoId: number;
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  medico_id: string;
   fecha: string;
-  titulo: string;
+  titulo?: string;
   contenido: string;
+  created_at: string;
 }
 
 export interface Diagnostico {
-  id?: number;
-  pacienteId: number;
-  medicoId: number;
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  medico_id: string;
   fecha: string;
   enfermedad: string;
-  planTratamiento: string;
+  plan_tratamiento?: string;
   estado: 'activo' | 'resuelto';
+  created_at: string;
 }
 
 export interface Medicamento {
-  id?: number;
-  pacienteId: number;
-  medicoId: number;
-  fechaPrescripcion: string;
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  medico_id: string;
+  fecha_prescripcion: string;
   nombre: string;
-  dosis: string;
-  frecuencia: string;
-  duracion: string;
-  indicaciones: string;
+  dosis?: string;
+  frecuencia?: string;
+  duracion?: string;
+  indicaciones?: string;
   estado: 'activo' | 'suspendido';
+  created_at: string;
+}
+
+export interface Factura {
+  id: string;
+  clinica_id: string;
+  paciente_id?: string;
+  cita_id?: string;
+  monto_total: number;
+  saldo_pendiente: number;
+  estado: 'pendiente' | 'pagada' | 'parcial' | 'cancelada';
+  concepto: string;
+  nit?: string;
+  nombre_factura?: string;
+  direccion?: string;
+  numero_factura?: string;
+  serie?: string;
+  fecha_emision: string;
+  fecha_vencimiento?: string;
+  created_at: string;
+}
+
+export interface Pago {
+  id: string;
+  factura_id: string;
+  clinica_id: string;
+  monto: number;
+  metodo_pago: 'efectivo' | 'tarjeta' | 'transferencia' | 'seguro';
+  fecha_pago: string;
+  created_at: string;
 }

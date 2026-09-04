@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, CheckCircle, XCircle, Plus } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../services/db/localDb';
+import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
 import type { Cita, Paciente } from '../types';
@@ -13,27 +12,28 @@ interface CitaConPaciente extends Cita {
 export default function Agenda() {
   const { usuarioActual } = useAuth();
   
-  // Obtener citas del médico actual
-  const citasDb = useLiveQuery(
-    () => {
-      if (!usuarioActual?.id) return [];
-      return db.citas.where('medicoId').equals(usuarioActual.id).toArray();
-    },
-    [usuarioActual?.id]
-  );
-  
-  // Obtener pacientes para cruzar datos
-  const pacientesDb = useLiveQuery(
-    () => {
-      if (!usuarioActual?.id) return [];
-      return db.pacientes.where('medicoId').equals(usuarioActual.id).toArray();
-    },
-    [usuarioActual?.id]
-  );
+  const [citasDb, setCitasDb] = useState<Cita[]>([]);
+  const [pacientesDb, setPacientesDb] = useState<Paciente[]>([]);
 
   const [citasHoy, setCitasHoy] = useState<CitaConPaciente[]>([]);
   const [citasProximas, setCitasProximas] = useState<CitaConPaciente[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchDatos = async () => {
+    if (!usuarioActual?.clinica_id) return;
+    
+    const [citasRes, pacientesRes] = await Promise.all([
+      supabase.from('citas').select('*'), // RLS will filter by clinica_id
+      supabase.from('pacientes').select('*')
+    ]);
+
+    if (citasRes.data) setCitasDb(citasRes.data as Cita[]);
+    if (pacientesRes.data) setPacientesDb(pacientesRes.data as Paciente[]);
+  };
+
+  useEffect(() => {
+    fetchDatos();
+  }, [usuarioActual?.clinica_id]);
 
   useEffect(() => {
     if (citasDb && pacientesDb) {
@@ -45,43 +45,48 @@ export default function Agenda() {
 
       const cruzadas: CitaConPaciente[] = citasDb.map(cita => ({
         ...cita,
-        paciente: pacientesDb.find(p => p.id === cita.pacienteId)
+        paciente: pacientesDb.find(p => p.id === cita.paciente_id)
       }));
 
       // Separar por fecha y ordenar por hora
       const hoyCitas = cruzadas.filter(c => {
-        const fechaCita = new Date(c.fechaHora);
+        const fechaCita = new Date(c.fecha_hora);
         return fechaCita >= hoy && fechaCita < manana;
-      }).sort((a, b) => new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime());
+      }).sort((a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime());
 
       const proximasCitas = cruzadas.filter(c => {
-        const fechaCita = new Date(c.fechaHora);
+        const fechaCita = new Date(c.fecha_hora);
         return fechaCita >= manana;
-      }).sort((a, b) => new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime());
+      }).sort((a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime());
 
       setCitasHoy(hoyCitas);
       setCitasProximas(proximasCitas);
     }
   }, [citasDb, pacientesDb]);
 
-  const cambiarEstadoCita = async (citaId: number, nuevoEstado: 'completada' | 'cancelada') => {
+  const cambiarEstadoCita = async (citaId: string, nuevoEstado: 'completada' | 'cancelada') => {
     try {
-      await db.citas.update(citaId, { estado: nuevoEstado });
+      const { error } = await supabase.from('citas').update({ estado: nuevoEstado }).eq('id', citaId);
+      if (error) throw error;
+      fetchDatos(); // Refrescar datos
     } catch (error) {
       console.error('Error al actualizar estado:', error);
     }
   };
 
-  const handleSaveCita = async (fechaHora: string, motivo: string, pacienteId?: number) => {
-    if (!usuarioActual || !pacienteId) return;
+  const handleSaveCita = async (fecha_hora: string, motivo: string, paciente_id?: string) => {
+    if (!usuarioActual || !paciente_id) return;
     try {
-      await db.citas.add({
-        pacienteId: pacienteId,
-        medicoId: usuarioActual.id,
-        fechaHora,
+      const { error } = await supabase.from('citas').insert({
+        clinica_id: usuarioActual.clinica_id,
+        paciente_id,
+        medico_id: usuarioActual.id,
+        fecha_hora,
         motivo,
         estado: 'programada'
       });
+      if (error) throw error;
+      fetchDatos(); // Refrescar datos
     } catch (error) {
       console.error('Error al guardar nueva cita:', error);
       throw error;
@@ -89,7 +94,7 @@ export default function Agenda() {
   };
 
   const renderTarjetaCita = (cita: CitaConPaciente, destacada: boolean = false) => {
-    const isPasada = new Date(cita.fechaHora) < new Date() && cita.estado === 'programada';
+    const isPasada = new Date(cita.fecha_hora) < new Date() && cita.estado === 'programada';
     
     return (
       <div 
@@ -104,7 +109,7 @@ export default function Agenda() {
           <div className="flex items-center text-violet-600 font-bold">
             <Clock size={destacada ? 20 : 16} className="mr-2" />
             <span className={destacada ? 'text-lg' : 'text-md'}>
-              {new Date(cita.fechaHora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(cita.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
           <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${
@@ -198,7 +203,7 @@ export default function Agenda() {
                 <div key={cita.id} className="relative pl-4 border-l-4 border-violet-200">
                   <div className="absolute -left-1.5 top-2 w-2 h-2 bg-violet-500 rounded-full"></div>
                   <p className="text-xs font-bold text-violet-600 mb-1 uppercase tracking-wider">
-                    {new Date(cita.fechaHora).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    {new Date(cita.fecha_hora).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                   </p>
                   {renderTarjetaCita(cita)}
                 </div>

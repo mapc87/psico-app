@@ -1,17 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../services/db/localDb';
+import { supabase } from '../services/supabase/client';
+import type { Rol } from '../types';
 
 export default function ProtectedRoute({ requireAdmin = false, children }: { requireAdmin?: boolean, children?: React.ReactNode }) {
   const { usuarioActual, isLoading } = useAuth();
   const location = useLocation();
 
-  const rolActual = useLiveQuery(
-    () => usuarioActual?.rolId ? db.roles.get(usuarioActual.rolId) : null,
-    [usuarioActual?.rolId]
-  );
+  const [rolActual, setRolActual] = useState<Rol | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (usuarioActual?.rol === 'personal' && usuarioActual.rol_id) {
+      supabase.from('roles').select('*').eq('id', usuarioActual.rol_id).single()
+        .then(({ data }) => setRolActual(data as Rol || null))
+        .catch(() => setRolActual(null));
+    } else {
+      setRolActual(null);
+    }
+  }, [usuarioActual]);
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">Cargando sesión...</div>;
@@ -31,7 +38,7 @@ export default function ProtectedRoute({ requireAdmin = false, children }: { req
   if (usuarioActual.rol === 'personal') {
     // Si aún está cargando el rol de Dexie, mostramos loader o esperamos (para evitar redirecciones falsas)
     // Dexie react-hooks devuelve undefined mientras carga
-    if (rolActual === undefined && usuarioActual.rolId) {
+    if (rolActual === undefined && usuarioActual.rol_id) {
       return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">Verificando accesos...</div>;
     }
 

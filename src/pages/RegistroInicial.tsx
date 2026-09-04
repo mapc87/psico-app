@@ -1,65 +1,87 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, ShieldCheck } from 'lucide-react';
-import { db } from '../services/db/localDb';
+import { User, Mail, Lock, ShieldCheck, AlertCircle } from 'lucide-react';
+import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 
 export default function RegistroInicial() {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  
   const navigate = useNavigate();
-  const { needsFirstAdmin, login } = useAuth();
+  const { needsFirstAdmin } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validar que realmente no haya usuarios (medida extra de seguridad)
-    const count = await db.usuarios.count();
-    if (count > 0) {
-      alert('Error: Ya existe un administrador en el sistema.');
-      navigate('/login');
-      return;
-    }
+    setError('');
+    setLoading(true);
 
     try {
-      await db.usuarios.add({
-        nombre,
+      // Al ser el primer usuario, el parche SQL de Supabase
+      // lo convertirá automáticamente en SuperAdmin (Owner del SaaS)
+      const { data, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        rol: 'admin'
+        options: {
+          data: {
+            nombre: nombre,
+          }
+        }
       });
-      
-      // Auto-login después de crear
-      await login(email, password);
+
+      if (authError) {
+        throw authError;
+      }
+
+      // Si todo sale bien, la sesión iniciará automáticamente
       navigate('/dashboard');
       
-    } catch (error) {
-      console.error('Error creando el administrador', error);
-      alert('Hubo un error al crear la cuenta.');
+    } catch (error: any) {
+      console.error('Error creando la Organización', error);
+      setError(error.message || 'Hubo un error al crear la cuenta maestra.');
+      setLoading(false);
     }
   };
 
   // Si ya hay usuarios, expulsarlo de aquí
+  React.useEffect(() => {
+    if (!needsFirstAdmin) {
+      navigate('/login');
+    }
+  }, [needsFirstAdmin, navigate]);
+
   if (!needsFirstAdmin) {
-    navigate('/login');
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl max-w-md w-full border border-slate-100">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Elementos decorativos */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/20 blur-[120px] rounded-full pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/20 blur-[120px] rounded-full pointer-events-none"></div>
+
+      <div className="bg-white p-8 md:p-10 rounded-3xl shadow-2xl max-w-md w-full relative z-10">
         <div className="flex flex-col items-center mb-8 text-center">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-emerald-500/30">
             <ShieldCheck size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-800">Configuración Inicial</h2>
-          <p className="text-slate-500 mt-2 text-sm">Crea la cuenta de Administrador Maestro para comenzar a usar el sistema clínico.</p>
+          <h2 className="text-2xl font-bold text-slate-800">Crear Organización</h2>
+          <p className="text-slate-500 mt-2 text-sm">Estás configurando la cuenta maestra (SuperAdmin) dueña de todo el sistema SaaS.</p>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start text-red-600">
+            <AlertCircle size={18} className="mr-2 mt-0.5 shrink-0" />
+            <p className="text-sm font-medium">{error}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-bold text-slate-600 mb-1">Nombre Completo</label>
+            <label className="block text-sm font-bold text-slate-600 mb-1">Nombre del CEO / Dueño</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <User size={18} className="text-slate-400" />
@@ -68,7 +90,7 @@ export default function RegistroInicial() {
                 type="text" 
                 required
                 className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all"
-                placeholder="Dr. Juan Pérez"
+                placeholder="Ej. Carlos Mendoza"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
               />
@@ -76,7 +98,7 @@ export default function RegistroInicial() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-600 mb-1">Correo Electrónico (Usuario)</label>
+            <label className="block text-sm font-bold text-slate-600 mb-1">Correo Maestro</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Mail size={18} className="text-slate-400" />
@@ -85,7 +107,7 @@ export default function RegistroInicial() {
                 type="email" 
                 required
                 className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all"
-                placeholder="admin@clinica.com"
+                placeholder="ceo@misaas.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -93,7 +115,7 @@ export default function RegistroInicial() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-600 mb-1">Contraseña</label>
+            <label className="block text-sm font-bold text-slate-600 mb-1">Contraseña Segura</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Lock size={18} className="text-slate-400" />
@@ -101,8 +123,9 @@ export default function RegistroInicial() {
               <input 
                 type="password" 
                 required
+                minLength={6}
                 className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all"
-                placeholder="Crea una contraseña segura"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -111,9 +134,10 @@ export default function RegistroInicial() {
 
           <button 
             type="submit"
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:-translate-y-0.5 cursor-pointer mt-4"
+            disabled={loading}
+            className="w-full py-3.5 bg-slate-900 hover:bg-black disabled:bg-slate-400 text-white font-bold rounded-xl transition-all shadow-lg hover:-translate-y-0.5 cursor-pointer mt-4"
           >
-            Crear Administrador y Comenzar
+            {loading ? 'Inicializando Sistema...' : 'Crear Organización'}
           </button>
         </form>
       </div>

@@ -997,38 +997,7 @@ export default function PacienteDetalle() {
         onSave={handleSaveMedicamento}
       />
 
-      <ModalNuevaFactura 
-        isOpen={isFacturaModalOpen}
-        onClose={() => setIsFacturaModalOpen(false)}
-        onSave={() => {
-          // Refetch facturas
-          const fetchData = async () => {
-            const { data } = await supabase.from('facturas').select('*').eq('paciente_id', id).order('fecha_emision', { ascending: false });
-            if (data) setFacturas(data);
-          };
-          fetchData();
-        }}
-        pacienteId={id!}
-      />
 
-      {facturaSeleccionada && (
-        <ModalRegistrarPago 
-          isOpen={isPagoModalOpen}
-          onClose={() => {
-            setIsPagoModalOpen(false);
-            setFacturaSeleccionada(null);
-          }}
-          onSave={() => {
-            // Refetch facturas
-            const fetchData = async () => {
-              const { data } = await supabase.from('facturas').select('*').eq('paciente_id', id).order('fecha_emision', { ascending: false });
-              if (data) setFacturas(data);
-            };
-            fetchData();
-          }}
-          factura={facturaSeleccionada}
-        />
-      )}
 
       {consentimientoActivo && (
         <ModalFirma

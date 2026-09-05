@@ -19,7 +19,8 @@ export default function Roles() {
     verSignos: false,
     verHistorial: false,
     verDiagnosticos: false,
-    verMedicamentos: false
+    verMedicamentos: false,
+    verFinanzas: false
   });
 
   const [roles, setRoles] = useState<Rol[]>([]);
@@ -45,7 +46,8 @@ export default function Roles() {
       verSignos: false,
       verHistorial: false,
       verDiagnosticos: false,
-      verMedicamentos: false
+      verMedicamentos: false,
+      verFinanzas: false
     });
     setEditingRolId(null);
   };
@@ -93,7 +95,8 @@ export default function Roles() {
 
   const modulosPrincipales = [
     { key: 'verAgenda', label: 'Agenda y Calendario' },
-    { key: 'verPacientes', label: 'Lista de Pacientes' }
+    { key: 'verPacientes', label: 'Lista de Pacientes' },
+    { key: 'verFinanzas', label: 'Facturación y Finanzas' }
   ];
 
   const modulosExpediente = [
@@ -102,7 +105,7 @@ export default function Roles() {
     { key: 'verExamenes', label: 'Exámenes y Órdenes' },
     { key: 'verSignos', label: 'Signos Vitales y Triage' },
     { key: 'verHistorial', label: 'Historial / Notas Clínicas' },
-    { key: 'verDiagnosticos', label: 'Diagnósticos / Plan Tratamiento' },
+    { key: 'verDiagnosticos', label: 'Diagnósticos / Tratamiento' },
     { key: 'verMedicamentos', label: 'Recetas / Medicamentos' }
   ];
 

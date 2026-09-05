@@ -1,31 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Save, X, Edit2, Trash2, Key } from 'lucide-react';
+import { Users, Plus, Save, X, Edit2, Trash2, Key, Ticket } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import type { Usuario, Rol } from '../types';
+
+interface Invitacion {
+  id: string;
+  codigo: string;
+  rol_asignado: string;
+  usado: boolean;
+  created_at: string;
+}
 
 export default function Personal() {
   const { usuarioActual } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   
+  // Para editar usuario
   const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [rolId, setRolId] = useState<string | ''>('');
 
   const [personal, setPersonal] = useState<Usuario[]>([]);
+  const [invitaciones, setInvitaciones] = useState<Invitacion[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
   const [invitacionGenerada, setInvitacionGenerada] = useState<string | null>(null);
 
   const fetchDatos = async () => {
     if (!usuarioActual?.clinica_id) return;
-    const [personalRes, rolesRes] = await Promise.all([
+    const [personalRes, rolesRes, invRes] = await Promise.all([
       supabase.from('usuarios').select('*').eq('clinica_id', usuarioActual.clinica_id),
-      supabase.from('roles').select('*').eq('clinica_id', usuarioActual.clinica_id)
+      supabase.from('roles').select('*').eq('clinica_id', usuarioActual.clinica_id),
+      supabase.from('invitaciones').select('*').eq('clinica_id', usuarioActual.clinica_id).eq('usado', false)
     ]);
     if (personalRes.data) setPersonal(personalRes.data as Usuario[]);
     if (rolesRes.data) setRoles(rolesRes.data as Rol[]);
+    if (invRes.data) setInvitaciones(invRes.data as Invitacion[]);
   };
 
   useEffect(() => {
@@ -34,22 +44,20 @@ export default function Personal() {
 
   const resetForm = () => {
     setNombre('');
-    setEmail('');
-    setPassword('');
     setRolId('');
     setEditingUserId(null);
     setInvitacionGenerada(null);
   };
 
-  const handleOpenModal = (usuario?: Usuario) => {
-    if (usuario) {
-      setNombre(usuario.nombre);
-      setEmail(usuario.email);
-      setRolId(usuario.rol_id || '');
-      setEditingUserId(usuario.id || null);
-    } else {
-      resetForm();
-    }
+  const handleOpenEdit = (usuario: Usuario) => {
+    setNombre(usuario.nombre);
+    setRolId(usuario.rol_id || '');
+    setEditingUserId(usuario.id || null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenNewInv = () => {
+    resetForm();
     setIsModalOpen(true);
   };
 
@@ -86,12 +94,20 @@ export default function Personal() {
         return;
       }
       setInvitacionGenerada(codigo);
+      fetchDatos(); // Refrescar lista de invitaciones pendientes
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este miembro del personal? (En Supabase se requiere borrar su Auth Profile también).')) {
+    if (confirm('¿Estás seguro de eliminar este miembro del personal? (Se revocará su acceso)')) {
       await supabase.from('usuarios').delete().eq('id', id);
+      fetchDatos();
+    }
+  };
+
+  const handleDeleteInv = async (id: string) => {
+    if (confirm('¿Estás seguro de cancelar esta invitación?')) {
+      await supabase.from('invitaciones').delete().eq('id', id);
       fetchDatos();
     }
   };
@@ -108,63 +124,89 @@ export default function Personal() {
             <Users className="text-teal-600" size={32} />
             Gestión de Personal
           </h2>
-          <p className="text-slate-500 mt-2 font-medium">Administra las cuentas de tu equipo clínico y administrativo.</p>
+          <p className="text-slate-500 mt-2 font-medium">Administra las cuentas de tu equipo y genera invitaciones.</p>
         </div>
         <button 
-          onClick={() => handleOpenModal()}
+          onClick={handleOpenNewInv}
           className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md shadow-teal-500/20 transition-all duration-300 flex items-center cursor-pointer"
         >
           <Plus size={20} className="mr-2" />
-          Agregar Empleado
+          Generar Invitación
         </button>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
-        {personal && personal.length > 0 ? (
-          <table className="w-full">
-            <thead className="bg-slate-50/80 border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Email (Usuario)</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Rol Asignado</th>
-                <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Personal Activo */}
+        <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
+          <div className="p-4 bg-slate-50 border-b border-slate-100 font-bold text-slate-700 flex justify-between">
+            <span>Personal Activo</span>
+            <span className="bg-teal-100 text-teal-700 px-2 rounded-full text-sm">{personal.length}</span>
+          </div>
+          {personal && personal.length > 0 ? (
+            <ul className="divide-y divide-slate-100">
               {personal.map((empleado) => {
                 const rolEmpleado = roles?.find(r => r.id === empleado.rol_id);
                 return (
-                  <tr key={empleado.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold mr-3">
-                          {empleado.nombre.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-semibold text-slate-800">{empleado.nombre}</span>
+                  <li key={empleado.id} className="p-4 hover:bg-slate-50/50 flex justify-between items-center">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold mr-3">
+                        {empleado.nombre.charAt(0).toUpperCase()}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-600 font-medium">{empleado.email}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold uppercase tracking-wider">
-                        {rolEmpleado ? rolEmpleado.nombre : 'Rol Eliminado'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button onClick={() => handleOpenModal(empleado)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer inline-block mr-2"><Edit2 size={18} /></button>
-                      <button onClick={() => empleado.id && handleDelete(empleado.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer inline-block"><Trash2 size={18} /></button>
-                    </td>
-                  </tr>
+                      <div>
+                        <p className="font-bold text-slate-800">{empleado.nombre}</p>
+                        <p className="text-xs text-slate-500">{empleado.email}</p>
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-wider">
+                          {rolEmpleado ? rolEmpleado.nombre : 'Rol Eliminado'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleOpenEdit(empleado)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"><Edit2 size={16} /></button>
+                      <button onClick={() => empleado.id && handleDelete(empleado.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><Trash2 size={16} /></button>
+                    </div>
+                  </li>
                 );
               })}
-            </tbody>
-          </table>
-        ) : (
-          <div className="p-12 text-center">
-            <Users size={48} className="mx-auto text-slate-300 mb-4" />
-            <p className="text-lg font-semibold text-slate-500">No hay personal registrado</p>
-            <p className="text-sm text-slate-400 mt-2">Agrega a tus asistentes o secretarias para que puedan acceder al sistema.</p>
+            </ul>
+          ) : (
+            <div className="p-8 text-center text-slate-400 text-sm">No hay personal activo.</div>
+          )}
+        </div>
+
+        {/* Invitaciones Pendientes */}
+        <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
+          <div className="p-4 bg-slate-50 border-b border-slate-100 font-bold text-slate-700 flex justify-between">
+            <span>Invitaciones Pendientes</span>
+            <span className="bg-amber-100 text-amber-700 px-2 rounded-full text-sm">{invitaciones.length}</span>
           </div>
-        )}
+          {invitaciones && invitaciones.length > 0 ? (
+            <ul className="divide-y divide-slate-100">
+              {invitaciones.map((inv) => {
+                const rolAsignado = roles?.find(r => r.id === inv.rol_asignado);
+                return (
+                  <li key={inv.id} className="p-4 hover:bg-slate-50/50 flex justify-between items-center">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center mr-3">
+                        <Ticket size={20} />
+                      </div>
+                      <div>
+                        <p className="font-mono font-bold text-amber-700 tracking-wider">{inv.codigo}</p>
+                        <p className="text-xs text-slate-500">
+                          Asignará el rol: <b>{rolAsignado ? rolAsignado.nombre : 'Desconocido'}</b>
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <button onClick={() => handleDeleteInv(inv.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Cancelar invitación"><Trash2 size={16} /></button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="p-8 text-center text-slate-400 text-sm">No hay invitaciones pendientes.</div>
+          )}
+        </div>
       </div>
 
       {isModalOpen && (
@@ -173,7 +215,7 @@ export default function Personal() {
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-teal-50/50">
               <h3 className="text-xl font-bold text-teal-900 flex items-center">
                 <Users className="mr-2 text-teal-600" size={24} />
-                {editingUserId ? 'Editar Empleado' : 'Nuevo Empleado'}
+                {editingUserId ? 'Editar Empleado' : 'Generar Código de Invitación'}
               </h3>
               <button 
                 onClick={() => setIsModalOpen(false)}
@@ -188,66 +230,43 @@ export default function Personal() {
                 <div className="text-center py-8">
                   <h4 className="text-lg font-bold text-slate-800 mb-2">¡Invitación Generada!</h4>
                   <p className="text-slate-500 mb-6">Comparte este código con el nuevo empleado. Podrá usarlo al registrarse para unirse a tu clínica.</p>
-                  <div className="bg-slate-100 p-4 rounded-xl flex items-center justify-center font-mono text-2xl tracking-widest text-teal-700 font-bold border-2 border-teal-200 border-dashed">
+                  <div className="bg-slate-100 p-4 rounded-xl flex items-center justify-center font-mono text-3xl tracking-widest text-teal-700 font-bold border-2 border-teal-200 border-dashed">
                     {invitacionGenerada}
                   </div>
                 </div>
               ) : (
                 <form id="personalForm" onSubmit={handleSave} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-600 mb-2">Nombre Completo</label>
-                    <input 
-                      type="text"
-                      required
-                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none transition-all duration-300 text-slate-700 font-medium"
-                      value={nombre}
-                      onChange={(e) => setNombre(e.target.value)}
-                    />
-                  </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-600 mb-2">Correo Electrónico (Usuario)</label>
-                  <input 
-                    type="email"
-                    required
-                    className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none transition-all duration-300 text-slate-700 font-medium"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-600 mb-2 flex items-center">
-                    Contraseña de Acceso <Key size={14} className="ml-2 text-slate-400"/>
-                  </label>
-                  <input 
-                    type={editingUserId ? "text" : "password"}
-                    required={!editingUserId}
-                    className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none transition-all duration-300 text-slate-700 font-medium"
-                    placeholder={editingUserId ? "Deja en blanco para no cambiar" : ""}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-600 mb-2">Rol Asignado</label>
-                  <select
-                    required
-                    className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none transition-all duration-300 text-slate-700 font-medium cursor-pointer"
-                    value={rolId}
-                    onChange={(e) => setRolId(e.target.value)}
-                  >
-                    <option value="" disabled>Selecciona un rol...</option>
-                    {roles?.map(r => (
-                      <option key={r.id} value={r.id}>{r.nombre}</option>
-                    ))}
-                  </select>
-                  {roles?.length === 0 && (
-                    <p className="text-xs text-amber-600 mt-2 font-semibold">⚠️ No tienes roles creados. Ve a la sección de "Roles y Permisos" primero.</p>
+                  {editingUserId && (
+                    <div>
+                      <label className="block text-sm font-bold text-slate-600 mb-2">Nombre Completo</label>
+                      <input 
+                        type="text"
+                        required
+                        className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none transition-all duration-300 text-slate-700 font-medium"
+                        value={nombre}
+                        onChange={(e) => setNombre(e.target.value)}
+                      />
+                    </div>
                   )}
-                </div>
-              </form>
+
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-2">Selecciona el Rol Asignado</label>
+                    <select
+                      required
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none transition-all duration-300 text-slate-700 font-medium cursor-pointer"
+                      value={rolId}
+                      onChange={(e) => setRolId(e.target.value)}
+                    >
+                      <option value="" disabled>Selecciona un rol...</option>
+                      {roles?.map(r => (
+                        <option key={r.id} value={r.id}>{r.nombre}</option>
+                      ))}
+                    </select>
+                    {roles?.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-2 font-semibold">⚠️ No tienes roles creados. Ve a la sección de "Roles y Permisos" primero.</p>
+                    )}
+                  </div>
+                </form>
               )}
             </div>
 
@@ -266,7 +285,7 @@ export default function Personal() {
                   className="flex items-center px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-all duration-300 shadow-md shadow-teal-500/20 cursor-pointer"
                 >
                   <Save size={18} className="mr-2" />
-                  Guardar Empleado
+                  {editingUserId ? 'Guardar Cambios' : 'Generar Código'}
                 </button>
               )}
             </div>

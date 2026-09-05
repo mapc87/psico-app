@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Wallet, TrendingUp, AlertCircle, Search, Filter, Receipt, DollarSign, Calendar, Printer } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
@@ -275,12 +276,13 @@ export default function FinanzasGlobal() {
         }}
       />
 
-      {/* Componente oculto que solo se muestra al imprimir */}
-      {facturaAImprimir && (
+      {/* Componente oculto que solo se muestra al imprimir, usando Portal para evitar problemas de layouts padre */}
+      {facturaAImprimir && createPortal(
         <FacturaImprimible 
           factura={facturaAImprimir} 
           clinicaConfig={clinicaConfig} 
-        />
+        />,
+        document.body
       )}
     </div>
   );

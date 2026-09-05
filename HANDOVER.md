@@ -31,6 +31,7 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 - Se estandarizó la moneda del sistema a **Quetzales (Q.)**.
 - Se adaptó la base de datos para soportar los requerimientos legales de Guatemala (SAT), incluyendo campos como **NIT**, **Razón Social** en los pacientes, y **Número de Factura, Serie y Autorización (FEL)** en las facturas.
 - Las clínicas pueden configurar sus propios datos fiscales (NIT, Dirección Fiscal, No. Patente, etc.) a través de `/configuracion`.
+- **Impresión Térmica (POS):** Se implementó un módulo para imprimir facturas en formato de ticket utilizando CSS `@media print` y `React Portals` (aislando el componente `FacturaImprimible.tsx` en el `document.body`) para forzar un ancho de 80mm y márgenes de auto-corte, ideal para impresoras térmicas.
 
 ### Correos Electrónicos
 - Se implementó la integración con **EmailJS** para el envío de invitaciones de clínica y personal.

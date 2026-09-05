@@ -21,3 +21,31 @@
     @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
   }
 }
+
+@media print {
+  /* Ocultar toda la interfaz que no es la factura */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Mostrar solamente el contenedor imprimible y sus hijos */
+  #printable-invoice, #printable-invoice * {
+    visibility: visible;
+  }
+  
+  /* Ajustar la posición al tope de la página */
+  #printable-invoice {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white;
+  }
+
+  @page {
+    size: letter;
+    margin: 1cm;
+  }
+}

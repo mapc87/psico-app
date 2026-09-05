@@ -34,18 +34,21 @@
   }
   
   /* Ajustar la posición al tope de la página */
+  /* Ajustar la posición al tope de la página y establecer tamaño exacto del ticket */
   #printable-invoice {
     position: absolute;
     left: 0;
     top: 0;
-    width: 100%;
+    width: 80mm;
     margin: 0;
-    padding: 20px;
+    /* 5mm a los lados, y 20mm abajo para dejar espacio a la cuchilla de corte (Auto-Cutter) */
+    padding: 5mm 5mm 20mm 5mm;
     background: white;
   }
 
   @page {
-    size: letter;
-    margin: 1cm;
+    /* Define el ancho de rollo de 80mm y largo automático */
+    size: 80mm auto;
+    margin: 0;
   }
 }

@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Calendar, Activity, FileText, Pill, Heart, Thermometer, Wind, Scale, AlertTriangle, CalendarPlus, ClipboardList, Printer, Clock, Wallet, DollarSign, Receipt, AlertCircle, BrainCircuit, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X } from 'lucide-react';
+import { ArrowLeft, User, Calendar, Activity, FileText, Pill, Heart, Thermometer, Wind, Scale, AlertTriangle, CalendarPlus, ClipboardList, Printer, Clock, Wallet, DollarSign, Receipt, AlertCircle, BrainCircuit, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, Mail } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
+import { emailService } from '../services/email/emailService';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
 import ModalNuevoExamen from '../components/examenes/ModalNuevoExamen';
 import OrdenExamenPrint from '../components/examenes/OrdenExamenPrint';
@@ -14,8 +15,11 @@ import ModalNuevoDiagnostico from '../components/diagnosticos/ModalNuevoDiagnost
 import ModalNuevoMedicamento from '../components/medicamentos/ModalNuevoMedicamento';
 import RecetaPrint from '../components/medicamentos/RecetaPrint';
 import ModalFirma from '../components/documentos/ModalFirma';
+import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
+import Toast from '../components/common/Toast';
 import { useReactToPrint } from 'react-to-print';
 import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento } from '../types';
+import type { SendEmailResult } from '../services/email/emailService';
 
 export default function PacienteDetalle() {
   const { id } = useParams();
@@ -45,6 +49,30 @@ export default function PacienteDetalle() {
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
   const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
+
+  const [modalCorreoState, setModalCorreoState] = useState<{
+    isOpen: boolean;
+    titulo: string;
+    subtitulo?: string;
+    emailDefault?: string;
+    onSend: (email: string) => Promise<SendEmailResult>;
+  }>({
+    isOpen: false,
+    titulo: '',
+    onSend: async () => ({ success: false, mode: 'demo' }),
+  });
+
+  const [toast, setToast] = useState<{ isVisible: boolean; message: string; type?: 'success' | 'error' | 'info' }>({
+    isVisible: false,
+    message: '',
+  });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ isVisible: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, isVisible: false }));
+    }, 4000);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -235,6 +263,93 @@ export default function PacienteDetalle() {
     documentTitle: `Receta_${paciente?.nombre?.replace(/\s+/g, '_') || 'Paciente'}_${new Date().toISOString().split('T')[0]}`
   });
 
+  const handleEnviarRecetaEmail = () => {
+    const medsActivos = medicamentos?.filter(m => m.estado === 'activo') || [];
+    if (medsActivos.length === 0) {
+      showToast('No hay medicamentos activos para enviar en la receta.', 'error');
+      return;
+    }
+
+    setModalCorreoState({
+      isOpen: true,
+      titulo: 'Enviar Receta Médica por Correo',
+      subtitulo: 'Se enviará la receta médica digital con todos los tratamientos activos prescritos.',
+      emailDefault: paciente?.email || '',
+      onSend: async (correo) => {
+        const res = await emailService.enviarRecetaMedica(correo, {
+          pacienteNombre: paciente?.nombre || 'Paciente',
+          medicamentos: medsActivos,
+          doctorNombre: usuarioActual?.nombre || 'Doctor Atendiente',
+        });
+        if (res.success) {
+          showToast(`Receta médica enviada a ${correo}`);
+        }
+        return res;
+      },
+    });
+  };
+
+  const handleEnviarFirmaEmail = (doc: ConsentimientoFirmado) => {
+    setModalCorreoState({
+      isOpen: true,
+      titulo: 'Enviar Enlace de Firma Remota',
+      subtitulo: `Documento: "${doc.titulo}". El paciente recibirá un enlace seguro para firmar.`,
+      emailDefault: paciente?.email || '',
+      onSend: async (correo) => {
+        const urlFirma = `${window.location.origin}/firmar/${doc.id}`;
+        const res = await emailService.enviarFirmaRemota(correo, {
+          pacienteNombre: paciente?.nombre || 'Paciente',
+          documentoTitulo: doc.titulo,
+          urlFirma,
+        });
+        if (res.success) {
+          showToast(`Enlace de firma enviado a ${correo}`);
+        }
+        return res;
+      },
+    });
+  };
+
+  const handleCrearYEnviarDocumentoRemoto = (p: PlantillaDocumento) => {
+    setModalCorreoState({
+      isOpen: true,
+      titulo: 'Generar y Enviar Documento por Correo',
+      subtitulo: `Plantilla: "${p.titulo}". Se registrará el consentimiento legal y se enviará por correo.`,
+      emailDefault: paciente?.email || '',
+      onSend: async (correo) => {
+        const { data, error } = await supabase.from('consentimientos_firmados').insert({
+          clinica_id: usuarioActual!.clinica_id,
+          paciente_id: id!,
+          plantilla_id: p.id,
+          titulo: p.titulo,
+          contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
+          firma_data_url: '',
+          estado: 'pendiente',
+          fecha_firma: new Date().toISOString()
+        }).select().single();
+
+        if (error) {
+          return { success: false, error: error.message, mode: 'resend' };
+        }
+
+        if (data) {
+          setConsentimientos([data, ...consentimientos]);
+          const urlFirma = `${window.location.origin}/firmar/${data.id}`;
+          const res = await emailService.enviarFirmaRemota(correo, {
+            pacienteNombre: paciente?.nombre || 'Paciente',
+            documentoTitulo: data.titulo,
+            urlFirma,
+          });
+          if (res.success) {
+            showToast(`Documento generado y correo enviado a ${correo}`);
+          }
+          return res;
+        }
+        return { success: false, error: 'Error creando consentimiento', mode: 'resend' };
+      },
+    });
+  };
+
   const calcularEdad = (fechaNacimiento?: string) => {
     if (!fechaNacimiento) return 0;
     const hoy = new Date();
@@ -283,11 +398,10 @@ export default function PacienteDetalle() {
 
     const allTabs = [
     { id: 'resumen', label: 'Resumen', icon: <User size={18} />, key: 'verResumen' },
+    { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
     { id: 'citas', label: 'Citas', icon: <CalendarPlus size={18} />, key: 'verCitas' },
     { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={18} />, key: 'verExamenes' },
     { id: 'signos', label: 'Signos Vitales', icon: <Heart size={18} />, key: 'verSignos' },
-    { id: 'historial', label: 'Historial', icon: <FileText size={18} />, key: 'verHistorial' },
-    { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
     { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={18} />, key: 'verMedicamentos' },
   ];
 
@@ -385,7 +499,16 @@ export default function PacienteDetalle() {
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-violet-400 uppercase tracking-wider mb-0.5">Próxima Cita</h4>
-                    <p className="text-violet-900 font-semibold text-sm">Jueves, 24 Nov - 16:00 hrs</p>
+                    {(() => {
+                      const proxima = citas?.find(c => c.estado === 'programada');
+                      if (!proxima) return <p className="text-violet-900/60 font-semibold text-sm">Sin citas programadas</p>;
+                      const raw = proxima.fecha_hora || proxima.fechaHora;
+                      const dateObj = raw ? new Date(raw) : null;
+                      const fechaStr = dateObj && !isNaN(dateObj.getTime())
+                        ? dateObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) + ' - ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' hrs'
+                        : 'Fecha pendiente';
+                      return <p className="text-violet-900 font-semibold text-sm capitalize">{fechaStr}</p>;
+                    })()}
                   </div>
                 </div>
                 
@@ -471,29 +594,41 @@ export default function PacienteDetalle() {
               
               {citas && citas.length > 0 ? (
                 <div className="space-y-4">
-                  {citas.map((cita) => (
-                    <div key={cita.id} className="p-5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between hover:shadow-sm transition-all duration-300">
-                      <div className="flex items-center">
-                        <div className={`p-3 rounded-xl mr-4 ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-600' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                          <Calendar size={20} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-800 text-lg">
-                            {new Date(cita.fechaHora).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                          </p>
-                          <div className="flex items-center text-sm font-medium mt-1">
-                            <span className="text-violet-600 mr-3">{new Date(cita.fechaHora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                            <span className="text-slate-500">{cita.motivo}</span>
+                  {citas.map((cita) => {
+                    const rawFecha = cita.fecha_hora || cita.fechaHora;
+                    const dateObj = rawFecha ? new Date(rawFecha) : null;
+                    const fechaValida = dateObj && !isNaN(dateObj.getTime());
+                    const fechaTexto = fechaValida
+                      ? dateObj.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                      : 'Fecha no válida';
+                    const horaTexto = fechaValida
+                      ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : '';
+
+                    return (
+                      <div key={cita.id} className="p-5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between hover:shadow-sm transition-all duration-300">
+                        <div className="flex items-center">
+                          <div className={`p-3 rounded-xl mr-4 ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-600' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                            <Calendar size={20} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800 text-lg capitalize">
+                              {fechaTexto}
+                            </p>
+                            <div className="flex items-center text-sm font-medium mt-1">
+                              {horaTexto && <span className="text-violet-600 mr-3">{horaTexto} hrs</span>}
+                              <span className="text-slate-500">{cita.motivo}</span>
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right">
+                           <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-700' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                             {cita.estado}
+                           </span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                         <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-700' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                           {cita.estado}
-                         </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 text-center text-slate-500">
@@ -753,6 +888,14 @@ export default function PacienteDetalle() {
                   )}
                 </div>
                 <div className="flex space-x-3">
+                  <button 
+                    onClick={handleEnviarRecetaEmail}
+                    disabled={!medicamentos || medicamentos.filter(m => m.estado === 'activo').length === 0}
+                    className="flex items-center px-4 py-2.5 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-900 border border-rose-200 rounded-xl text-sm font-bold transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    <Mail size={16} className="mr-2" />
+                    Enviar por Correo
+                  </button>
                   <button 
                     onClick={handlePrintReceta}
                     disabled={!medicamentos || medicamentos.filter(m => m.estado === 'activo').length === 0}
@@ -1093,30 +1236,42 @@ export default function PacienteDetalle() {
                       Generar Documento
                     </button>
                     {/* Dropdown de plantillas */}
-                    <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-slate-100 shadow-xl rounded-xl p-2 hidden group-hover:block peer-hover:block hover:block z-20">
+                    <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-slate-100 shadow-xl rounded-2xl p-2.5 hidden group-hover:block peer-hover:block hover:block z-20">
                       <p className="text-xs font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Seleccionar Plantilla</p>
                       {plantillas.map(p => (
-                        <button
-                          key={p.id}
-                          onClick={() => {
-                            const nuevoConsentimiento: ConsentimientoFirmado = {
-                              id: 'temp-' + Date.now(),
-                              clinica_id: usuarioActual!.clinica_id,
-                              paciente_id: id!,
-                              plantilla_id: p.id,
-                              titulo: p.titulo,
-                              contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
-                              firma_data_url: '',
-                              fecha_firma: new Date().toISOString(),
-                              estado: 'pendiente'
-                            };
-                            setConsentimientoActivo(nuevoConsentimiento);
-                            setIsFirmaModalOpen(true);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg transition-colors font-medium truncate"
-                        >
-                          {p.titulo}
-                        </button>
+                        <div key={p.id} className="p-2 hover:bg-slate-50 rounded-xl transition-colors border-b border-slate-50 last:border-0">
+                          <p className="text-sm font-bold text-slate-800 mb-1.5 px-1 truncate" title={p.titulo}>{p.titulo}</p>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                              onClick={() => {
+                                const nuevoConsentimiento: ConsentimientoFirmado = {
+                                  id: 'temp-' + Date.now(),
+                                  clinica_id: usuarioActual!.clinica_id,
+                                  paciente_id: id!,
+                                  plantilla_id: p.id,
+                                  titulo: p.titulo,
+                                  contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
+                                  firma_data_url: '',
+                                  fecha_firma: new Date().toISOString(),
+                                  estado: 'pendiente'
+                                };
+                                setConsentimientoActivo(nuevoConsentimiento);
+                                setIsFirmaModalOpen(true);
+                              }}
+                              className="px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer"
+                            >
+                              <PenTool size={12} className="mr-1" />
+                              Presencial
+                            </button>
+                            <button
+                              onClick={() => handleCrearYEnviarDocumentoRemoto(p)}
+                              className="px-2 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer shadow-sm"
+                            >
+                              <Mail size={12} className="mr-1" />
+                              Por Correo
+                            </button>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -1179,6 +1334,14 @@ export default function PacienteDetalle() {
                           </button>
                           
                           <button 
+                            onClick={() => handleEnviarFirmaEmail(doc)}
+                            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center shadow-sm"
+                          >
+                            <Mail size={16} className="mr-2" />
+                            Enviar Enlace por Correo
+                          </button>
+
+                          <button 
                             onClick={() => {
                               const url = `${window.location.origin}/firmar/${doc.id}`;
                               navigator.clipboard.writeText(url);
@@ -1202,11 +1365,27 @@ export default function PacienteDetalle() {
                 </div>
               )}
             </div>
-          
-            </div>
           </div>
         </div>
+      </div>
       )}
+      {/* Modal de Envío de Correo Personalizado */}
+      <ModalEnviarCorreo
+        isOpen={modalCorreoState.isOpen}
+        onClose={() => setModalCorreoState(prev => ({ ...prev, isOpen: false }))}
+        titulo={modalCorreoState.titulo}
+        subtitulo={modalCorreoState.subtitulo}
+        emailDefault={modalCorreoState.emailDefault}
+        onSend={modalCorreoState.onSend}
+      />
+
+      {/* Toast Flotante Elegante */}
+      <Toast
+        isVisible={toast.isVisible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+      />
     </div>
   );
 }

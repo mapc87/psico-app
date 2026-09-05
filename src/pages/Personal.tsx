@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Save, X, Edit2, Trash2, Key, Ticket } from 'lucide-react';
+import { Users, Plus, Save, X, Edit2, Trash2, Key, Ticket, Mail } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import type { Usuario, Rol } from '../types';
+import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
+import Toast from '../components/common/Toast';
+import { emailService } from '../services/email/emailService';
 
 interface Invitacion {
   id: string;
@@ -26,6 +29,16 @@ export default function Personal() {
   const [invitaciones, setInvitaciones] = useState<Invitacion[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
   const [invitacionGenerada, setInvitacionGenerada] = useState<string | null>(null);
+
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [toastConfig, setToastConfig] = useState<{show: boolean, message: string, type: 'success' | 'error' | 'info'}>({ show: false, message: '', type: 'info' });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToastConfig({ show: true, message, type });
+    setTimeout(() => {
+      setToastConfig(prev => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   const fetchDatos = async () => {
     if (!usuarioActual?.clinica_id) return;
@@ -122,6 +135,31 @@ export default function Personal() {
     
     setDeleteConfirm(null);
     fetchDatos();
+  };
+
+  const handleEnviarInvitacionEmail = async (email: string) => {
+    if (!invitacionGenerada) return;
+    
+    const rol = roles.find(r => r.id === rolId);
+    const rolNombre = rol ? rol.nombre : 'Empleado';
+    const clinicaNombre = 'PsicoApp'; 
+    
+    try {
+      const result = await emailService.enviarInvitacionClinica(email, {
+        clinicaNombre,
+        codigoInvitacion: invitacionGenerada,
+        rolNombre
+      });
+      
+      if (result.success) {
+        showToast('Invitación enviada por correo electrónico', 'success');
+        setShowEmailModal(false);
+      } else {
+        showToast('Error al enviar el correo', 'error');
+      }
+    } catch (error) {
+      showToast('Error de red al enviar correo', 'error');
+    }
   };
 
   if (usuarioActual?.rol !== 'admin' && usuarioActual?.rol !== 'doctor') {
@@ -245,6 +283,14 @@ export default function Personal() {
                   <div className="bg-slate-100 p-4 rounded-xl flex items-center justify-center font-mono text-3xl tracking-widest text-teal-700 font-bold border-2 border-teal-200 border-dashed">
                     {invitacionGenerada}
                   </div>
+                  <button 
+                    onClick={() => setShowEmailModal(true)}
+                    type="button"
+                    className="mt-6 w-full flex justify-center items-center px-4 py-3 bg-white border border-teal-200 text-teal-700 font-bold rounded-xl shadow-sm hover:bg-teal-50 transition-all duration-300 cursor-pointer"
+                  >
+                    <Mail size={18} className="mr-2" />
+                    Enviar por correo electrónico
+                  </button>
                 </div>
               ) : (
                 <form id="personalForm" onSubmit={handleSave} className="space-y-5">
@@ -338,6 +384,21 @@ export default function Personal() {
           </div>
         </div>
       )}
+
+      <ModalEnviarCorreo
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        onSend={handleEnviarInvitacionEmail}
+        title="Enviar Invitación por Correo"
+        description="Ingresa el correo electrónico del nuevo empleado para enviarle el código de invitación y las instrucciones de registro."
+      />
+
+      <Toast 
+        show={toastConfig.show} 
+        message={toastConfig.message} 
+        type={toastConfig.type} 
+        onClose={() => setToastConfig(prev => ({ ...prev, show: false }))} 
+      />
     </div>
   );
 }

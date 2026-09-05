@@ -262,6 +262,17 @@ export default function Dashboard() {
     return new Date(a.fecha_nacimiento).getDate() - new Date(b.fecha_nacimiento).getDate();
   });
 
+  const obtenerSaludo = () => {
+    const hora = new Date().getHours();
+    if (hora >= 5 && hora < 12) {
+      return 'Buenos días';
+    } else if (hora >= 12 && hora < 19) {
+      return 'Buenas tardes';
+    } else {
+      return 'Buenas noches';
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
@@ -269,7 +280,7 @@ export default function Dashboard() {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">
-            Buenos días, {usuarioActual?.nombre.split(' ')[0]}
+            {obtenerSaludo()}, {usuarioActual?.nombre.split(' ')[0]}
           </h1>
           <p className="text-slate-500 font-medium mt-1">Aquí tienes el resumen de tu clínica hoy.</p>
         </div>

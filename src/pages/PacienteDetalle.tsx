@@ -366,39 +366,36 @@ export default function PacienteDetalle() {
           {/* Pestaña: Resumen */}
           {activeTab === 'resumen' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 hover:shadow-md transition-shadow duration-300">
-                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Datos del Responsable</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-100 flex flex-col justify-center">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Responsable</h4>
                   {paciente.nombreResponsable ? (
-                    <div className="space-y-2">
-                      <p className="text-slate-700"><strong>Nombre:</strong> {paciente.nombreResponsable} ({paciente.parentesco})</p>
-                      <p className="text-slate-700"><strong>Teléfono:</strong> {paciente.telefonoResponsable}</p>
-                      <p className="text-slate-700"><strong>Estado Civil:</strong> {paciente.estadoCivilPadres}</p>
+                    <div className="text-sm">
+                      <p className="text-slate-700 font-semibold">{paciente.nombreResponsable} <span className="font-normal text-slate-500">({paciente.parentesco})</span></p>
+                      <p className="text-slate-500">{paciente.telefonoResponsable}</p>
                     </div>
                   ) : (
-                    <p className="text-slate-500 italic">No hay responsable registrado (Paciente adulto)</p>
+                    <p className="text-slate-500 text-sm italic">Sin responsable</p>
                   )}
                 </div>
                 
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="p-6 bg-gradient-to-br from-violet-50 to-fuchsia-50 rounded-2xl border border-violet-100 flex items-start hover:shadow-md transition-shadow duration-300">
-                    <div className="p-3 bg-white rounded-xl shadow-sm mr-4 text-violet-500">
-                      <Calendar size={24} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-violet-400 uppercase tracking-wider mb-1">Próxima Cita</h4>
-                      <p className="text-violet-900 font-semibold text-lg">Jueves, 24 Nov - 16:00 hrs</p>
-                    </div>
+                <div className="p-4 bg-violet-50/50 rounded-xl border border-violet-100 flex items-center">
+                  <div className="p-2 bg-white rounded-lg shadow-sm mr-3 text-violet-500">
+                    <Calendar size={20} />
                   </div>
-                  
-                  <div className="p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100 flex items-start hover:shadow-md transition-shadow duration-300">
-                    <div className="p-3 bg-white rounded-xl shadow-sm mr-4 text-emerald-500">
-                      <FileText size={24} />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-emerald-500 uppercase tracking-wider mb-1">Ingreso al Consultorio</h4>
-                      <p className="text-emerald-900 font-semibold text-lg">{paciente.fechaIngreso}</p>
-                    </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-violet-400 uppercase tracking-wider mb-0.5">Próxima Cita</h4>
+                    <p className="text-violet-900 font-semibold text-sm">Jueves, 24 Nov - 16:00 hrs</p>
+                  </div>
+                </div>
+                
+                <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100 flex items-center">
+                  <div className="p-2 bg-white rounded-lg shadow-sm mr-3 text-emerald-500">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-0.5">Ingreso al Consultorio</h4>
+                    <p className="text-emerald-900 font-semibold text-sm">{paciente.fechaIngreso}</p>
                   </div>
                 </div>
               </div>
@@ -453,9 +450,9 @@ export default function PacienteDetalle() {
                   <FileText size={48} className="mx-auto text-slate-300 mb-4" />
                   <p className="text-lg font-semibold text-slate-500">Aún no hay notas clínicas</p>
                   <p className="text-sm text-slate-400 mt-2">Usa "+ Nota Manual" o "Redactar con IA" para registrar la primera evolución del paciente.</p>
-                
-              </div>
-</div>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Pestaña: Citas */}

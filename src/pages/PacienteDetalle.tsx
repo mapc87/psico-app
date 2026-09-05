@@ -569,9 +569,6 @@ export default function PacienteDetalle() {
             </div>
           )}
 
-          
-            </div>
-          )}
 
           {/* Pestaña: Diagnósticos */}
           {activeTab === 'diagnosticos' && (

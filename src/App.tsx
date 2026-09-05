@@ -6,6 +6,8 @@ import Pacientes from './pages/Pacientes';
 import Agenda from './pages/Agenda';
 import NuevoPaciente from './pages/NuevoPaciente';
 import PacienteDetalle from './pages/PacienteDetalle';
+import Consentimientos from './pages/Consentimientos';
+import FirmaRemota from './pages/FirmaRemota';
 import FinanzasGlobal from './pages/FinanzasGlobal';
 import Login from './pages/Login';
 import RegistroInicial from './pages/RegistroInicial';
@@ -24,6 +26,7 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/registro-inicial" element={<RegistroInicial />} />
       <Route path="/registro" element={<RegistroInvitado />} />
+      <Route path="/firmar/:id" element={<FirmaRemota />} />
 
       {/* Rutas Privadas (Protegidas) */}
       <Route element={<ProtectedRoute />}>
@@ -34,6 +37,7 @@ function AppRoutes() {
           <Route path="/pacientes/nuevo" element={<NuevoPaciente />} />
           <Route path="/pacientes/:id" element={<PacienteDetalle />} />
           <Route path="/agenda" element={<Agenda />} />
+          <Route path="/consentimientos" element={<Consentimientos />} />
           <Route path="/finanzas" element={<FinanzasGlobal />} />
           <Route path="/roles" element={<Roles />} />
           <Route path="/personal" element={<Personal />} />

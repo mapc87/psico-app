@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
-import { LayoutDashboard, Users, Calendar, LogOut, Shield, Activity, UsersRound, Wallet } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Permisos } from '../types';
 
@@ -35,6 +35,7 @@ export default function MainLayout() {
     navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
     navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
     navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
+    navItems.push({ icon: <FileSignature size={20} />, label: 'Documentos', path: '/consentimientos' });
   } else if (usuarioActual?.rol === 'personal' && permisos) {
     if (permisos.verAgenda) navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
     if (permisos.verPacientes) navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });

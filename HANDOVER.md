@@ -3,7 +3,7 @@
 Este documento contiene el estado actual de la arquitectura de la aplicación PsicoApp. Está diseñado para ser leído por un agente de IA en una nueva conversación para continuar el trabajo exactamente donde se quedó.
 
 ## 1. Arquitectura General
-El sistema ha sido migrado de una base de datos local (Dexie.js) a un modelo **SaaS Multi-Tenant B2B** utilizando **Supabase (PostgreSQL)**.
+El sistema utiliza un modelo **SaaS Multi-Tenant B2B** utilizando **Supabase (PostgreSQL)** y el frontend en **React (Vite)**.
 El sistema soporta múltiples clínicas operando de forma aislada gracias a las políticas de Row Level Security (RLS).
 
 ### Jerarquía de Roles:
@@ -20,33 +20,33 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
    - Se registran con un código generado por el Admin de la clínica.
    - Tienen un `rol_id` (tabla `roles`) que define permisos granulares (verAgenda, verPacientes, etc.).
 
-## 2. Estado de la Migración a Supabase
+## 2. Características Completadas (Historial de Desarrollo)
 
-### ✅ Lo que YA está completado:
-- **Base de Datos:** Tablas creadas en Supabase (`clinicas`, `usuarios`, `pacientes`, `citas`, `invitaciones`, etc.).
-- **Seguridad (RLS):** Políticas implementadas. Los usuarios solo ven datos de su propia clínica mediante `get_user_clinica_id()`. El SuperAdmin bypasses esto para ver clínicas y usuarios.
-- **Triggers y RPC:**
-  - Trigger `handle_new_user` configurado en `auth.users` para interceptar registros y asignar roles (SuperAdmin si es el 1ro, o Admin/Personal si trae código de invitación válido).
-  - Función RPC `check_has_users()` para que el frontend (`AuthContext.tsx`) sepa si debe mostrar el formulario de "Crear Organización" o el Login normal.
-- **Frontend Core (Refactorizado):**
-  - `src/types/index.ts`: Todos los tipos actualizados a Snake Case y con UUIDs (`id: string`, `clinica_id: string`) para coincidir con PostgreSQL.
-  - `src/context/AuthContext.tsx`: Conectado 100% a Supabase Auth. Maneja el estado de la sesión, auto-cierre si el perfil fue borrado en BD, y chequeo de primer administrador.
-  - `src/pages/Login.tsx`: Adaptado para Supabase.
-  - `src/pages/RegistroInicial.tsx`: Pantalla exclusiva para la creación del SuperAdmin.
-  - `src/pages/RegistroInvitado.tsx`: Nueva pantalla para que los Doctores se registren usando un Código de Invitación.
-  - `src/pages/Dashboard.tsx`: Ramificado en dos vistas. La vista de Organización (SuperAdmin) permite crear clínicas y generar códigos. La vista Médica carga pacientes y citas desde Supabase.
+### Base de Datos y Seguridad
+- **Unificación de Scripts SQL:** Todos los scripts de creación y migración se han unificado en un solo archivo `init_database_full.sql`. Puedes ejecutar este script completo en una nueva instancia de Supabase para inicializar toda la estructura.
+- **RLS y Permisos:** Políticas implementadas para asegurar que cada clínica solo vea sus propios datos. Se corrigió un bug (`fix_admin_invitations.sql`) que impedía a los administradores crear invitaciones para su personal.
 
-### 🚧 Lo que FALTA por refactorizar (TAREA PARA EL PRÓXIMO AGENTE):
-¡La migración inicial a Supabase ha sido completada! Todos los módulos listados anteriormente (Pacientes, Agenda, Roles, Personal, Layouts) han sido refactorizados exitosamente para depender de Supabase y no de Dexie.js.
+### Facturación y Finanzas (Guatemala)
+- Se estandarizó la moneda del sistema a **Quetzales (Q.)**.
+- Se adaptó la base de datos para soportar los requerimientos legales de Guatemala (SAT), incluyendo campos como **NIT**, **Razón Social** en los pacientes (`migration_nit.sql`), y **Número de Factura, Serie y Autorización (FEL)** en las facturas (`migration_fel.sql`).
+- La vista `FinanzasGlobal.tsx` permite al administrador visualizar ingresos, registrar pagos (completos o parciales) y llevar el control financiero.
 
-Cualquier trabajo futuro debería enfocarse en mejoras, testing, o nuevas funcionalidades utilizando la infraestructura de Supabase ya establecida.
+### Consentimientos Informados y Firmas Digitales
+- Se creó la tabla `plantillas_documentos` para gestionar plantillas predeterminadas de clínica (con un trigger para crear la plantilla estándar automáticamente al registrar una clínica).
+- Se implementó la firma presencial (lienzo táctil en `ModalFirma.tsx`) desde el expediente del paciente.
+- Se implementó la ruta pública `/firmar/:id` (`FirmaRemota.tsx`) para permitir el envío de enlaces a pacientes y que firmen de manera remota.
+
+### Inteligencia Artificial (Notas SOAP)
+- Se integró la API oficial de Google Gemini (`@google/genai`).
+- El modelo utilizado es `gemini-3.6-flash`.
+- En el expediente del paciente, los doctores pueden escribir un borrador rápido y la IA estructurará la información en una nota clínica bajo el estándar SOAP.
+- Requiere agregar la llave `VITE_GEMINI_API_KEY` en el archivo `.env.local` para funcionar.
 
 ## 3. Instrucciones para el Próximo Agente
-Cuando inicies la sesión, **NO modifiques `AuthContext`, `Login`, ni `RegistroInicial`**. Esos archivos ya funcionan con la compleja lógica de Supabase Auth, Invitaciones y RLS.
-Tu tarea principal es ir archivo por archivo en la lista de arriba (empezando por `Pacientes.tsx`) y cambiar las llamadas locales por consultas a Supabase.
-Recuerda que todas las inserciones a Supabase deben llevar explícitamente el `clinica_id`, el cual puedes extraer de `usuarioActual.clinica_id` (que viene del `AuthContext`).
+¡El proyecto está completamente funcional y migrado a Supabase! 
+Si requieres reinstalar la base de datos desde cero, simplemente ejecuta el archivo `init_database_full.sql` en el SQL Editor de Supabase. 
 
-## 4. Notas de Troubleshooting (Supabase RLS)
-- Si un usuario no puede ver datos, revisa la función SQL `get_user_clinica_id()` que lee el `clinica_id` de `public.usuarios`.
-- El SuperAdmin no tiene `clinica_id`.
-- Las invitaciones se validan en el Trigger `handle_new_user` antes de permitir el registro.
+Cuando trabajes en nuevas funcionalidades:
+1. Recuerda siempre enviar el `clinica_id` (que viene de `usuarioActual.clinica_id`) al hacer `insert` en nuevas tablas, ya que las políticas RLS lo requieren.
+2. Si creas tablas nuevas, asegúrate de añadir las políticas RLS (usando `get_user_clinica_id()` para las consultas `SELECT`, `UPDATE` y `DELETE`).
+3. Nunca expongas la llave de Gemini ni de Supabase Service Role en el frontend; las que tenemos actualmente son seguras porque requieren autenticación (Supabase) o porque se asume uso en entorno de prueba sin backend dedicado. Para un despliegue en producción real, la llamada a Gemini debería moverse a una Edge Function.

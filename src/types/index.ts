@@ -164,3 +164,23 @@ export interface Pago {
   fecha_pago: string;
   created_at: string;
 }
+
+export interface PlantillaDocumento {
+  id: string;
+  clinica_id: string;
+  titulo: string;
+  contenido: string;
+  created_at: string;
+}
+
+export interface ConsentimientoFirmado {
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  plantilla_id?: string;
+  titulo: string;
+  contenido_firmado: string;
+  firma_data_url: string;
+  fecha_firma: string;
+  estado: 'pendiente' | 'firmado';
+}

@@ -13,11 +13,9 @@ import ModalNuevaNotaIA from '../components/notas/ModalNuevaNotaIA';
 import ModalNuevoDiagnostico from '../components/diagnosticos/ModalNuevoDiagnostico';
 import ModalNuevoMedicamento from '../components/medicamentos/ModalNuevoMedicamento';
 import RecetaPrint from '../components/medicamentos/RecetaPrint';
-import ModalNuevaFactura from '../components/finanzas/ModalNuevaFactura';
-import ModalRegistrarPago from '../components/finanzas/ModalRegistrarPago';
 import ModalFirma from '../components/documentos/ModalFirma';
 import { useReactToPrint } from 'react-to-print';
-import type { Examen, SignosVitales, Factura, ConsentimientoFirmado, PlantillaDocumento } from '../types';
+import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento } from '../types';
 
 export default function PacienteDetalle() {
   const { id } = useParams();
@@ -30,11 +28,8 @@ export default function PacienteDetalle() {
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
   const [isDiagnosticoModalOpen, setIsDiagnosticoModalOpen] = useState(false);
   const [isMedicamentoModalOpen, setIsMedicamentoModalOpen] = useState(false);
-  const [isFacturaModalOpen, setIsFacturaModalOpen] = useState(false);
-  const [isPagoModalOpen, setIsPagoModalOpen] = useState(false);
-  const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
-  const [facturaSeleccionada, setFacturaSeleccionada] = useState<Factura | null>(null);
-  const printRef = useRef<HTMLDivElement>(null);
+      const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
+    const printRef = useRef<HTMLDivElement>(null);
   const recetaPrintRef = useRef<HTMLDivElement>(null);
 
   const [paciente, setPaciente] = useState<any>(undefined);
@@ -45,10 +40,10 @@ export default function PacienteDetalle() {
   const [notas, setNotas] = useState<any[]>([]);
   const [diagnosticos, setDiagnosticos] = useState<any[]>([]);
   const [medicamentos, setMedicamentos] = useState<any[]>([]);
-  const [facturas, setFacturas] = useState<Factura[]>([]);
-  const [consentimientos, setConsentimientos] = useState<ConsentimientoFirmado[]>([]);
+    const [consentimientos, setConsentimientos] = useState<ConsentimientoFirmado[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
+  const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
 
   useEffect(() => {
@@ -83,9 +78,7 @@ export default function PacienteDetalle() {
       const { data: mData } = await supabase.from('medicamentos').select('*').eq('paciente_id', pId).order('fecha_prescripcion', { ascending: false });
       if (mData) setMedicamentos(mData);
 
-      const { data: fData } = await supabase.from('facturas').select('*').eq('paciente_id', pId).order('fecha_emision', { ascending: false });
-      if (fData) setFacturas(fData);
-
+      
       const { data: consentimientosData } = await supabase.from('consentimientos_firmados').select('*').eq('paciente_id', pId).order('fecha_firma', { ascending: false });
       if (consentimientosData) setConsentimientos(consentimientosData);
 
@@ -288,17 +281,14 @@ export default function PacienteDetalle() {
     setConsentimientoActivo(null);
   };
 
-  const allTabs = [
+    const allTabs = [
     { id: 'resumen', label: 'Resumen', icon: <User size={18} />, key: 'verResumen' },
     { id: 'citas', label: 'Citas', icon: <CalendarPlus size={18} />, key: 'verCitas' },
     { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={18} />, key: 'verExamenes' },
     { id: 'signos', label: 'Signos Vitales', icon: <Heart size={18} />, key: 'verSignos' },
-    { id: 'notas', label: 'Notas IA', icon: <BrainCircuit size={18} />, key: 'verHistorial' },
-    { id: 'documentos', label: 'Consentimientos', icon: <FileSignature size={18} />, key: 'verHistorial' },
     { id: 'historial', label: 'Historial', icon: <FileText size={18} />, key: 'verHistorial' },
     { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
     { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={18} />, key: 'verMedicamentos' },
-    { id: 'finanzas', label: 'Finanzas', icon: <Wallet size={18} />, key: 'verFinanzas' },
   ];
 
   // Filtrar tabs según permisos
@@ -321,12 +311,19 @@ export default function PacienteDetalle() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       
-      {/* Botón de Regresar */}
-      <div>
+      {/* Botón de Regresar y Acciones Globales */}
+      <div className="flex justify-between items-center">
         <Link to="/pacientes" className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-violet-600 transition-colors group">
           <ArrowLeft size={16} className="mr-1.5 group-hover:-translate-x-1 transition-transform" />
           Volver a Pacientes
         </Link>
+        <button 
+          onClick={() => setIsGestorDocumentosOpen(true)}
+          className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
+        >
+          <FileSignature size={16} className="mr-2" />
+          Documentos Legales
+        </button>
       </div>
 
       {/* Header del Expediente */}
@@ -521,174 +518,20 @@ export default function PacienteDetalle() {
             </div>
           )}
 
-          {/* Pestaña: Documentos Legales */}
-          {activeTab === 'documentos' && (
+          {/* Pestaña: Historial */}
+          {activeTab === 'historial' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-xl font-bold text-slate-800">Consentimientos Informados</h3>
-                  <p className="text-sm text-slate-500">Documentos legales y autorizaciones firmadas por el paciente.</p>
-                </div>
-                
-                {plantillas.length > 0 ? (
-                  <div className="flex flex-col items-end relative group">
-                    <button 
-                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20 flex items-center peer"
-                      onClick={(e) => {
-                        // Si solo hay una plantilla, la usamos directo
-                        if (plantillas.length === 1) {
-                          const p = plantillas[0];
-                          const nuevoConsentimiento: ConsentimientoFirmado = {
-                            id: 'temp-' + Date.now(),
-                            clinica_id: usuarioActual!.clinica_id,
-                            paciente_id: id!,
-                            plantilla_id: p.id,
-                            titulo: p.titulo,
-                            contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
-                            firma_data_url: '',
-                            fecha_firma: new Date().toISOString(),
-                            estado: 'pendiente'
-                          };
-                          setConsentimientoActivo(nuevoConsentimiento);
-                          setIsFirmaModalOpen(true);
-                        } else {
-                          // Toggle dropdown visibility via focus/blur hack or standard React state
-                          const nextElement = e.currentTarget.nextElementSibling;
-                          if (nextElement) {
-                            nextElement.classList.toggle('hidden');
-                          }
-                        }
-                      }}
-                    >
-                      <FileSignature size={16} className="mr-2" />
-                      Generar Documento
-                    </button>
-                    {/* Dropdown de plantillas */}
-                    <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-slate-100 shadow-xl rounded-xl p-2 hidden group-hover:block peer-hover:block hover:block z-20">
-                      <p className="text-xs font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Seleccionar Plantilla</p>
-                      {plantillas.map(p => (
-                        <button
-                          key={p.id}
-                          onClick={() => {
-                            const nuevoConsentimiento: ConsentimientoFirmado = {
-                              id: 'temp-' + Date.now(),
-                              clinica_id: usuarioActual!.clinica_id,
-                              paciente_id: id!,
-                              plantilla_id: p.id,
-                              titulo: p.titulo,
-                              contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
-                              firma_data_url: '',
-                              fecha_firma: new Date().toISOString(),
-                              estado: 'pendiente'
-                            };
-                            setConsentimientoActivo(nuevoConsentimiento);
-                            setIsFirmaModalOpen(true);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg transition-colors font-medium truncate"
-                        >
-                          {p.titulo}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <Link to="/consentimientos" className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-200 transition-colors">
-                    Crear Plantillas Primero
-                  </Link>
-                )}
-              </div>
-
-              {consentimientos.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {consentimientos.map((doc) => (
-                    <div key={doc.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full relative overflow-hidden group">
-                      <div className={`absolute top-0 right-0 w-16 h-16 flex items-start justify-end p-3 ${
-                        doc.estado === 'firmado' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
-                      }`} style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }}>
-                        {doc.estado === 'firmado' ? <CheckCircle size={14} className="ml-4 -mt-1" /> : <Clock size={14} className="ml-4 -mt-1" />}
-                      </div>
-
-                      <div className="flex items-center mb-4 pr-8">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mr-3 ${
-                          doc.estado === 'firmado' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                        }`}>
-                          <FileSignature size={20} />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-slate-800 line-clamp-1" title={doc.titulo}>{doc.titulo}</h4>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            doc.estado === 'firmado' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                          }`}>
-                            {doc.estado === 'firmado' ? 'Firmado' : 'Pendiente de Firma'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {doc.estado === 'firmado' && doc.firma_data_url && (
-                        <div className="mt-4 pt-4 border-t border-slate-100 flex-1 flex flex-col justify-end">
-                          <p className="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Firma Digital</p>
-                          <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 h-24 flex items-center justify-center">
-                            <img src={doc.firma_data_url} alt="Firma del paciente" className="max-h-full opacity-80" />
-                          </div>
-                          <p className="text-xs text-slate-400 mt-2 text-right">
-                            Firmado el {new Date(doc.fecha_firma).toLocaleDateString()}
-                          </p>
-                        </div>
-                      )}
-
-                      {doc.estado === 'pendiente' && (
-                        <div className="mt-4 pt-4 border-t border-slate-100 flex-1 flex flex-col justify-end space-y-2">
-                          <button 
-                            onClick={() => {
-                              setConsentimientoActivo(doc);
-                              setIsFirmaModalOpen(true);
-                            }}
-                            className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-bold transition-colors flex items-center justify-center"
-                          >
-                            <PenTool size={16} className="mr-2" />
-                            Firmar Ahora (Presencial)
-                          </button>
-                          
-                          <button 
-                            onClick={() => {
-                              const url = `${window.location.origin}/firmar/${doc.id}`;
-                              navigator.clipboard.writeText(url);
-                              alert('¡Enlace de firma copiado al portapapeles! Puedes enviarlo por WhatsApp o Correo.');
-                            }}
-                            className="w-full py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 rounded-lg text-sm font-bold transition-colors flex items-center justify-center"
-                          >
-                            <LinkIcon size={16} className="mr-2" />
-                            Copiar Enlace (Remoto)
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
-                  <FileSignature size={48} className="mx-auto text-slate-300 mb-4" />
-                  <p className="text-lg font-semibold text-slate-600">No hay documentos legales</p>
-                  <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto">Genera un consentimiento informado para que el paciente lo firme y quede registro en su expediente.</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Pestaña: Notas IA */}
-          {activeTab === 'notas' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800">Notas de Evolución (IA)</h3>
-                  <p className="text-sm text-slate-500">Redacta tus notas clínicas usando formato SOAP estructurado.</p>
+                  <h3 className="text-xl font-bold text-slate-800">Notas Clínicas y Evolución</h3>
+                  <p className="text-sm text-slate-500">Historial médico del paciente.</p>
                 </div>
                 <div className="flex gap-3">
                   <button 
                     onClick={() => setIsNotaModalOpen(true)}
                     className="px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm rounded-xl text-sm font-bold transition-all cursor-pointer"
                   >
-                    Nota Manual
+                    + Nota Manual
                   </button>
                   <button 
                     onClick={() => setIsNotaIAModalOpen(true)}
@@ -705,53 +548,12 @@ export default function PacienteDetalle() {
                   {notas.map((nota) => (
                     <div key={nota.id} className="relative group">
                       <div className="absolute -left-[41px] bg-white w-5 h-5 rounded-full border-4 border-violet-500 shadow-sm group-hover:scale-125 transition-transform duration-300"></div>
-                      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm group-hover:border-violet-200 group-hover:shadow-md transition-all duration-300">
-                        <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-50">
-                          <span className="text-sm font-bold text-violet-700 bg-violet-50 border border-violet-100 px-3 py-1 rounded-full flex items-center">
-                            <BrainCircuit size={14} className="mr-1.5" />
-                            {nota.titulo}
-                          </span>
-                          <span className="text-sm font-medium text-slate-400 flex items-center">
-                            <Clock size={14} className="mr-1.5" />
-                            {new Date(nota.fecha).toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
-                          </span>
-                        </div>
-                        <p className="text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">{nota.contenido}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-12 text-center border-2 border-dashed border-violet-200 rounded-3xl bg-violet-50/30">
-                  <BrainCircuit size={48} className="mx-auto text-violet-300 mb-4" />
-                  <p className="text-lg font-semibold text-violet-800">Aún no hay notas con IA</p>
-                  <p className="text-sm text-violet-600/70 mt-2 max-w-md mx-auto">Haz clic en "Redactar con IA" para registrar la evolución de tu paciente y convertir ideas sueltas en una nota profesional SOAP.</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Pestaña: Historial */}
-          {activeTab === 'historial' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-slate-800">Notas Clínicas</h3>
-                <button 
-                  onClick={() => setIsNotaModalOpen(true)}
-                  className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                >
-                  + Nueva Nota
-                </button>
-              </div>
-              
-              {notas && notas.length > 0 ? (
-                <div className="relative pl-8 border-l-2 border-violet-200/50 space-y-8 py-2">
-                  {notas.map((nota) => (
-                    <div key={nota.id} className="relative group">
-                      <div className="absolute -left-[41px] bg-white w-5 h-5 rounded-full border-4 border-violet-500 shadow-sm group-hover:scale-125 transition-transform duration-300"></div>
                       <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 group-hover:border-violet-200 group-hover:shadow-md transition-all duration-300">
                         <div className="flex justify-between items-center mb-3">
-                          <span className="text-sm font-bold text-violet-700 bg-violet-100 px-3 py-1 rounded-full">{nota.titulo}</span>
+                          <span className="text-sm font-bold text-violet-700 bg-violet-100 px-3 py-1 rounded-full flex items-center">
+                            {nota.titulo.toLowerCase().includes('ia') || nota.titulo.toLowerCase().includes('soap') ? <BrainCircuit size={14} className="mr-1.5" /> : <FileText size={14} className="mr-1.5" />}
+                            {nota.titulo}
+                          </span>
                           <span className="text-sm font-medium text-slate-400">
                             {new Date(nota.fecha).toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
                           </span>
@@ -765,7 +567,7 @@ export default function PacienteDetalle() {
                 <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
                   <FileText size={48} className="mx-auto text-slate-300 mb-4" />
                   <p className="text-lg font-semibold text-slate-500">Aún no hay notas clínicas</p>
-                  <p className="text-sm text-slate-400 mt-2">Haz clic en "+ Nueva Nota" para registrar la primera evolución del paciente.</p>
+                  <p className="text-sm text-slate-400 mt-2">Usa "+ Nota Manual" o "Redactar con IA" para registrar la primera evolución del paciente.</p>
                 </div>
               )}
             </div>
@@ -1266,6 +1068,179 @@ export default function PacienteDetalle() {
           medicoNombre={usuarioActual?.nombre}
         />
       </div>
+    
+      {/* Modal Lateral de Gestor de Documentos */}
+      {isGestorDocumentosOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-2xl h-full rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-right-8 duration-300 flex flex-col">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+              <h3 className="text-xl font-bold text-slate-800 flex items-center">
+                <FileSignature className="mr-2 text-indigo-600" size={24} />
+                Gestor de Documentos Legales
+              </h3>
+              <button 
+                onClick={() => setIsGestorDocumentosOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-full transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+               <div className="space-y-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Consentimientos Informados</h3>
+                  <p className="text-sm text-slate-500">Documentos legales y autorizaciones firmadas por el paciente.</p>
+                </div>
+                
+                {plantillas.length > 0 ? (
+                  <div className="flex flex-col items-end relative group">
+                    <button 
+                      className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20 flex items-center peer"
+                      onClick={(e) => {
+                        // Si solo hay una plantilla, la usamos directo
+                        if (plantillas.length === 1) {
+                          const p = plantillas[0];
+                          const nuevoConsentimiento: ConsentimientoFirmado = {
+                            id: 'temp-' + Date.now(),
+                            clinica_id: usuarioActual!.clinica_id,
+                            paciente_id: id!,
+                            plantilla_id: p.id,
+                            titulo: p.titulo,
+                            contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
+                            firma_data_url: '',
+                            fecha_firma: new Date().toISOString(),
+                            estado: 'pendiente'
+                          };
+                          setConsentimientoActivo(nuevoConsentimiento);
+                          setIsFirmaModalOpen(true);
+                        } else {
+                          // Toggle dropdown visibility via focus/blur hack or standard React state
+                          const nextElement = e.currentTarget.nextElementSibling;
+                          if (nextElement) {
+                            nextElement.classList.toggle('hidden');
+                          }
+                        }
+                      }}
+                    >
+                      <FileSignature size={16} className="mr-2" />
+                      Generar Documento
+                    </button>
+                    {/* Dropdown de plantillas */}
+                    <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-slate-100 shadow-xl rounded-xl p-2 hidden group-hover:block peer-hover:block hover:block z-20">
+                      <p className="text-xs font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Seleccionar Plantilla</p>
+                      {plantillas.map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            const nuevoConsentimiento: ConsentimientoFirmado = {
+                              id: 'temp-' + Date.now(),
+                              clinica_id: usuarioActual!.clinica_id,
+                              paciente_id: id!,
+                              plantilla_id: p.id,
+                              titulo: p.titulo,
+                              contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
+                              firma_data_url: '',
+                              fecha_firma: new Date().toISOString(),
+                              estado: 'pendiente'
+                            };
+                            setConsentimientoActivo(nuevoConsentimiento);
+                            setIsFirmaModalOpen(true);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg transition-colors font-medium truncate"
+                        >
+                          {p.titulo}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <Link to="/consentimientos" className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-200 transition-colors">
+                    Crear Plantillas Primero
+                  </Link>
+                )}
+              </div>
+
+              {consentimientos.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {consentimientos.map((doc) => (
+                    <div key={doc.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full relative overflow-hidden group">
+                      <div className={`absolute top-0 right-0 w-16 h-16 flex items-start justify-end p-3 ${
+                        doc.estado === 'firmado' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+                      }`} style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }}>
+                        {doc.estado === 'firmado' ? <CheckCircle size={14} className="ml-4 -mt-1" /> : <Clock size={14} className="ml-4 -mt-1" />}
+                      </div>
+
+                      <div className="flex items-center mb-4 pr-8">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mr-3 ${
+                          doc.estado === 'firmado' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                        }`}>
+                          <FileSignature size={20} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-800 line-clamp-1" title={doc.titulo}>{doc.titulo}</h4>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            doc.estado === 'firmado' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {doc.estado === 'firmado' ? 'Firmado' : 'Pendiente de Firma'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {doc.estado === 'firmado' && doc.firma_data_url && (
+                        <div className="mt-4 pt-4 border-t border-slate-100 flex-1 flex flex-col justify-end">
+                          <p className="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Firma Digital</p>
+                          <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 h-24 flex items-center justify-center">
+                            <img src={doc.firma_data_url} alt="Firma del paciente" className="max-h-full opacity-80" />
+                          </div>
+                          <p className="text-xs text-slate-400 mt-2 text-right">
+                            Firmado el {new Date(doc.fecha_firma).toLocaleDateString()}
+                          </p>
+                        </div>
+                      )}
+
+                      {doc.estado === 'pendiente' && (
+                        <div className="mt-4 pt-4 border-t border-slate-100 flex-1 flex flex-col justify-end space-y-2">
+                          <button 
+                            onClick={() => {
+                              setConsentimientoActivo(doc);
+                              setIsFirmaModalOpen(true);
+                            }}
+                            className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-bold transition-colors flex items-center justify-center"
+                          >
+                            <PenTool size={16} className="mr-2" />
+                            Firmar Ahora (Presencial)
+                          </button>
+                          
+                          <button 
+                            onClick={() => {
+                              const url = `${window.location.origin}/firmar/${doc.id}`;
+                              navigator.clipboard.writeText(url);
+                              alert('¡Enlace de firma copiado al portapapeles! Puedes enviarlo por WhatsApp o Correo.');
+                            }}
+                            className="w-full py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600 rounded-lg text-sm font-bold transition-colors flex items-center justify-center"
+                          >
+                            <LinkIcon size={16} className="mr-2" />
+                            Copiar Enlace (Remoto)
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                  <FileSignature size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-lg font-semibold text-slate-600">No hay documentos legales</p>
+                  <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto">Genera un consentimiento informado para que el paciente lo firme y quede registro en su expediente.</p>
+                </div>
+              )}
+            </div>
+          
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

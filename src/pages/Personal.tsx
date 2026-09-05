@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Save, X, Edit2, Trash2, Key, Ticket } from 'lucide-react';
+import { Users, Plus, Save, X, Edit2, Trash2, Key, Ticket, Mail } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import type { Usuario, Rol } from '../types';
+import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
+import Toast from '../components/common/Toast';
+import { emailService } from '../services/email/emailService';
 
 interface Invitacion {
   id: string;
@@ -16,6 +19,7 @@ export default function Personal() {
   const { usuarioActual } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, type: 'empleado' | 'invitacion' } | null>(null);
   
   // Para editar usuario
   const [nombre, setNombre] = useState('');
@@ -25,6 +29,16 @@ export default function Personal() {
   const [invitaciones, setInvitaciones] = useState<Invitacion[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
   const [invitacionGenerada, setInvitacionGenerada] = useState<string | null>(null);
+
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [toastConfig, setToastConfig] = useState<{show: boolean, message: string, type: 'success' | 'error' | 'info'}>({ show: false, message: '', type: 'info' });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToastConfig({ show: true, message, type });
+    setTimeout(() => {
+      setToastConfig(prev => ({ ...prev, show: false }));
+    }, 3000);
+  };
 
   const fetchDatos = async () => {
     if (!usuarioActual?.clinica_id) return;
@@ -98,17 +112,53 @@ export default function Personal() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este miembro del personal? (Se revocará su acceso)')) {
-      await supabase.from('usuarios').delete().eq('id', id);
-      fetchDatos();
-    }
+  const handleDelete = (id: string) => {
+    setDeleteConfirm({ id, type: 'empleado' });
   };
 
-  const handleDeleteInv = async (id: string) => {
-    if (confirm('¿Estás seguro de cancelar esta invitación?')) {
-      await supabase.from('invitaciones').delete().eq('id', id);
-      fetchDatos();
+  const handleDeleteInv = (id: string) => {
+    setDeleteConfirm({ id, type: 'invitacion' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    
+    if (deleteConfirm.type === 'empleado') {
+      await supabase.from('usuarios').delete().eq('id', deleteConfirm.id);
+    } else {
+      const { error } = await supabase.from('invitaciones').delete().eq('id', deleteConfirm.id);
+      if (error) {
+        console.error("Error al eliminar invitación:", error);
+        alert("Hubo un error al eliminar. Verifica si tienes permisos (solo Superadmin/Admin).");
+      }
+    }
+    
+    setDeleteConfirm(null);
+    fetchDatos();
+  };
+
+  const handleEnviarInvitacionEmail = async (email: string) => {
+    if (!invitacionGenerada) return;
+    
+    const rol = roles.find(r => r.id === rolId);
+    const rolNombre = rol ? rol.nombre : 'Empleado';
+    const clinicaNombre = 'PsicoApp'; 
+    
+    try {
+      const result = await emailService.enviarInvitacionClinica(email, {
+        clinicaNombre,
+        codigoInvitacion: invitacionGenerada,
+        rolNombre
+      });
+      
+      if (result.success) {
+        showToast('Invitación enviada por correo electrónico', 'success');
+        setShowEmailModal(false);
+      } else {
+        showToast('Error al enviar el correo', 'error');
+      }
+    } catch (error) {
+      showToast('Error de red al enviar correo', 'error');
     }
   };
 
@@ -233,6 +283,14 @@ export default function Personal() {
                   <div className="bg-slate-100 p-4 rounded-xl flex items-center justify-center font-mono text-3xl tracking-widest text-teal-700 font-bold border-2 border-teal-200 border-dashed">
                     {invitacionGenerada}
                   </div>
+                  <button 
+                    onClick={() => setShowEmailModal(true)}
+                    type="button"
+                    className="mt-6 w-full flex justify-center items-center px-4 py-3 bg-white border border-teal-200 text-teal-700 font-bold rounded-xl shadow-sm hover:bg-teal-50 transition-all duration-300 cursor-pointer"
+                  >
+                    <Mail size={18} className="mr-2" />
+                    Enviar por correo electrónico
+                  </button>
                 </div>
               ) : (
                 <form id="personalForm" onSubmit={handleSave} className="space-y-5">
@@ -292,6 +350,55 @@ export default function Personal() {
           </div>
         </div>
       )}
+      {/* Modal de Confirmación de Eliminación */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">
+                {deleteConfirm.type === 'invitacion' ? '¿Cancelar Invitación?' : '¿Eliminar Empleado?'}
+              </h3>
+              <p className="text-slate-500">
+                {deleteConfirm.type === 'invitacion' 
+                  ? 'Esta acción invalidará el código y ya no podrá ser usado para registrarse.' 
+                  : 'Esta acción revocará el acceso de este usuario al sistema.'}
+              </p>
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center space-x-3">
+              <button 
+                onClick={() => setDeleteConfirm(null)}
+                className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors cursor-pointer w-full"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/20 cursor-pointer w-full"
+              >
+                Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ModalEnviarCorreo
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        onSend={handleEnviarInvitacionEmail}
+        title="Enviar Invitación por Correo"
+        description="Ingresa el correo electrónico del nuevo empleado para enviarle el código de invitación y las instrucciones de registro."
+      />
+
+      <Toast 
+        show={toastConfig.show} 
+        message={toastConfig.message} 
+        type={toastConfig.type} 
+        onClose={() => setToastConfig(prev => ({ ...prev, show: false }))} 
+      />
     </div>
   );
 }

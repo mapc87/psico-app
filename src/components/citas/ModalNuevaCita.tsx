@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { X, Calendar as CalendarIcon, Clock, FileText, Save } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, FileText, Save, Mail } from 'lucide-react';
+import { emailService } from '../../services/email/emailService';
 
 interface ModalNuevaCitaProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (fechaHora: string, motivo: string, pacienteId?: string) => Promise<void>;
   pacienteNombre?: string;
-  pacientes?: {id: string, nombre: string}[];
+  pacienteEmail?: string;
+  pacientes?: {id: string, nombre: string, email?: string}[];
 }
 
-export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre, pacientes }: ModalNuevaCitaProps) {
+export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre, pacienteEmail, pacientes }: ModalNuevaCitaProps) {
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
   const [motivo, setMotivo] = useState('');
   const [pacienteIdSeleccionado, setPacienteIdSeleccionado] = useState('');
+  const [enviarCorreo, setEnviarCorreo] = useState(true);
+  const [correoPaciente, setCorreoPaciente] = useState(pacienteEmail || '');
   const [isSaving, setIsSaving] = useState(false);
   
   const today = new Date().toISOString().split('T')[0];
@@ -30,11 +34,19 @@ export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre
     
     setIsSaving(true);
     try {
-      // Combinar fecha y hora en formato ISO
       const fechaHora = new Date(`${fecha}T${hora}`).toISOString();
       await onSave(fechaHora, motivo, pacienteIdSeleccionado || undefined);
+
+      if (enviarCorreo && correoPaciente) {
+        await emailService.enviarConfirmacionCita(correoPaciente, {
+          pacienteNombre: pacienteNombre || 'Estimado Paciente',
+          fechaStr: new Date(fecha).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+          horaStr: hora,
+          motivo,
+        });
+      }
+
       onClose();
-      // Limpiar formulario
       setFecha('');
       setHora('');
       setMotivo('');
@@ -131,6 +143,30 @@ export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre
                   onChange={(e) => setMotivo(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="bg-violet-50/60 p-4 rounded-xl border border-violet-100 space-y-3">
+              <label className="flex items-center text-sm font-bold text-violet-900 cursor-pointer">
+                <input 
+                  type="checkbox"
+                  className="w-4 h-4 text-violet-600 rounded border-slate-300 focus:ring-violet-500 mr-2.5"
+                  checked={enviarCorreo}
+                  onChange={(e) => setEnviarCorreo(e.target.checked)}
+                />
+                Enviar confirmación por correo al paciente
+              </label>
+
+              {enviarCorreo && (
+                <div>
+                  <input 
+                    type="email"
+                    placeholder="correo.paciente@ejemplo.com"
+                    className="w-full px-4 py-2 bg-white border border-violet-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none text-slate-700"
+                    value={correoPaciente}
+                    onChange={(e) => setCorreoPaciente(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="pt-4 flex justify-end space-x-3">

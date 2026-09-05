@@ -4,6 +4,13 @@ export interface Clinica {
   direccion?: string;
   telefono?: string;
   estado: string;
+  nit?: string;
+  razon_social?: string;
+  nombre_comercial?: string;
+  direccion_fiscal?: string;
+  telefono_contacto?: string;
+  no_patente?: string;
+  abreviatura?: string;
   created_at: string;
 }
 

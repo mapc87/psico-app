@@ -71,39 +71,7 @@ export default function Dashboard() {
 
 
 
-  const handleCrearClinica = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nuevaClinicaNombre) return;
-
-    // 1. Crear clínica
-    const { data: clinicaData, error: clinicaError } = await supabase
-      .from('clinicas')
-      .insert({ nombre: nuevaClinicaNombre })
-      .select()
-      .single();
-
-    if (clinicaData) {
-      // 2. Generar código VIP
-      const codigo = 'CLINICA-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-      
-      const { error: inviteError } = await supabase
-        .from('invitaciones')
-        .insert({
-          clinica_id: clinicaData.id,
-          creado_por: usuarioActual.id,
-          codigo: codigo,
-          rol_asignado: 'admin'
-        });
-
-      if (!inviteError) {
-        setClinicas([clinicaData as Clinica, ...clinicas]);
-        setNuevoCodigo(codigo);
-        setNuevaClinicaNombre('');
-      } else {
-        alert('Error creando invitación');
-      }
-    }
-  };
+  // La creación de clínicas ahora se hace desde MantenimientoClinicas.tsx
 
   if (usuarioActual?.rol === 'superadmin') {
     return (
@@ -116,13 +84,13 @@ export default function Dashboard() {
             <p className="text-slate-500 font-medium mt-1">Supervisa todas las clínicas de tu SaaS.</p>
           </div>
           <div>
-            <button 
-              onClick={() => { setShowModal(true); setNuevoCodigo(''); }}
+            <Link 
+              to="/admin/clinicas"
               className="flex items-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20 transition-all"
             >
               <Building2 size={18} className="mr-2" />
-              Nueva Clínica
-            </button>
+              Ir al Mantenimiento de Clínicas
+            </Link>
           </div>
         </div>
 
@@ -138,90 +106,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="font-bold text-slate-800 text-lg">Directorio de Clínicas</h3>
-          </div>
-          <div className="p-6">
-            {clinicas.length > 0 ? (
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-slate-400 text-sm border-b border-slate-100">
-                    <th className="pb-3 font-semibold">Nombre de Clínica</th>
-                    <th className="pb-3 font-semibold">Estado</th>
-                    <th className="pb-3 font-semibold">Registro</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clinicas.map(clinica => (
-                    <tr key={clinica.id} className="border-b border-slate-50 hover:bg-slate-50">
-                      <td className="py-4 font-bold text-slate-800">{clinica.nombre}</td>
-                      <td className="py-4">
-                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
-                          {clinica.estado.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="py-4 text-sm text-slate-500">
-                        {new Date(clinica.created_at).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-slate-500 text-center py-8">No hay clínicas registradas aún.</p>
-            )}
-          </div>
+        {/* El directorio y creación de clínicas se movió a MantenimientoClinicas.tsx */}
+        <div className="bg-emerald-50 rounded-3xl border border-emerald-100 p-8 text-center mt-8">
+          <Building2 size={48} className="mx-auto text-emerald-300 mb-4" />
+          <h3 className="text-xl font-bold text-emerald-800 mb-2">Módulo de Clínicas Movido</h3>
+          <p className="text-emerald-600 mb-6">Para una mejor administración, la creación, edición y suspensión de clínicas ahora tiene su propia sección.</p>
+          <Link to="/admin/clinicas" className="inline-block px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors">
+            Administrar Clínicas
+          </Link>
         </div>
-
-        {/* Modal Nueva Clinica */}
-        {showModal && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-8 animate-in zoom-in-95 duration-200">
-              <h3 className="text-2xl font-bold text-slate-800 mb-6">Crear Nueva Clínica</h3>
-              
-              {!nuevoCodigo ? (
-                <form onSubmit={handleCrearClinica} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-600 mb-1">Nombre Comercial de la Clínica</label>
-                    <input 
-                      type="text" 
-                      required
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
-                      placeholder="Ej. Centro de Psicología Sana"
-                      value={nuevaClinicaNombre}
-                      onChange={(e) => setNuevaClinicaNombre(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex space-x-3 pt-4">
-                    <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">
-                      Cancelar
-                    </button>
-                    <button type="submit" className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all">
-                      Crear Clínica
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="text-center space-y-6">
-                  <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                    <Building2 size={32} />
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-sm">La clínica ha sido creada exitosamente. Comparte este código de invitación con el doctor principal para que pueda registrarse.</p>
-                  </div>
-                  <div className="p-4 bg-slate-50 border-2 border-dashed border-emerald-300 rounded-2xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">CÓDIGO DE INVITACIÓN (ADMIN)</p>
-                    <p className="text-2xl font-black text-emerald-700 tracking-widest">{nuevoCodigo}</p>
-                  </div>
-                  <button onClick={() => setShowModal(false)} className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-md transition-all">
-                    Cerrar
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     );
   }

@@ -206,7 +206,7 @@ export default function Personal() {
                         <p className="font-bold text-slate-800">{empleado.nombre}</p>
                         <p className="text-xs text-slate-500">{empleado.email}</p>
                         <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-wider">
-                          {rolEmpleado ? rolEmpleado.nombre : 'Rol Eliminado'}
+                          {empleado.rol === 'admin' ? 'Administrador' : (rolEmpleado ? rolEmpleado.nombre : 'Rol Eliminado')}
                         </span>
                       </div>
                     </div>

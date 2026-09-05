@@ -1,68 +1,266 @@
-import React from 'react';
-import { Users, Calendar, Activity, UserPlus, CalendarPlus, ChevronRight, Cake, Clock } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../services/db/localDb';
+import React, { useEffect, useState } from 'react';
+import { Users, Calendar, Activity, UserPlus, CalendarPlus, ChevronRight, Cake, Clock, Building2 } from 'lucide-react';
+import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import type { Cita, Paciente } from '../types';
+import type { Cita, Paciente, Rol, Clinica } from '../types';
 
 export default function Dashboard() {
   const { usuarioActual } = useAuth();
-
-  // Permisos para empleados
-  const rolActual = useLiveQuery(
-    () => usuarioActual?.rolId ? db.roles.get(usuarioActual.rolId) : null,
-    [usuarioActual?.rolId]
-  );
   
-  const permisos = rolActual?.permisos;
-  const esPersonal = usuarioActual?.rol === 'personal';
-  
-  const puedeVerPacientes = !esPersonal || permisos?.verPacientes;
-  const puedeVerAgenda = !esPersonal || permisos?.verAgenda;
+  // Estados para la clínica médica
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [citas, setCitas] = useState<Cita[]>([]);
+  const [permisos, setPermisos] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const medicoIdFiltro = usuarioActual?.rol === 'personal' ? usuarioActual.medicoId : usuarioActual?.id;
+  // Estados para SuperAdmin
+  const [clinicas, setClinicas] = useState<Clinica[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [nuevaClinicaNombre, setNuevaClinicaNombre] = useState('');
+  const [nuevoCodigo, setNuevoCodigo] = useState('');
 
-  // Consultas
-  const pacientes = useLiveQuery(
-    () => medicoIdFiltro ? db.pacientes.where('medicoId').equals(medicoIdFiltro).toArray() : [],
-    [medicoIdFiltro]
-  );
+  useEffect(() => {
+    if (!usuarioActual) return;
 
-  const citas = useLiveQuery(
-    () => medicoIdFiltro ? db.citas.where('medicoId').equals(medicoIdFiltro).toArray() : [],
-    [medicoIdFiltro]
-  );
+    const fetchData = async () => {
+      setLoading(true);
 
-  // Cálculos de métricas
-  const totalPacientes = pacientes?.length || 0;
+      if (usuarioActual.rol === 'superadmin') {
+        // Fetch de clínicas para el superadmin
+        const { data } = await supabase.from('clinicas').select('*').order('created_at', { ascending: false });
+        if (data) setClinicas(data as Clinica[]);
+      } else {
+        // Fetch de datos médicos para admins y personal
+        
+        // 1. Obtener Permisos si es personal
+        if (usuarioActual.rol === 'personal' && usuarioActual.rol_id) {
+          const { data: rolData } = await supabase.from('roles').select('permisos').eq('id', usuarioActual.rol_id).single();
+          if (rolData) setPermisos(rolData.permisos);
+        } else {
+          // Admin tiene todos los permisos
+          setPermisos({
+            verAgenda: true, verPacientes: true, verResumen: true, verCitas: true,
+            verExamenes: true, verSignos: true, verHistorial: true, verDiagnosticos: true, verMedicamentos: true
+          });
+        }
+
+        // 2. Cargar Pacientes y Citas
+        const [pacientesRes, citasRes] = await Promise.all([
+          supabase.from('pacientes').select('*'),
+          supabase.from('citas').select('*')
+        ]);
+
+        if (pacientesRes.data) setPacientes(pacientesRes.data as Paciente[]);
+        if (citasRes.data) setCitas(citasRes.data as Cita[]);
+      }
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [usuarioActual]);
+
+  if (loading) {
+    return <div className="flex justify-center p-12"><Activity className="animate-spin text-violet-500" size={32} /></div>;
+  }
+
+  // =======================================================================
+  // VISTA SUPERADMIN (Panel de Organización)
+  // =======================================================================
+
+
+
+  const handleCrearClinica = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nuevaClinicaNombre) return;
+
+    // 1. Crear clínica
+    const { data: clinicaData, error: clinicaError } = await supabase
+      .from('clinicas')
+      .insert({ nombre: nuevaClinicaNombre })
+      .select()
+      .single();
+
+    if (clinicaData) {
+      // 2. Generar código VIP
+      const codigo = 'CLINICA-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      const { error: inviteError } = await supabase
+        .from('invitaciones')
+        .insert({
+          clinica_id: clinicaData.id,
+          creado_por: usuarioActual.id,
+          codigo: codigo,
+          rol_asignado: 'admin'
+        });
+
+      if (!inviteError) {
+        setClinicas([clinicaData as Clinica, ...clinicas]);
+        setNuevoCodigo(codigo);
+        setNuevaClinicaNombre('');
+      } else {
+        alert('Error creando invitación');
+      }
+    }
+  };
+
+  if (usuarioActual?.rol === 'superadmin') {
+    return (
+      <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">
+              Panel de Organización
+            </h1>
+            <p className="text-slate-500 font-medium mt-1">Supervisa todas las clínicas de tu SaaS.</p>
+          </div>
+          <div>
+            <button 
+              onClick={() => { setShowModal(true); setNuevoCodigo(''); }}
+              className="flex items-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-500/20 transition-all"
+            >
+              <Building2 size={18} className="mr-2" />
+              Nueva Clínica
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 flex items-center">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 mr-5 flex items-center justify-center">
+              <Building2 size={28} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Clínicas Activas</p>
+              <p className="text-3xl font-extrabold text-slate-800 tracking-tight">{clinicas.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h3 className="font-bold text-slate-800 text-lg">Directorio de Clínicas</h3>
+          </div>
+          <div className="p-6">
+            {clinicas.length > 0 ? (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-slate-400 text-sm border-b border-slate-100">
+                    <th className="pb-3 font-semibold">Nombre de Clínica</th>
+                    <th className="pb-3 font-semibold">Estado</th>
+                    <th className="pb-3 font-semibold">Registro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clinicas.map(clinica => (
+                    <tr key={clinica.id} className="border-b border-slate-50 hover:bg-slate-50">
+                      <td className="py-4 font-bold text-slate-800">{clinica.nombre}</td>
+                      <td className="py-4">
+                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
+                          {clinica.estado.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="py-4 text-sm text-slate-500">
+                        {new Date(clinica.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-slate-500 text-center py-8">No hay clínicas registradas aún.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Modal Nueva Clinica */}
+        {showModal && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-8 animate-in zoom-in-95 duration-200">
+              <h3 className="text-2xl font-bold text-slate-800 mb-6">Crear Nueva Clínica</h3>
+              
+              {!nuevoCodigo ? (
+                <form onSubmit={handleCrearClinica} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-1">Nombre Comercial de la Clínica</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+                      placeholder="Ej. Centro de Psicología Sana"
+                      value={nuevaClinicaNombre}
+                      onChange={(e) => setNuevaClinicaNombre(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex space-x-3 pt-4">
+                    <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">
+                      Cancelar
+                    </button>
+                    <button type="submit" className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all">
+                      Crear Clínica
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="text-center space-y-6">
+                  <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                    <Building2 size={32} />
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-sm">La clínica ha sido creada exitosamente. Comparte este código de invitación con el doctor principal para que pueda registrarse.</p>
+                  </div>
+                  <div className="p-4 bg-slate-50 border-2 border-dashed border-emerald-300 rounded-2xl">
+                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">CÓDIGO DE INVITACIÓN (ADMIN)</p>
+                    <p className="text-2xl font-black text-emerald-700 tracking-widest">{nuevoCodigo}</p>
+                  </div>
+                  <button onClick={() => setShowModal(false)} className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-md transition-all">
+                    Cerrar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+
+  // =======================================================================
+  // VISTA CLÍNICA (Doctores y Personal)
+  // =======================================================================
+  const puedeVerPacientes = permisos?.verPacientes;
+  const puedeVerAgenda = permisos?.verAgenda;
+
+  const totalPacientes = pacientes.length;
   
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
-  
   const mañana = new Date(hoy);
   mañana.setDate(mañana.getDate() + 1);
 
-  const citasHoy = citas?.filter(cita => {
-    const fechaCita = new Date(cita.fechaHora);
+  const citasHoy = citas.filter(cita => {
+    const fechaCita = new Date(cita.fecha_hora);
     return fechaCita >= hoy && fechaCita < mañana && cita.estado !== 'cancelada';
-  }).sort((a, b) => new Date(a.fechaHora).getTime() - new Date(b.fechaHora).getTime()) || [];
+  }).sort((a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime());
 
-  const citasProximas = citas?.filter(cita => {
-    const fechaCita = new Date(cita.fechaHora);
+  const citasProximas = citas.filter(cita => {
+    const fechaCita = new Date(cita.fecha_hora);
     return fechaCita >= hoy && cita.estado !== 'cancelada';
-  }) || [];
+  });
 
-  // Pacientes Recientes
-  const pacientesRecientes = pacientes ? [...pacientes].sort((a, b) => new Date(b.fechaIngreso).getTime() - new Date(a.fechaIngreso).getTime()).slice(0, 4) : [];
+  const pacientesRecientes = [...pacientes].sort((a, b) => new Date(b.fecha_ingreso).getTime() - new Date(a.fecha_ingreso).getTime()).slice(0, 4);
 
-  // Cumpleaños del Mes
   const mesActual = new Date().getMonth();
-  const cumpleañeros = pacientes?.filter(p => {
-    if (!p.fechaNacimiento) return false;
-    const nacimiento = new Date(p.fechaNacimiento);
+  const cumpleañeros = pacientes.filter(p => {
+    if (!p.fecha_nacimiento) return false;
+    const nacimiento = new Date(p.fecha_nacimiento);
     return nacimiento.getMonth() === mesActual;
-  }).sort((a, b) => new Date(a.fechaNacimiento).getDate() - new Date(b.fechaNacimiento).getDate()) || [];
+  }).sort((a, b) => {
+    if (!a.fecha_nacimiento || !b.fecha_nacimiento) return 0;
+    return new Date(a.fecha_nacimiento).getDate() - new Date(b.fecha_nacimiento).getDate();
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -131,7 +329,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Columna Izquierda (Agenda y Pacientes Recientes) */}
         <div className="lg:col-span-2 space-y-8">
           
           {/* Agenda del Día */}
@@ -150,12 +347,12 @@ export default function Dashboard() {
                 {citasHoy.length > 0 ? (
                   <div className="space-y-4">
                     {citasHoy.map(cita => {
-                      const paciente = pacientes?.find(p => p.id === cita.pacienteId);
+                      const paciente = pacientes.find(p => p.id === cita.paciente_id);
                       return (
                         <div key={cita.id} className="flex items-center p-4 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100 group">
                           <div className="w-16 text-center mr-6">
                             <p className="text-lg font-extrabold text-slate-700">
-                              {new Date(cita.fechaHora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(cita.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
                           <div className="w-2 h-12 rounded-full bg-violet-200 mr-6 group-hover:bg-violet-400 transition-colors"></div>
@@ -164,7 +361,7 @@ export default function Dashboard() {
                             <p className="text-sm text-slate-500">{cita.motivo}</p>
                           </div>
                           {puedeVerPacientes && (
-                            <Link to={`/pacientes/${cita.pacienteId}`} className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-violet-600 hover:border-violet-200 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-all">
+                            <Link to={`/pacientes/${cita.paciente_id}`} className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-violet-600 hover:border-violet-200 rounded-xl shadow-sm opacity-0 group-hover:opacity-100 transition-all">
                               <ChevronRight size={20} />
                             </Link>
                           )}
@@ -207,7 +404,7 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <p className="font-bold text-slate-800">{paciente.nombre}</p>
-                          <p className="text-xs font-semibold text-slate-400">Ingresado: {new Date(paciente.fechaIngreso).toLocaleDateString()}</p>
+                          <p className="text-xs font-semibold text-slate-400">Ingresado: {new Date(paciente.fecha_ingreso).toLocaleDateString()}</p>
                         </div>
                       </Link>
                     ))}
@@ -220,7 +417,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Columna Derecha (Cumpleaños y Avisos) */}
         <div className="space-y-8">
           
           {/* Cumpleaños del Mes */}
@@ -239,11 +435,11 @@ export default function Dashboard() {
                       <div key={paciente.id} className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-fuchsia-50">
                         <div className="flex items-center">
                           <div className="w-10 h-10 bg-fuchsia-100 text-fuchsia-600 rounded-full flex items-center justify-center font-bold mr-3">
-                            {new Date(paciente.fechaNacimiento).getDate()}
+                            {paciente.fecha_nacimiento && new Date(paciente.fecha_nacimiento).getDate()}
                           </div>
                           <div>
                             <p className="font-bold text-slate-800 text-sm">{paciente.nombre}</p>
-                            <p className="text-xs text-slate-400">{new Date().getFullYear() - new Date(paciente.fechaNacimiento).getFullYear()} años</p>
+                            <p className="text-xs text-slate-400">{paciente.fecha_nacimiento && (new Date().getFullYear() - new Date(paciente.fecha_nacimiento).getFullYear())} años</p>
                           </div>
                         </div>
                       </div>
@@ -259,23 +455,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Quick Tip / Info */}
-          <div className="bg-slate-800 text-white rounded-3xl p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-violet-500/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2"></div>
-            
-            <Activity size={32} className="text-violet-400 mb-4" />
-            <h4 className="text-lg font-bold mb-2">Mantén tus expedientes al día</h4>
-            <p className="text-sm text-slate-300 mb-6 line-clamp-3">Recuerda registrar las notas de evolución y diagnósticos después de cada sesión para llevar un control clínico preciso de tus pacientes.</p>
-            
-            <button className="text-sm font-bold text-violet-300 hover:text-white transition-colors flex items-center">
-              Ir a la documentación <ChevronRight size={16} className="ml-1" />
-            </button>
-          </div>
-
         </div>
       </div>
-      
     </div>
   );
 }

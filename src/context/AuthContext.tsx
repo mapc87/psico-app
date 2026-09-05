@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Usuario } from '../types';
-import { db } from '../services/db/localDb';
+import { supabase } from '../services/supabase/client';
 
 interface AuthContextType {
   usuarioActual: Usuario | null;
-  login: (email: string, password?: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
   needsFirstAdmin: boolean;
@@ -18,61 +17,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsFirstAdmin, setNeedsFirstAdmin] = useState(false);
 
   useEffect(() => {
-    // 1. Verificar si hay sesión activa (para simplificar, guardamos en localStorage el ID)
-    const checkSession = async () => {
-      try {
-        const userIdStr = localStorage.getItem('psico_auth_id');
-        if (userIdStr) {
-          const user = await db.usuarios.get(Number(userIdStr));
-          if (user) {
-            setUsuarioActual(user);
-          } else {
-            localStorage.removeItem('psico_auth_id');
-          }
-        }
-        
-        // 2. Verificar si no existe NINGÚN usuario en el sistema (primer arranque)
-        const totalUsers = await db.usuarios.count();
-        if (totalUsers === 0) {
-          setNeedsFirstAdmin(true);
+    // Escuchar cambios de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Obtener el perfil extendido de la tabla usuarios
+        const { data: perfil, error } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (perfil) {
+          setUsuarioActual(perfil as Usuario);
         } else {
-          setNeedsFirstAdmin(false);
+          console.error("No se encontró el perfil de usuario", error);
+          setUsuarioActual(null);
+          // Si hay una sesión activa pero no hay perfil (ej. usuario borrado manualmente en Supabase)
+          // cerramos la sesión local para limpiar el caché.
+          await supabase.auth.signOut();
         }
-      } catch (error) {
-        console.error("Error comprobando sesión", error);
-      } finally {
+      } else {
+        setUsuarioActual(null);
+        // Reevaluar si no hay usuarios
+        const { data: hasUsers, error } = await supabase.rpc('check_has_users');
+        if (error) {
+          console.error("Error chequeando usuarios (AuthChange):", error);
+          setNeedsFirstAdmin(false);
+        } else {
+          setNeedsFirstAdmin(hasUsers === false);
+        }
+      }
+      setIsLoading(false);
+    });
+
+    // Check inicial
+    const checkInitial = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // Verificar si la tabla de usuarios está vacía usando la función RPC segura
+        const { data: hasUsers, error } = await supabase.rpc('check_has_users');
+        if (error) {
+          console.error("Error chequeando usuarios (Initial):", error);
+          setNeedsFirstAdmin(false);
+        } else {
+          setNeedsFirstAdmin(hasUsers === false);
+        }
         setIsLoading(false);
       }
     };
 
-    checkSession();
+    checkInitial();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const login = async (email: string, password?: string) => {
-    try {
-      // En Dexie, simulamos la validación. En producción real (Supabase), enviaríamos la contraseña encriptada.
-      const users = await db.usuarios.where('email').equalsIgnoreCase(email).toArray();
-      const user = users[0];
-      
-      if (user && user.password === password) {
-        setUsuarioActual(user);
-        localStorage.setItem('psico_auth_id', String(user.id));
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Error en login", error);
-      return false;
-    }
-  };
-
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUsuarioActual(null);
-    localStorage.removeItem('psico_auth_id');
   };
 
   return (
-    <AuthContext.Provider value={{ usuarioActual, login, logout, isLoading, needsFirstAdmin }}>
+    <AuthContext.Provider value={{ usuarioActual, logout, isLoading, needsFirstAdmin }}>
       {children}
     </AuthContext.Provider>
   );

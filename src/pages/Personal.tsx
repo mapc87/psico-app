@@ -1,27 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Plus, Save, X, Edit2, Trash2, Key } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../services/db/localDb';
+import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
-import type { Usuario } from '../types';
+import type { Usuario, Rol } from '../types';
 
 export default function Personal() {
   const { usuarioActual } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rolId, setRolId] = useState<number | ''>('');
+  const [rolId, setRolId] = useState<string | ''>('');
 
-  const personal = useLiveQuery(
-    () => usuarioActual ? db.usuarios.where('medicoId').equals(usuarioActual.id!).toArray() : []
-  );
+  const [personal, setPersonal] = useState<Usuario[]>([]);
+  const [roles, setRoles] = useState<Rol[]>([]);
+  const [invitacionGenerada, setInvitacionGenerada] = useState<string | null>(null);
 
-  const roles = useLiveQuery(
-    () => usuarioActual ? db.roles.where('medicoId').equals(usuarioActual.id!).toArray() : []
-  );
+  const fetchDatos = async () => {
+    if (!usuarioActual?.clinica_id) return;
+    const [personalRes, rolesRes] = await Promise.all([
+      supabase.from('usuarios').select('*').eq('clinica_id', usuarioActual.clinica_id),
+      supabase.from('roles').select('*').eq('clinica_id', usuarioActual.clinica_id)
+    ]);
+    if (personalRes.data) setPersonal(personalRes.data as Usuario[]);
+    if (rolesRes.data) setRoles(rolesRes.data as Rol[]);
+  };
+
+  useEffect(() => {
+    fetchDatos();
+  }, [usuarioActual?.clinica_id]);
 
   const resetForm = () => {
     setNombre('');
@@ -29,14 +38,14 @@ export default function Personal() {
     setPassword('');
     setRolId('');
     setEditingUserId(null);
+    setInvitacionGenerada(null);
   };
 
   const handleOpenModal = (usuario?: Usuario) => {
     if (usuario) {
       setNombre(usuario.nombre);
       setEmail(usuario.email);
-      setPassword(usuario.password || '');
-      setRolId(usuario.rolId || '');
+      setRolId(usuario.rol_id || '');
       setEditingUserId(usuario.id || null);
     } else {
       resetForm();
@@ -46,37 +55,44 @@ export default function Personal() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!usuarioActual || !usuarioActual.id || rolId === '') return;
+    if (!usuarioActual || !usuarioActual.clinica_id || rolId === '') return;
     
-    // Check if email already exists
-    const existing = await db.usuarios.where('email').equals(email).first();
-    if (existing && existing.id !== editingUserId) {
-      alert('Ya existe una cuenta con ese correo electrónico.');
-      return;
-    }
-
-    const userData = {
-      nombre,
-      email,
-      password, // En producción no se guardaría en texto plano
-      rol: 'personal' as const,
-      rolId: Number(rolId),
-      medicoId: usuarioActual.id
-    };
-
     if (editingUserId) {
-      await db.usuarios.update(editingUserId, userData);
+      // Editar personal existente
+      const { error } = await supabase.from('usuarios').update({
+        nombre,
+        rol_id: rolId
+      }).eq('id', editingUserId);
+
+      if (error) {
+        alert('Error al actualizar el personal');
+        return;
+      }
+      setIsModalOpen(false);
+      resetForm();
+      fetchDatos();
     } else {
-      await db.usuarios.add(userData);
+      // Crear nueva invitación
+      const codigo = 'INV-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      const { error } = await supabase.from('invitaciones').insert({
+        clinica_id: usuarioActual.clinica_id,
+        creado_por: usuarioActual.id,
+        codigo: codigo,
+        rol_asignado: rolId
+      });
+
+      if (error) {
+        alert('Error creando la invitación');
+        return;
+      }
+      setInvitacionGenerada(codigo);
     }
-    
-    setIsModalOpen(false);
-    resetForm();
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm('¿Estás seguro de eliminar este miembro del personal? No podrán acceder al sistema.')) {
-      await db.usuarios.delete(id);
+  const handleDelete = async (id: string) => {
+    if (confirm('¿Estás seguro de eliminar este miembro del personal? (En Supabase se requiere borrar su Auth Profile también).')) {
+      await supabase.from('usuarios').delete().eq('id', id);
+      fetchDatos();
     }
   };
 
@@ -116,7 +132,7 @@ export default function Personal() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {personal.map((empleado) => {
-                const rolEmpleado = roles?.find(r => r.id === empleado.rolId);
+                const rolEmpleado = roles?.find(r => r.id === empleado.rol_id);
                 return (
                   <tr key={empleado.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
@@ -168,17 +184,26 @@ export default function Personal() {
             </div>
             
             <div className="p-6">
-              <form id="personalForm" onSubmit={handleSave} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-bold text-slate-600 mb-2">Nombre Completo</label>
-                  <input 
-                    type="text"
-                    required
-                    className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none transition-all duration-300 text-slate-700 font-medium"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                  />
+              {invitacionGenerada ? (
+                <div className="text-center py-8">
+                  <h4 className="text-lg font-bold text-slate-800 mb-2">¡Invitación Generada!</h4>
+                  <p className="text-slate-500 mb-6">Comparte este código con el nuevo empleado. Podrá usarlo al registrarse para unirse a tu clínica.</p>
+                  <div className="bg-slate-100 p-4 rounded-xl flex items-center justify-center font-mono text-2xl tracking-widest text-teal-700 font-bold border-2 border-teal-200 border-dashed">
+                    {invitacionGenerada}
+                  </div>
                 </div>
+              ) : (
+                <form id="personalForm" onSubmit={handleSave} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-2">Nombre Completo</label>
+                    <input 
+                      type="text"
+                      required
+                      className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none transition-all duration-300 text-slate-700 font-medium"
+                      value={nombre}
+                      onChange={(e) => setNombre(e.target.value)}
+                    />
+                  </div>
 
                 <div>
                   <label className="block text-sm font-bold text-slate-600 mb-2">Correo Electrónico (Usuario)</label>
@@ -211,7 +236,7 @@ export default function Personal() {
                     required
                     className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 outline-none transition-all duration-300 text-slate-700 font-medium cursor-pointer"
                     value={rolId}
-                    onChange={(e) => setRolId(Number(e.target.value))}
+                    onChange={(e) => setRolId(e.target.value)}
                   >
                     <option value="" disabled>Selecciona un rol...</option>
                     {roles?.map(r => (
@@ -223,6 +248,7 @@ export default function Personal() {
                   )}
                 </div>
               </form>
+              )}
             </div>
 
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end space-x-3">
@@ -231,16 +257,18 @@ export default function Personal() {
                 onClick={() => setIsModalOpen(false)}
                 className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
               >
-                Cancelar
+                {invitacionGenerada ? 'Cerrar' : 'Cancelar'}
               </button>
-              <button 
-                form="personalForm"
-                type="submit"
-                className="flex items-center px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-all duration-300 shadow-md shadow-teal-500/20 cursor-pointer"
-              >
-                <Save size={18} className="mr-2" />
-                Guardar Empleado
-              </button>
+              {!invitacionGenerada && (
+                <button 
+                  form="personalForm"
+                  type="submit"
+                  className="flex items-center px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-all duration-300 shadow-md shadow-teal-500/20 cursor-pointer"
+                >
+                  <Save size={18} className="mr-2" />
+                  Guardar Empleado
+                </button>
+              )}
             </div>
           </div>
         </div>

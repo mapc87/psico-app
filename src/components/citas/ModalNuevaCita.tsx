@@ -4,9 +4,9 @@ import { X, Calendar as CalendarIcon, Clock, FileText, Save } from 'lucide-react
 interface ModalNuevaCitaProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (fechaHora: string, motivo: string, pacienteId?: number) => Promise<void>;
+  onSave: (fechaHora: string, motivo: string, pacienteId?: string) => Promise<void>;
   pacienteNombre?: string;
-  pacientes?: {id: number, nombre: string}[];
+  pacientes?: {id: string, nombre: string}[];
 }
 
 export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre, pacientes }: ModalNuevaCitaProps) {
@@ -32,7 +32,7 @@ export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre
     try {
       // Combinar fecha y hora en formato ISO
       const fechaHora = new Date(`${fecha}T${hora}`).toISOString();
-      await onSave(fechaHora, motivo, pacienteIdSeleccionado ? Number(pacienteIdSeleccionado) : undefined);
+      await onSave(fechaHora, motivo, pacienteIdSeleccionado || undefined);
       onClose();
       // Limpiar formulario
       setFecha('');

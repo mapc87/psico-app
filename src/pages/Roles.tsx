@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Plus, Save, X, Edit2, Trash2 } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../services/db/localDb';
+import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import type { Permisos, Rol } from '../types';
 
 export default function Roles() {
   const { usuarioActual } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRolId, setEditingRolId] = useState<number | null>(null);
+  const [editingRolId, setEditingRolId] = useState<string | null>(null);
   
   const [nombre, setNombre] = useState('');
   const [permisos, setPermisos] = useState<Permisos>({
@@ -23,9 +22,17 @@ export default function Roles() {
     verMedicamentos: false
   });
 
-  const roles = useLiveQuery(
-    () => usuarioActual ? db.roles.where('medicoId').equals(usuarioActual.id!).toArray() : []
-  );
+  const [roles, setRoles] = useState<Rol[]>([]);
+
+  const fetchRoles = async () => {
+    if (!usuarioActual?.clinica_id) return;
+    const { data } = await supabase.from('roles').select('*');
+    if (data) setRoles(data as Rol[]);
+  };
+
+  useEffect(() => {
+    fetchRoles();
+  }, [usuarioActual?.clinica_id]);
 
   const resetForm = () => {
     setNombre('');
@@ -60,13 +67,13 @@ export default function Roles() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!usuarioActual || !usuarioActual.id) return;
+    if (!usuarioActual || !usuarioActual.clinica_id) return;
     
     if (editingRolId) {
-      await db.roles.update(editingRolId, { nombre, permisos });
+      await supabase.from('roles').update({ nombre, permisos }).eq('id', editingRolId);
     } else {
-      await db.roles.add({
-        medicoId: usuarioActual.id,
+      await supabase.from('roles').insert({
+        clinica_id: usuarioActual.clinica_id,
         nombre,
         permisos
       });
@@ -74,11 +81,13 @@ export default function Roles() {
     
     setIsModalOpen(false);
     resetForm();
+    fetchRoles();
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (confirm('¿Estás seguro de eliminar este rol? Los usuarios asignados a él perderán sus accesos.')) {
-      await db.roles.delete(id);
+      await supabase.from('roles').delete().eq('id', id);
+      fetchRoles();
     }
   };
 

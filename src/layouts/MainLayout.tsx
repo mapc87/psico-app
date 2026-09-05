@@ -1,25 +1,31 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../services/db/localDb';
-import { LayoutDashboard, Users, Calendar, LogOut, Shield, Activity, UsersRound } from 'lucide-react';
+import { supabase } from '../services/supabase/client';
+import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import type { Permisos } from '../types';
 
 export default function MainLayout() {
   const { usuarioActual, logout } = useAuth();
   const navigate = useNavigate();
+  const [permisos, setPermisos] = useState<Permisos | null>(null);
+
+  useEffect(() => {
+    const fetchPermisos = async () => {
+      if (usuarioActual?.rol_id) {
+        const { data } = await supabase.from('roles').select('permisos').eq('id', usuarioActual.rol_id).single();
+        if (data && data.permisos) {
+          setPermisos(data.permisos as Permisos);
+        }
+      }
+    };
+    fetchPermisos();
+  }, [usuarioActual?.rol_id]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
-
-  const rolActual = useLiveQuery(
-    () => usuarioActual?.rolId ? db.roles.get(usuarioActual.rolId) : null,
-    [usuarioActual?.rolId]
-  );
-
-  const permisos = rolActual?.permisos;
 
   // Filtrado de navegación
   const navItems = [];
@@ -28,9 +34,12 @@ export default function MainLayout() {
     navItems.push({ icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' });
     navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
     navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
+    navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
+    navItems.push({ icon: <FileSignature size={20} />, label: 'Documentos', path: '/consentimientos' });
   } else if (usuarioActual?.rol === 'personal' && permisos) {
     if (permisos.verAgenda) navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
     if (permisos.verPacientes) navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
+    if (permisos.verFinanzas) navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
   }
 
   return (

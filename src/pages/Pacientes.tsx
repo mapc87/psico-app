@@ -1,27 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Plus, User, ChevronRight } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../services/db/localDb';
+import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
+import type { Paciente } from '../types';
 
 export default function Pacientes() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const location = useLocation();
   const mensajeExito = location.state?.mensaje;
 
   const { usuarioActual } = useAuth();
 
-  // Consultar base de datos local asincrónicamente, filtrando por médico
-  const pacientesDb = useLiveQuery(
-    () => {
-      if (!usuarioActual?.id) return [];
-      return db.pacientes.where('medicoId').equals(usuarioActual.id).toArray();
-    },
-    [usuarioActual?.id]
-  );
-  
-  const pacientes = pacientesDb || [];
+  useEffect(() => {
+    const fetchPacientes = async () => {
+      if (!usuarioActual?.clinica_id) return;
+      
+      const { data, error } = await supabase
+        .from('pacientes')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (!error && data) {
+        setPacientes(data as Paciente[]);
+      }
+    };
+    
+    fetchPacientes();
+  }, [usuarioActual?.clinica_id]);
 
   // Función auxiliar para calcular edad
   const calcularEdad = (fechaNacimiento: string) => {
@@ -103,10 +110,10 @@ export default function Pacientes() {
                       <div className="text-sm font-semibold text-slate-800">{paciente.nombre}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">{calcularEdad(paciente.fechaNacimiento)} años</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">{calcularEdad(paciente.fecha_nacimiento || '')} años</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{paciente.telefono}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-xs font-medium">{paciente.fechaIngreso}</span>
+                    <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-xs font-medium">{paciente.fecha_ingreso}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                     <Link 

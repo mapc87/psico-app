@@ -47,8 +47,8 @@
   }
 
   @page {
-    /* Define el ancho de rollo de 80mm y largo automático */
-    size: 80mm auto;
+    /* Define el ancho de rollo de 80mm (y un largo estandar para forzar la vista previa) */
+    size: 80mm 297mm;
     margin: 0;
   }
 }

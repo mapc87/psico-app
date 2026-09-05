@@ -453,6 +453,7 @@ export default function PacienteDetalle() {
                 </div>
               )}
             </div>
+          </div>
           )}
 
           {/* Pestaña: Citas */}

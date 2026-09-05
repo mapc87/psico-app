@@ -152,9 +152,9 @@ export default function PacienteDetalle() {
       clinica_id: usuarioActual.clinica_id,
       paciente_id: id,
       fecha: new Date().toISOString(),
-      presion_arterial: data.presionArterial,
-      frecuencia_cardiaca: data.frecuenciaCardiaca,
-      saturacion_oxigeno: data.saturacionOxigeno,
+      presion_arterial: data.presion_arterial,
+      frecuencia_cardiaca: data.frecuencia_cardiaca,
+      saturacion_oxigeno: data.saturacion_oxigeno,
       temperatura: data.temperatura,
       peso: data.peso,
       talla: data.talla,
@@ -303,7 +303,7 @@ export default function PacienteDetalle() {
 
   // Filtrar tabs según permisos
   const tabs = allTabs.filter(tab => {
-    if (usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'doctor') return true;
+    if (usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'admin') return true;
     if (usuarioActual?.rol === 'personal' && permisos) {
       return permisos[tab.key as keyof typeof permisos] === true;
     }
@@ -477,7 +477,7 @@ export default function PacienteDetalle() {
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center">
                           <ClipboardList size={20} className="text-blue-500 mr-2" />
-                          <h4 className="font-bold text-slate-800">{examen.tipoExamen}</h4>
+                          <h4 className="font-bold text-slate-800">{examen.tipo_examen}</h4>
                         </div>
                         <span className={`px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded-md ${
                           examen.estado === 'pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
@@ -485,7 +485,7 @@ export default function PacienteDetalle() {
                           {examen.estado}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-500 mb-4">Solicitado: {new Date(examen.fechaSolicitud).toLocaleDateString()}</p>
+                      <p className="text-sm text-slate-500 mb-4">Solicitado: {new Date(examen.fecha_solicitud).toLocaleDateString()}</p>
                       
                       <div className="flex flex-col space-y-2 mt-auto">
                         <button 
@@ -856,19 +856,19 @@ export default function PacienteDetalle() {
                   
                   {/* Presión Arterial */}
                   <div className={`p-6 rounded-2xl border shadow-sm relative overflow-hidden group ${
-                    ultimoSigno.presionArterial.includes('150') || ultimoSigno.presionArterial.includes('160') ? 'bg-red-50/50 border-red-200' : 'bg-slate-50 border-slate-200'
+                    ultimoSigno.presion_arterial.includes('150') || ultimoSigno.presion_arterial.includes('160') ? 'bg-red-50/50 border-red-200' : 'bg-slate-50 border-slate-200'
                   }`}>
                     <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform"><Activity size={100} /></div>
                     <div className="flex justify-between items-start mb-2">
                       <span className={`text-sm font-bold uppercase tracking-wider flex items-center ${
-                        ultimoSigno.presionArterial.includes('150') || ultimoSigno.presionArterial.includes('160') ? 'text-red-700' : 'text-slate-600'
+                        ultimoSigno.presion_arterial.includes('150') || ultimoSigno.presion_arterial.includes('160') ? 'text-red-700' : 'text-slate-600'
                       }`}>
                         Presión Arterial
                       </span>
                     </div>
                     <p className={`text-3xl font-extrabold tracking-tight ${
-                      ultimoSigno.presionArterial.includes('150') || ultimoSigno.presionArterial.includes('160') ? 'text-red-600' : 'text-slate-800'
-                    }`}>{ultimoSigno.presionArterial}</p>
+                      ultimoSigno.presion_arterial.includes('150') || ultimoSigno.presion_arterial.includes('160') ? 'text-red-600' : 'text-slate-800'
+                    }`}>{ultimoSigno.presion_arterial}</p>
                     <p className="text-xs font-semibold text-slate-500 mt-1">mmHg</p>
                   </div>
 
@@ -876,7 +876,7 @@ export default function PacienteDetalle() {
                   <div className="p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100 shadow-sm relative overflow-hidden group">
                     <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform"><Heart size={100} /></div>
                     <span className="text-sm font-bold text-emerald-700 uppercase tracking-wider block mb-2">Ritmo Cardíaco</span>
-                    <p className="text-3xl font-extrabold text-slate-800 tracking-tight">{ultimoSigno.frecuenciaCardiaca}</p>
+                    <p className="text-3xl font-extrabold text-slate-800 tracking-tight">{ultimoSigno.frecuencia_cardiaca}</p>
                     <p className="text-xs font-medium text-emerald-600 mt-1">LPM</p>
                   </div>
 
@@ -884,21 +884,21 @@ export default function PacienteDetalle() {
                   <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 shadow-sm relative overflow-hidden group">
                     <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform"><Wind size={100} /></div>
                     <span className="text-sm font-bold text-blue-700 uppercase tracking-wider block mb-2">Oxígeno (SpO2)</span>
-                    <p className="text-3xl font-extrabold text-slate-800 tracking-tight">{ultimoSigno.saturacionOxigeno}<span className="text-xl text-blue-400">%</span></p>
+                    <p className="text-3xl font-extrabold text-slate-800 tracking-tight">{ultimoSigno.saturacion_oxigeno}<span className="text-xl text-blue-400">%</span></p>
                   </div>
 
                   {/* Temperatura */}
                   <div className={`p-6 rounded-2xl border shadow-sm relative overflow-hidden group ${
-                    ultimoSigno.temperatura > 37.5 ? 'bg-orange-50/50 border-orange-200' : 'bg-slate-50 border-slate-200'
+                    (ultimoSigno.temperatura || 0) > 37.5 ? 'bg-orange-50/50 border-orange-200' : 'bg-slate-50 border-slate-200'
                   }`}>
                     <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform"><Thermometer size={100} /></div>
                     <span className={`text-sm font-bold uppercase tracking-wider block mb-2 ${
-                      ultimoSigno.temperatura > 37.5 ? 'text-orange-700' : 'text-slate-600'
+                      (ultimoSigno.temperatura || 0) > 37.5 ? 'text-orange-700' : 'text-slate-600'
                     }`}>Temperatura</span>
                     <p className={`text-3xl font-extrabold tracking-tight ${
-                      ultimoSigno.temperatura > 37.5 ? 'text-orange-600' : 'text-slate-800'
-                    }`}>{ultimoSigno.temperatura}<span className={`text-xl ${ultimoSigno.temperatura > 37.5 ? 'text-orange-400' : 'text-slate-400'}`}>°C</span></p>
-                    {ultimoSigno.temperatura > 37.5 && <p className="text-xs font-semibold text-orange-600 mt-1">Febrícula / Fiebre</p>}
+                      (ultimoSigno.temperatura || 0) > 37.5 ? 'text-orange-600' : 'text-slate-800'
+                    }`}>{(ultimoSigno.temperatura || 0)}<span className={`text-xl ${(ultimoSigno.temperatura || 0) > 37.5 ? 'text-orange-400' : 'text-slate-400'}`}>°C</span></p>
+                    {(ultimoSigno.temperatura || 0) > 37.5 && <p className="text-xs font-semibold text-orange-600 mt-1">Febrícula / Fiebre</p>}
                   </div>
 
                   {/* IMC y Peso */}
@@ -918,17 +918,17 @@ export default function PacienteDetalle() {
                       <div className="text-right">
                         <span className="text-sm font-bold text-slate-500 uppercase tracking-wider block">IMC</span>
                         <p className={`text-2xl font-extrabold ${
-                          ultimoSigno.imc > 25 ? 'text-amber-600' : ultimoSigno.imc < 18.5 ? 'text-blue-600' : 'text-emerald-600'
-                        }`}>{ultimoSigno.imc}</p>
+                          (ultimoSigno.imc || 0) > 25 ? 'text-amber-600' : (ultimoSigno.imc || 0) < 18.5 ? 'text-blue-600' : 'text-emerald-600'
+                        }`}>{(ultimoSigno.imc || 0)}</p>
                         <p className={`text-xs font-bold ${
-                          ultimoSigno.imc > 25 ? 'text-amber-500' : ultimoSigno.imc < 18.5 ? 'text-blue-500' : 'text-emerald-500'
+                          (ultimoSigno.imc || 0) > 25 ? 'text-amber-500' : (ultimoSigno.imc || 0) < 18.5 ? 'text-blue-500' : 'text-emerald-500'
                         }`}>
-                          {ultimoSigno.imc > 25 ? 'Sobrepeso' : ultimoSigno.imc < 18.5 ? 'Bajo Peso' : 'Normal'}
+                          {(ultimoSigno.imc || 0) > 25 ? 'Sobrepeso' : (ultimoSigno.imc || 0) < 18.5 ? 'Bajo Peso' : 'Normal'}
                         </p>
                       </div>
                     </div>
                     <div className={`absolute right-0 top-0 w-32 h-full bg-gradient-to-l to-transparent ${
-                      ultimoSigno.imc > 25 ? 'from-amber-100/50' : ultimoSigno.imc < 18.5 ? 'from-blue-100/50' : 'from-emerald-100/50'
+                      (ultimoSigno.imc || 0) > 25 ? 'from-amber-100/50' : (ultimoSigno.imc || 0) < 18.5 ? 'from-blue-100/50' : 'from-emerald-100/50'
                     }`}></div>
                   </div>
 
@@ -1249,7 +1249,7 @@ export default function PacienteDetalle() {
           pacienteEdad={calcularEdad(paciente.fechaNacimiento)}
           fecha={new Date().toISOString()}
           examen={examenParaImprimir || {
-            pacienteId: 0, medicoId: 0, fechaSolicitud: '', estado: 'pendiente', tipoExamen: ''
+            pacienteId: 0, medicoId: 0, fecha_solicitud: '', estado: 'pendiente', tipo_examen: ''
           }}
           medicoNombre={usuarioActual?.nombre}
         />

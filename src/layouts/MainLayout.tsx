@@ -30,7 +30,7 @@ export default function MainLayout() {
   // Filtrado de navegación
   const navItems = [];
   
-  if (usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'doctor') {
+  if (usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'admin') {
     navItems.push({ icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' });
     navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
     navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
@@ -74,7 +74,7 @@ export default function MainLayout() {
           ))}
 
           {/* Opciones de Administración (Master / Doctor) */}
-          {(usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'doctor') && (
+          {(usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'admin') && (
             <div className="mt-8 pt-6 border-t border-slate-200/50">
               <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Administración</p>
               

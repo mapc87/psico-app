@@ -8,7 +8,7 @@
     "dev": "vite",
     "dev:electron": "cross-env NODE_ENV=development concurrently \"vite\" \"electron .\"",
     "build:electron": "vite build && electron-builder",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },

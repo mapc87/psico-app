@@ -16,6 +16,7 @@ export default function Personal() {
   const { usuarioActual } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, type: 'empleado' | 'invitacion' } | null>(null);
   
   // Para editar usuario
   const [nombre, setNombre] = useState('');
@@ -98,18 +99,29 @@ export default function Personal() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este miembro del personal? (Se revocará su acceso)')) {
-      await supabase.from('usuarios').delete().eq('id', id);
-      fetchDatos();
-    }
+  const handleDelete = (id: string) => {
+    setDeleteConfirm({ id, type: 'empleado' });
   };
 
-  const handleDeleteInv = async (id: string) => {
-    if (confirm('¿Estás seguro de cancelar esta invitación?')) {
-      await supabase.from('invitaciones').delete().eq('id', id);
-      fetchDatos();
+  const handleDeleteInv = (id: string) => {
+    setDeleteConfirm({ id, type: 'invitacion' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    
+    if (deleteConfirm.type === 'empleado') {
+      await supabase.from('usuarios').delete().eq('id', deleteConfirm.id);
+    } else {
+      const { error } = await supabase.from('invitaciones').delete().eq('id', deleteConfirm.id);
+      if (error) {
+        console.error("Error al eliminar invitación:", error);
+        alert("Hubo un error al eliminar. Verifica si tienes permisos (solo Superadmin/Admin).");
+      }
     }
+    
+    setDeleteConfirm(null);
+    fetchDatos();
   };
 
   if (usuarioActual?.rol !== 'admin' && usuarioActual?.rol !== 'doctor') {
@@ -288,6 +300,40 @@ export default function Personal() {
                   {editingUserId ? 'Guardar Cambios' : 'Generar Código'}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Confirmación de Eliminación */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">
+                {deleteConfirm.type === 'invitacion' ? '¿Cancelar Invitación?' : '¿Eliminar Empleado?'}
+              </h3>
+              <p className="text-slate-500">
+                {deleteConfirm.type === 'invitacion' 
+                  ? 'Esta acción invalidará el código y ya no podrá ser usado para registrarse.' 
+                  : 'Esta acción revocará el acceso de este usuario al sistema.'}
+              </p>
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center space-x-3">
+              <button 
+                onClick={() => setDeleteConfirm(null)}
+                className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors cursor-pointer w-full"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/20 cursor-pointer w-full"
+              >
+                Sí, eliminar
+              </button>
             </div>
           </div>
         </div>

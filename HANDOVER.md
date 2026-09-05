@@ -10,26 +10,30 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 1. **SuperAdmin (Owner del SaaS):**
    - El primer usuario registrado en la base de datos es el `superadmin`.
    - Su `clinica_id` es `NULL`.
-   - Tiene acceso al "Panel de Organización" (Dashboard especial) donde puede ver y crear nuevas Clínicas.
-   - Al crear una clínica, genera un código de invitación para el doctor dueño.
+   - Tiene acceso al "Panel de Organización" (Dashboard especial) y al "Mantenimiento de Clínicas", donde puede ver, crear, editar, desactivar o eliminar nuevas Clínicas.
 2. **Admin (Dueño de Clínica):**
    - Se registra utilizando un "Código de Invitación" generado por el SuperAdmin.
    - Su cuenta se ata a un `clinica_id` específico.
-   - Tiene acceso total a los datos de su propia clínica (Pacientes, Citas, Personal, etc.).
-3. **Personal (Secretarias, Asistentes):**
-   - Se registran con un código generado por el Admin de la clínica.
-   - Tienen un `rol_id` (tabla `roles`) que define permisos granulares (verAgenda, verPacientes, etc.).
+   - Tiene acceso total a los datos de su propia clínica (Pacientes, Citas, Personal, Configuración de Clínica, etc.).
+3. **Personal (Secretarias, Asistentes, Doctores Adicionales):**
+   - Se registran con un código generado por el Admin de la clínica o tienen un rol predefinido.
+   - Tienen un `rol_id` (tabla `roles`) que define permisos granulares (verAgenda, verPacientes, etc.), o un rol base como `doctor` o `personal`.
 
 ## 2. Características Completadas (Historial de Desarrollo)
 
 ### Base de Datos y Seguridad
-- **Unificación de Scripts SQL:** Todos los scripts de creación y migración se han unificado en un solo archivo `init_database_full.sql`. Puedes ejecutar este script completo en una nueva instancia de Supabase para inicializar toda la estructura.
-- **RLS y Permisos:** Políticas implementadas para asegurar que cada clínica solo vea sus propios datos. Se corrigió un bug (`fix_admin_invitations.sql`) que impedía a los administradores crear invitaciones para su personal.
+- **Organización de Scripts SQL:** Todos los scripts de creación y migración se han estructurado dentro del directorio `database_scripts/`.
+  - El archivo `database_scripts/init_database_full.sql` contiene el esquema principal de la base de datos.
+  - La carpeta `database_scripts/migrations/` contiene scripts de migración adicionales que añaden funcionalidades específicas (como datos fiscales SAT, y parches de RLS).
+- **RLS y Permisos:** Políticas implementadas para asegurar que cada clínica solo vea sus propios datos. Se arreglaron múltiples políticas de seguridad para permitir al SuperAdmin realizar el mantenimiento de las clínicas.
 
 ### Facturación y Finanzas (Guatemala)
 - Se estandarizó la moneda del sistema a **Quetzales (Q.)**.
-- Se adaptó la base de datos para soportar los requerimientos legales de Guatemala (SAT), incluyendo campos como **NIT**, **Razón Social** en los pacientes (`migration_nit.sql`), y **Número de Factura, Serie y Autorización (FEL)** en las facturas (`migration_fel.sql`).
-- La vista `FinanzasGlobal.tsx` permite al administrador visualizar ingresos, registrar pagos (completos o parciales) y llevar el control financiero.
+- Se adaptó la base de datos para soportar los requerimientos legales de Guatemala (SAT), incluyendo campos como **NIT**, **Razón Social** en los pacientes, y **Número de Factura, Serie y Autorización (FEL)** en las facturas.
+- Las clínicas pueden configurar sus propios datos fiscales (NIT, Dirección Fiscal, No. Patente, etc.) a través de `/configuracion`.
+
+### Correos Electrónicos
+- Se implementó la integración con **EmailJS** para el envío de invitaciones de clínica y personal.
 
 ### Consentimientos Informados y Firmas Digitales
 - Se creó la tabla `plantillas_documentos` para gestionar plantillas predeterminadas de clínica (con un trigger para crear la plantilla estándar automáticamente al registrar una clínica).
@@ -38,15 +42,17 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 
 ### Inteligencia Artificial (Notas SOAP)
 - Se integró la API oficial de Google Gemini (`@google/genai`).
-- El modelo utilizado es `gemini-3.6-flash`.
 - En el expediente del paciente, los doctores pueden escribir un borrador rápido y la IA estructurará la información en una nota clínica bajo el estándar SOAP.
 - Requiere agregar la llave `VITE_GEMINI_API_KEY` en el archivo `.env.local` para funcionar.
 
 ## 3. Instrucciones para el Próximo Agente
-¡El proyecto está completamente funcional y migrado a Supabase! 
-Si requieres reinstalar la base de datos desde cero, simplemente ejecuta el archivo `init_database_full.sql` en el SQL Editor de Supabase. 
+¡El proyecto está completamente funcional, migrado a Supabase y ha sido limpiado de archivos residuales! 
+
+Si requieres reinstalar la base de datos desde cero:
+1. Ejecuta el archivo `database_scripts/init_database_full.sql`.
+2. Luego, ejecuta los scripts dentro de `database_scripts/migrations/` para aplicar los parches y columnas más recientes.
 
 Cuando trabajes en nuevas funcionalidades:
 1. Recuerda siempre enviar el `clinica_id` (que viene de `usuarioActual.clinica_id`) al hacer `insert` en nuevas tablas, ya que las políticas RLS lo requieren.
-2. Si creas tablas nuevas, asegúrate de añadir las políticas RLS (usando `get_user_clinica_id()` para las consultas `SELECT`, `UPDATE` y `DELETE`).
-3. Nunca expongas la llave de Gemini ni de Supabase Service Role en el frontend; las que tenemos actualmente son seguras porque requieren autenticación (Supabase) o porque se asume uso en entorno de prueba sin backend dedicado. Para un despliegue en producción real, la llamada a Gemini debería moverse a una Edge Function.
+2. Si creas tablas nuevas, asegúrate de añadir las políticas RLS y revisa siempre si requieren accesos de `superadmin` o de `admin`.
+3. Nunca expongas las llaves (Gemini o Supabase Service Role) en el frontend, a menos que sea un prototipo sin backend dedicado. Para un despliegue en producción real, la llamada a Gemini debería moverse a una Edge Function.

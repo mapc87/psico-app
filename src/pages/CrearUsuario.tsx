@@ -7,7 +7,7 @@ export default function CrearUsuario() {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rol, setRol] = useState<'admin' | 'doctor'>('doctor');
+  const [rol, setRol] = useState<"superadmin" | "admin" | "personal">('doctor');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -103,12 +103,12 @@ export default function CrearUsuario() {
             <label className="block text-sm font-bold text-slate-600 mb-2">Rol en el Sistema</label>
             <div className="grid grid-cols-2 gap-4">
               <div 
-                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${rol === 'doctor' ? 'border-violet-500 bg-violet-50' : 'border-slate-200 bg-white hover:border-violet-200'}`}
+                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${rol === 'admin' ? 'border-violet-500 bg-violet-50' : 'border-slate-200 bg-white hover:border-violet-200'}`}
                 onClick={() => setRol('doctor')}
               >
                 <div className="flex items-center mb-2">
-                  <UserPlus size={20} className={rol === 'doctor' ? 'text-violet-600' : 'text-slate-400'} />
-                  <span className={`font-bold ml-2 ${rol === 'doctor' ? 'text-violet-900' : 'text-slate-600'}`}>Doctor</span>
+                  <UserPlus size={20} className={rol === 'admin' ? 'text-violet-600' : 'text-slate-400'} />
+                  <span className={`font-bold ml-2 ${rol === 'admin' ? 'text-violet-900' : 'text-slate-600'}`}>Doctor</span>
                 </div>
                 <p className="text-xs text-slate-500">Solo puede ver y editar expedientes de pacientes.</p>
               </div>

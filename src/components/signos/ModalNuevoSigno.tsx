@@ -9,9 +9,9 @@ interface ModalNuevoSignoProps {
 }
 
 export default function ModalNuevoSigno({ isOpen, onClose, onSave }: ModalNuevoSignoProps) {
-  const [presionArterial, setPresionArterial] = useState('');
-  const [frecuenciaCardiaca, setFrecuenciaCardiaca] = useState('');
-  const [saturacionOxigeno, setSaturacionOxigeno] = useState('');
+  const [presion_arterial, setPresionArterial] = useState('');
+  const [frecuencia_cardiaca, setFrecuenciaCardiaca] = useState('');
+  const [saturacion_oxigeno, setSaturacionOxigeno] = useState('');
   const [temperatura, setTemperatura] = useState('');
   const [peso, setPeso] = useState('');
   const [talla, setTalla] = useState('');
@@ -38,9 +38,9 @@ export default function ModalNuevoSigno({ isOpen, onClose, onSave }: ModalNuevoS
     try {
       await onSave({
         fecha: new Date().toISOString(),
-        presionArterial: presionArterial || 'N/A',
-        frecuenciaCardiaca: parseFloat(frecuenciaCardiaca) || 0,
-        saturacionOxigeno: parseFloat(saturacionOxigeno) || 0,
+        presion_arterial: presion_arterial || 'N/A',
+        frecuencia_cardiaca: parseFloat(frecuencia_cardiaca) || 0,
+        saturacion_oxigeno: parseFloat(saturacion_oxigeno) || 0,
         temperatura: parseFloat(temperatura) || 0,
         peso: parseFloat(peso) || 0,
         talla: parseFloat(talla) || 0,
@@ -95,7 +95,7 @@ export default function ModalNuevoSigno({ isOpen, onClose, onSave }: ModalNuevoS
                     type="text" 
                     placeholder="Ej. 120/80"
                     className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all duration-300 text-slate-700 font-medium"
-                    value={presionArterial}
+                    value={presion_arterial}
                     onChange={(e) => setPresionArterial(e.target.value)}
                   />
                 </div>
@@ -112,7 +112,7 @@ export default function ModalNuevoSigno({ isOpen, onClose, onSave }: ModalNuevoS
                     type="number" 
                     placeholder="Ej. 75"
                     className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all duration-300 text-slate-700 font-medium"
-                    value={frecuenciaCardiaca}
+                    value={frecuencia_cardiaca}
                     onChange={(e) => setFrecuenciaCardiaca(e.target.value)}
                   />
                 </div>
@@ -129,7 +129,7 @@ export default function ModalNuevoSigno({ isOpen, onClose, onSave }: ModalNuevoS
                     type="number" 
                     placeholder="Ej. 98"
                     className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all duration-300 text-slate-700 font-medium"
-                    value={saturacionOxigeno}
+                    value={saturacion_oxigeno}
                     onChange={(e) => setSaturacionOxigeno(e.target.value)}
                   />
                 </div>

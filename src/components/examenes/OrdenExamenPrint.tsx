@@ -50,7 +50,7 @@ const OrdenExamenPrint = forwardRef<HTMLDivElement, OrdenExamenPrintProps>(({ ex
       {/* Título del Documento */}
       <div className="text-center mb-10">
         <h2 className="text-2xl font-bold text-slate-800 uppercase tracking-widest">Orden de Exámenes Médicos</h2>
-        <p className="text-slate-500 mt-2">Fecha: {new Date(examen.fechaSolicitud).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p className="text-slate-500 mt-2">Fecha: {new Date(examen.fecha_solicitud).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </div>
 
       {/* Datos del Paciente */}
@@ -77,7 +77,7 @@ const OrdenExamenPrint = forwardRef<HTMLDivElement, OrdenExamenPrintProps>(({ ex
         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Estudios Solicitados</h3>
         <div className="p-8 border-2 border-blue-100 bg-blue-50/30 rounded-2xl">
           <p className="text-xl text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
-            {examen.tipoExamen}
+            {examen.tipo_examen}
           </p>
         </div>
         <p className="text-sm text-slate-500 mt-4 italic">Favor realizar los estudios arriba mencionados e informar los resultados a la brevedad posible.</p>

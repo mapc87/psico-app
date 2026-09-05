@@ -63,7 +63,7 @@ export default function ProtectedRoute({ requireAdmin = false, children }: { req
   }
 
   // Doctores tampoco deberían ver /admin si solo es para Master Admin
-  if (usuarioActual.rol === 'doctor') {
+  if (usuarioActual.rol === 'admin') {
     const path = location.pathname;
     if (path.startsWith('/admin')) {
       return <Navigate to="/dashboard" replace />;

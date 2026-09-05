@@ -20,20 +20,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // Obtener el perfil extendido de la tabla usuarios
-        const { data: perfil, error } = await supabase
-          .from('usuarios')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        // Mecanismo de reintento (Retry Logic) para prevenir flicker si el trigger tarda en crear el perfil
+        let perfil = null;
+        for (let i = 0; i < 4; i++) {
+          const { data, error } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (data) {
+            perfil = data;
+            break;
+          }
+          
+          // Esperar 500ms antes del próximo reintento
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
 
         if (perfil) {
           setUsuarioActual(perfil as Usuario);
         } else {
-          console.error("No se encontró el perfil de usuario", error);
+          console.error("No se encontró el perfil de usuario tras varios intentos");
           setUsuarioActual(null);
-          // Si hay una sesión activa pero no hay perfil (ej. usuario borrado manualmente en Supabase)
-          // cerramos la sesión local para limpiar el caché.
           await supabase.auth.signOut();
         }
       } else {

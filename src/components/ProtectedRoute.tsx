@@ -30,7 +30,7 @@ export default function ProtectedRoute({ requireAdmin = false, children }: { req
   }
 
   // Si la ruta requiere administrador y el usuario no lo es, enviarlo al dashboard
-  if (requireAdmin && usuarioActual.rol !== 'admin') {
+  if (requireAdmin && usuarioActual.rol !== 'admin' && usuarioActual.rol !== 'superadmin') {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -62,10 +62,10 @@ export default function ProtectedRoute({ requireAdmin = false, children }: { req
     }
   }
 
-  // Doctores tampoco deberían ver /admin si solo es para Master Admin
+  // Admins no deberían ver /admin/clinicas (solo SuperAdmin)
   if (usuarioActual.rol === 'admin') {
     const path = location.pathname;
-    if (path.startsWith('/admin')) {
+    if (path.startsWith('/admin/clinicas')) {
       return <Navigate to="/dashboard" replace />;
     }
   }

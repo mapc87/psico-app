@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Wallet, TrendingUp, AlertCircle, Search, Filter, Receipt, DollarSign, Calendar } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Wallet, TrendingUp, AlertCircle, Search, Filter, Receipt, DollarSign, Calendar, Printer } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
-import type { Factura } from '../types';
+import type { Factura, Clinica } from '../types';
 import ModalRegistrarPago from '../components/finanzas/ModalRegistrarPago';
 import ModalNuevaFacturaGlobal from '../components/finanzas/ModalNuevaFacturaGlobal';
+import FacturaImprimible from '../components/finanzas/FacturaImprimible';
 
 interface FacturaExtendida extends Factura {
   pacientes?: {
@@ -22,6 +24,16 @@ export default function FinanzasGlobal() {
   const [isNuevaFacturaModalOpen, setIsNuevaFacturaModalOpen] = useState(false);
   const [isPagoModalOpen, setIsPagoModalOpen] = useState(false);
   const [facturaSeleccionada, setFacturaSeleccionada] = useState<Factura | null>(null);
+  
+  const [clinicaConfig, setClinicaConfig] = useState<Clinica | null>(null);
+  const [facturaAImprimir, setFacturaAImprimir] = useState<FacturaExtendida | null>(null);
+
+  const handleImprimir = (factura: FacturaExtendida) => {
+    setFacturaAImprimir(factura);
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  };
 
   const fetchData = async () => {
     if (!usuarioActual?.clinica_id) return;
@@ -32,6 +44,16 @@ export default function FinanzasGlobal() {
       .select('*, pacientes(nombre)')
       .eq('clinica_id', usuarioActual.clinica_id)
       .order('fecha_emision', { ascending: false });
+
+    const { data: clinicaData } = await supabase
+      .from('clinicas')
+      .select('*')
+      .eq('id', usuarioActual.clinica_id)
+      .single();
+
+    if (clinicaData) {
+      setClinicaConfig(clinicaData as Clinica);
+    }
 
     if (error) {
       console.error('Error fetching facturas:', error);
@@ -194,20 +216,29 @@ export default function FinanzasGlobal() {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      {(factura.estado === 'pendiente' || factura.estado === 'parcial') ? (
-                        <button 
-                          onClick={() => {
-                            setFacturaSeleccionada(factura as Factura);
-                            setIsPagoModalOpen(true);
-                          }}
-                          className="text-xs text-emerald-600 hover:text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors inline-flex items-center"
+                      <div className="flex justify-center gap-2">
+                        {(factura.estado === 'pendiente' || factura.estado === 'parcial') ? (
+                          <button 
+                            onClick={() => {
+                              setFacturaSeleccionada(factura as Factura);
+                              setIsPagoModalOpen(true);
+                            }}
+                            className="text-xs text-emerald-600 hover:text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors inline-flex items-center"
+                          >
+                            <span className="font-bold mr-1">Q.</span>
+                            Cobrar
+                          </button>
+                        ) : (
+                          <span className="text-slate-300 text-sm font-medium w-[76px] text-center">-</span>
+                        )}
+                        <button
+                          onClick={() => handleImprimir(factura)}
+                          className="text-xs text-slate-600 hover:text-indigo-700 font-bold bg-slate-100 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors inline-flex items-center"
+                          title="Imprimir Factura"
                         >
-                          <span className="font-bold mr-1">Q.</span>
-                          Cobrar
+                          <Printer size={16} />
                         </button>
-                      ) : (
-                        <span className="text-slate-300 text-sm font-medium">-</span>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -244,6 +275,15 @@ export default function FinanzasGlobal() {
           fetchData();
         }}
       />
+
+      {/* Componente oculto que solo se muestra al imprimir, usando Portal para evitar problemas de layouts padre */}
+      {facturaAImprimir && createPortal(
+        <FacturaImprimible 
+          factura={facturaAImprimir} 
+          clinicaConfig={clinicaConfig} 
+        />,
+        document.body
+      )}
     </div>
   );
 }

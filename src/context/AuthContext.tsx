@@ -39,7 +39,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (perfil) {
-          setUsuarioActual(perfil as Usuario);
+          if (perfil.rol === 'superadmin') {
+            setUsuarioActual(perfil as Usuario);
+          } else {
+            // Check si la clinica está activa
+            const { data: clinica } = await supabase
+              .from('clinicas')
+              .select('estado')
+              .eq('id', perfil.clinica_id)
+              .single();
+              
+            if (clinica && clinica.estado === 'inactiva') {
+              console.error("Clínica inactiva, denegando acceso");
+              alert("Tu clínica ha sido desactivada. Por favor contacta al administrador del sistema.");
+              setUsuarioActual(null);
+              await supabase.auth.signOut();
+            } else {
+              setUsuarioActual(perfil as Usuario);
+            }
+          }
         } else {
           console.error("No se encontró el perfil de usuario tras varios intentos");
           setUsuarioActual(null);

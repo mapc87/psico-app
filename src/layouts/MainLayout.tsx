@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
-import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet, Settings, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Permisos } from '../types';
 
@@ -30,7 +30,10 @@ export default function MainLayout() {
   // Filtrado de navegación
   const navItems = [];
   
-  if (usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'admin') {
+  if (usuarioActual?.rol === 'superadmin') {
+    navItems.push({ icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' });
+    navItems.push({ icon: <Building2 size={20} />, label: 'Clínicas', path: '/admin/clinicas' });
+  } else if (usuarioActual?.rol === 'admin') {
     navItems.push({ icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' });
     navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
     navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
@@ -73,8 +76,8 @@ export default function MainLayout() {
             </NavLink>
           ))}
 
-          {/* Opciones de Administración (Master / Doctor) */}
-          {(usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'admin') && (
+          {/* Opciones de Administración (Admin) */}
+          {usuarioActual?.rol === 'admin' && (
             <div className="mt-8 pt-6 border-t border-slate-200/50">
               <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Administración</p>
               
@@ -105,6 +108,20 @@ export default function MainLayout() {
                 <div className="mr-3 transition-transform group-hover:scale-110"><UsersRound size={20} /></div>
                 <span className="font-semibold text-sm">Personal</span>
               </NavLink>
+
+              <NavLink
+                to="/configuracion"
+                className={({ isActive }) =>
+                  `flex items-center px-4 py-3 mt-1 rounded-xl transition-all duration-300 group ${
+                    isActive 
+                      ? 'bg-amber-100 text-amber-700' 
+                      : 'text-slate-500 hover:bg-amber-50 hover:text-amber-600'
+                  }`
+                }
+              >
+                <div className="mr-3 transition-transform group-hover:scale-110"><Settings size={20} /></div>
+                <span className="font-semibold text-sm">Ajustes de Clínica</span>
+              </NavLink>
             </div>
           )}
         </nav>
@@ -121,9 +138,16 @@ export default function MainLayout() {
                 <p className="text-xs text-slate-400 capitalize">{usuarioActual?.rol}</p>
               </div>
             </div>
+            <Link 
+              to="/perfil"
+              className="mt-4 w-full flex items-center justify-center py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-violet-600 rounded-lg transition-colors cursor-pointer"
+            >
+              <Settings size={14} className="mr-2" />
+              Mi Perfil
+            </Link>
             <button 
               onClick={handleLogout}
-              className="mt-4 w-full flex items-center justify-center py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+              className="mt-1 w-full flex items-center justify-center py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
             >
               <LogOut size={14} className="mr-2" />
               Cerrar Sesión

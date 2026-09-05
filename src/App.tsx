@@ -14,6 +14,9 @@ import RegistroInicial from './pages/RegistroInicial';
 import CrearUsuario from './pages/CrearUsuario';
 import Roles from './pages/Roles';
 import Personal from './pages/Personal';
+import Perfil from './pages/Perfil';
+import MantenimientoClinicas from './pages/MantenimientoClinicas';
+import ConfiguracionClinica from './pages/ConfiguracionClinica';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 
@@ -41,10 +44,13 @@ function AppRoutes() {
           <Route path="/finanzas" element={<FinanzasGlobal />} />
           <Route path="/roles" element={<Roles />} />
           <Route path="/personal" element={<Personal />} />
+          <Route path="/perfil" element={<Perfil />} />
           
           {/* Rutas Privadas solo para Administradores */}
           <Route element={<ProtectedRoute requireAdmin={true} />}>
             <Route path="/admin/usuarios" element={<CrearUsuario />} />
+            <Route path="/admin/clinicas" element={<MantenimientoClinicas />} />
+            <Route path="/configuracion" element={<ConfiguracionClinica />} />
           </Route>
         </Route>
       </Route>

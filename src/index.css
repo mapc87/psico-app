@@ -21,3 +21,33 @@
     @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
   }
 }
+
+@media print {
+  /* Ocultar toda la interfaz que no es la factura */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Mostrar solamente el contenedor imprimible y sus hijos */
+  #printable-invoice, #printable-invoice * {
+    visibility: visible;
+  }
+  
+  /* Ajustar la posición al tope de la página y establecer tamaño exacto del ticket */
+  #printable-invoice {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 2mm 2mm 20mm 2mm !important; /* 20mm abajo para cuchilla */
+    background: white !important;
+    color: black !important;
+  }
+
+  @page {
+    /* Define el ancho de rollo de 80mm (y un largo estandar para forzar la vista previa) */
+    size: 80mm 297mm;
+    margin: 0;
+  }
+}

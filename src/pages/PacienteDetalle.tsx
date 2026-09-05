@@ -402,7 +402,60 @@ export default function PacienteDetalle() {
                   </div>
                 </div>
               </div>
-            </div>
+            
+              {/* --- Inicio Historial integrado en Resumen --- */}
+              <div className="mt-12 border-t border-slate-100 pt-8">
+
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Notas Clínicas y Evolución</h3>
+                  <p className="text-sm text-slate-500">Historial médico del paciente.</p>
+                </div>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setIsNotaModalOpen(true)}
+                    className="px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm rounded-xl text-sm font-bold transition-all cursor-pointer"
+                  >
+                    + Nota Manual
+                  </button>
+                  <button 
+                    onClick={() => setIsNotaIAModalOpen(true)}
+                    className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-600/20 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center"
+                  >
+                    <Sparkles size={16} className="mr-2" />
+                    Redactar con IA
+                  </button>
+                </div>
+              </div>
+              
+              {notas && notas.length > 0 ? (
+                <div className="relative pl-8 border-l-2 border-violet-200/50 space-y-8 py-2">
+                  {notas.map((nota) => (
+                    <div key={nota.id} className="relative group">
+                      <div className="absolute -left-[41px] bg-white w-5 h-5 rounded-full border-4 border-violet-500 shadow-sm group-hover:scale-125 transition-transform duration-300"></div>
+                      <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 group-hover:border-violet-200 group-hover:shadow-md transition-all duration-300">
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-sm font-bold text-violet-700 bg-violet-100 px-3 py-1 rounded-full flex items-center">
+                            {nota.titulo.toLowerCase().includes('ia') || nota.titulo.toLowerCase().includes('soap') ? <BrainCircuit size={14} className="mr-1.5" /> : <FileText size={14} className="mr-1.5" />}
+                            {nota.titulo}
+                          </span>
+                          <span className="text-sm font-medium text-slate-400">
+                            {new Date(nota.fecha).toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{nota.contenido}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                  <FileText size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-lg font-semibold text-slate-500">Aún no hay notas clínicas</p>
+                  <p className="text-sm text-slate-400 mt-2">Usa "+ Nota Manual" o "Redactar con IA" para registrar la primera evolución del paciente.</p>
+                
+              </div>
+</div>
           )}
 
           {/* Pestaña: Citas */}
@@ -518,58 +571,7 @@ export default function PacienteDetalle() {
             </div>
           )}
 
-          {/* Pestaña: Historial */}
-          {activeTab === 'historial' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800">Notas Clínicas y Evolución</h3>
-                  <p className="text-sm text-slate-500">Historial médico del paciente.</p>
-                </div>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => setIsNotaModalOpen(true)}
-                    className="px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm rounded-xl text-sm font-bold transition-all cursor-pointer"
-                  >
-                    + Nota Manual
-                  </button>
-                  <button 
-                    onClick={() => setIsNotaIAModalOpen(true)}
-                    className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-600/20 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center"
-                  >
-                    <Sparkles size={16} className="mr-2" />
-                    Redactar con IA
-                  </button>
-                </div>
-              </div>
-              
-              {notas && notas.length > 0 ? (
-                <div className="relative pl-8 border-l-2 border-violet-200/50 space-y-8 py-2">
-                  {notas.map((nota) => (
-                    <div key={nota.id} className="relative group">
-                      <div className="absolute -left-[41px] bg-white w-5 h-5 rounded-full border-4 border-violet-500 shadow-sm group-hover:scale-125 transition-transform duration-300"></div>
-                      <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 group-hover:border-violet-200 group-hover:shadow-md transition-all duration-300">
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-sm font-bold text-violet-700 bg-violet-100 px-3 py-1 rounded-full flex items-center">
-                            {nota.titulo.toLowerCase().includes('ia') || nota.titulo.toLowerCase().includes('soap') ? <BrainCircuit size={14} className="mr-1.5" /> : <FileText size={14} className="mr-1.5" />}
-                            {nota.titulo}
-                          </span>
-                          <span className="text-sm font-medium text-slate-400">
-                            {new Date(nota.fecha).toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
-                          </span>
-                        </div>
-                        <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{nota.contenido}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
-                  <FileText size={48} className="mx-auto text-slate-300 mb-4" />
-                  <p className="text-lg font-semibold text-slate-500">Aún no hay notas clínicas</p>
-                  <p className="text-sm text-slate-400 mt-2">Usa "+ Nota Manual" o "Redactar con IA" para registrar la primera evolución del paciente.</p>
-                </div>
-              )}
+          
             </div>
           )}
 

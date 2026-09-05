@@ -104,7 +104,7 @@ export default function ModalFirma({ isOpen, onClose, onSave, documentoTitulo, p
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-[60] p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
           <div>

@@ -90,6 +90,8 @@ export interface Cita {
   fecha_hora: string;
   motivo?: string;
   estado: 'programada' | 'completada' | 'cancelada';
+  modalidad?: 'presencial' | 'virtual';
+  enlace_video?: string;
   created_at: string;
 }
 

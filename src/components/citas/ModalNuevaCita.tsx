@@ -5,7 +5,7 @@ import { emailService } from '../../services/email/emailService';
 interface ModalNuevaCitaProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (fechaHora: string, motivo: string, pacienteId?: string) => Promise<void>;
+  onSave: (fechaHora: string, motivo: string, pacienteId?: string, modalidad?: 'presencial' | 'virtual', enlaceVideo?: string) => Promise<void>;
   pacienteNombre?: string;
   pacienteEmail?: string;
   pacientes?: {id: string, nombre: string, email?: string}[];
@@ -18,6 +18,7 @@ export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre
   const [pacienteIdSeleccionado, setPacienteIdSeleccionado] = useState('');
   const [enviarCorreo, setEnviarCorreo] = useState(true);
   const [correoPaciente, setCorreoPaciente] = useState(pacienteEmail || '');
+  const [modalidad, setModalidad] = useState<'presencial' | 'virtual'>('presencial');
   const [isSaving, setIsSaving] = useState(false);
   
   const today = new Date().toISOString().split('T')[0];
@@ -35,14 +36,19 @@ export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre
     setIsSaving(true);
     try {
       const fechaHora = new Date(`${fecha}T${hora}`).toISOString();
-      await onSave(fechaHora, motivo, pacienteIdSeleccionado || undefined);
+      const enlaceVideo = modalidad === 'virtual' ? `sala-${crypto.randomUUID()}` : undefined;
+      await onSave(fechaHora, motivo, pacienteIdSeleccionado || undefined, modalidad, enlaceVideo);
 
       if (enviarCorreo && correoPaciente) {
+        const fullEnlaceVideo = modalidad === 'virtual' && enlaceVideo ? `${window.location.origin}/sala-virtual/${enlaceVideo}` : undefined;
+        
         await emailService.enviarConfirmacionCita(correoPaciente, {
           pacienteNombre: pacienteNombre || 'Estimado Paciente',
           fechaStr: new Date(fecha).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
           horaStr: hora,
           motivo,
+          modalidad,
+          enlaceVideo: fullEnlaceVideo
         });
       }
 
@@ -51,6 +57,7 @@ export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre
       setHora('');
       setMotivo('');
       setPacienteIdSeleccionado('');
+      setModalidad('presencial');
     } catch (error) {
       console.error('Error saving cita:', error);
       alert('Ocurrió un error al guardar la cita.');
@@ -142,6 +149,20 @@ export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-600 mb-2">Modalidad</label>
+              <div className="flex gap-4">
+                <label className={`flex-1 flex items-center justify-center py-3 px-4 rounded-xl border-2 cursor-pointer transition-all ${modalidad === 'presencial' ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}>
+                  <input type="radio" name="modalidad" className="hidden" checked={modalidad === 'presencial'} onChange={() => setModalidad('presencial')} />
+                  <span className="font-bold">🏥 Presencial</span>
+                </label>
+                <label className={`flex-1 flex items-center justify-center py-3 px-4 rounded-xl border-2 cursor-pointer transition-all ${modalidad === 'virtual' ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}>
+                  <input type="radio" name="modalidad" className="hidden" checked={modalidad === 'virtual'} onChange={() => setModalidad('virtual')} />
+                  <span className="font-bold">🌐 Videollamada</span>
+                </label>
               </div>
             </div>
 

@@ -191,3 +191,47 @@ export interface ConsentimientoFirmado {
   fecha_firma: string;
   estado: 'pendiente' | 'firmado';
 }
+
+// === Evaluaciones Psicométricas ===
+
+export interface OpcionEvaluacion {
+  texto: string;
+  puntaje: number;
+}
+
+export interface PreguntaEvaluacion {
+  id: string;
+  texto: string;
+  opciones: OpcionEvaluacion[];
+}
+
+export interface EscalaEvaluacion {
+  min: number;
+  max: number;
+  interpretacion: string;
+}
+
+export interface EvaluacionPlantilla {
+  id: string;
+  clinica_id?: string;
+  titulo: string;
+  descripcion?: string;
+  preguntas: PreguntaEvaluacion[];
+  escalas: EscalaEvaluacion[];
+  created_at?: string;
+}
+
+export interface EvaluacionPaciente {
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  medico_id: string;
+  plantilla_id: string;
+  plantilla?: EvaluacionPlantilla; // Relación para uso en Frontend
+  respuestas: Record<string, number>;
+  puntaje_total: number;
+  interpretacion?: string;
+  estado: 'pendiente' | 'completado';
+  fecha: string;
+  created_at?: string;
+}

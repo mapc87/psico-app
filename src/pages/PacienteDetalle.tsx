@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Calendar, Activity, FileText, Pill, Heart, Thermometer, Wind, Scale, AlertTriangle, CalendarPlus, ClipboardList, Printer, Clock, Wallet, DollarSign, Receipt, AlertCircle, BrainCircuit, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, Mail } from 'lucide-react';
+import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
@@ -144,7 +144,7 @@ export default function PacienteDetalle() {
 
   const ultimoSigno = signos && signos.length > 0 ? signos[0] : null;
 
-  const handleSaveCita = async (fecha_hora: string, motivo: string) => {
+  const handleSaveCita = async (fecha_hora: string, motivo: string, pacienteId?: string, modalidad?: 'presencial' | 'virtual', enlace_video?: string) => {
     if (!usuarioActual) return;
     const nuevaCita = {
       clinica_id: usuarioActual.clinica_id,
@@ -152,7 +152,9 @@ export default function PacienteDetalle() {
       medico_id: usuarioActual.id,
       fecha_hora,
       motivo,
-      estado: 'programada'
+      estado: 'programada',
+      modalidad: modalidad || 'presencial',
+      enlace_video
     };
     const { data, error } = await supabase.from('citas').insert([nuevaCita]).select().single();
     if (error) {
@@ -625,26 +627,47 @@ export default function PacienteDetalle() {
                       : '';
 
                     return (
-                      <div key={cita.id} className="p-5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between hover:shadow-sm transition-all duration-300">
-                        <div className="flex items-center">
-                          <div className={`p-3 rounded-xl mr-4 ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-600' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                            <Calendar size={20} />
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-800 text-lg capitalize">
-                              {fechaTexto}
-                            </p>
-                            <div className="flex items-center text-sm font-medium mt-1">
-                              {horaTexto && <span className="text-violet-600 mr-3">{horaTexto} hrs</span>}
-                              <span className="text-slate-500">{cita.motivo}</span>
+                      <div key={cita.id} className="p-5 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col hover:shadow-sm transition-all duration-300">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className={`p-3 rounded-xl mr-4 ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-600' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                              <Calendar size={20} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-slate-800 text-lg capitalize">
+                                  {fechaTexto}
+                                </p>
+                                {cita.modalidad === 'virtual' && (
+                                  <span className="bg-violet-100 text-violet-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center">
+                                    <Video size={10} className="mr-1" /> Virtual
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center text-sm font-medium mt-1">
+                                {horaTexto && <span className="text-violet-600 mr-3">{horaTexto} hrs</span>}
+                                <span className="text-slate-500">{cita.motivo}</span>
+                              </div>
                             </div>
                           </div>
+                          <div className="text-right">
+                             <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-700' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                               {cita.estado}
+                             </span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                           <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-700' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                             {cita.estado}
-                           </span>
-                        </div>
+
+                        {cita.modalidad === 'virtual' && cita.estado === 'programada' && (
+                          <div className="mt-4 pt-4 border-t border-slate-200">
+                            <button 
+                              onClick={() => window.open(`/videoconsulta/${cita.id}`, '_blank')}
+                              className="w-full flex justify-center items-center py-2 px-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-bold rounded-xl hover:shadow-md transition-all duration-300"
+                            >
+                              <Video size={16} className="mr-2" />
+                              Entrar a Videoconsulta
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

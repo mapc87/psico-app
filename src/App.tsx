@@ -19,8 +19,9 @@ import MantenimientoClinicas from './pages/MantenimientoClinicas';
 import ConfiguracionClinica from './pages/ConfiguracionClinica';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
-
 import RegistroInvitado from './pages/RegistroInvitado';
+import SalaPaciente from './pages/SalaPaciente';
+import SalaVirtual from './pages/SalaVirtual';
 
 function AppRoutes() {
   return (
@@ -30,9 +31,13 @@ function AppRoutes() {
       <Route path="/registro-inicial" element={<RegistroInicial />} />
       <Route path="/registro" element={<RegistroInvitado />} />
       <Route path="/firmar/:id" element={<FirmaRemota />} />
+      <Route path="/sala-virtual/:roomId" element={<SalaPaciente />} />
 
       {/* Rutas Privadas (Protegidas) */}
       <Route element={<ProtectedRoute />}>
+        {/* Sala Virtual fuera del layout principal para ocupar pantalla completa */}
+        <Route path="/videoconsulta/:citaId" element={<SalaVirtual />} />
+        
         <Route element={<MainLayout />}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />

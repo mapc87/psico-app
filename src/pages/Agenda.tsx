@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, CheckCircle, XCircle, Plus } from 'lucide-react';
+import { Calendar, Clock, User, CheckCircle, XCircle, Plus, Video } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
@@ -74,7 +74,7 @@ export default function Agenda() {
     }
   };
 
-  const handleSaveCita = async (fecha_hora: string, motivo: string, paciente_id?: string) => {
+  const handleSaveCita = async (fecha_hora: string, motivo: string, paciente_id?: string, modalidad?: 'presencial' | 'virtual', enlace_video?: string) => {
     if (!usuarioActual || !paciente_id) return;
     try {
       const { error } = await supabase.from('citas').insert({
@@ -83,7 +83,9 @@ export default function Agenda() {
         medico_id: usuarioActual.id,
         fecha_hora,
         motivo,
-        estado: 'programada'
+        estado: 'programada',
+        modalidad: modalidad || 'presencial',
+        enlace_video
       });
       if (error) throw error;
       fetchDatos(); // Refrescar datos
@@ -122,11 +124,30 @@ export default function Agenda() {
           </span>
         </div>
         
-        <h4 className={`font-extrabold text-slate-800 flex items-center mb-1 ${destacada ? 'text-xl' : 'text-lg'}`}>
-          <User size={18} className="mr-2 text-slate-400" />
-          {cita.paciente?.nombre || 'Paciente Desconocido'}
-        </h4>
+        <div className="flex items-center gap-2 mb-1">
+          <h4 className={`font-extrabold text-slate-800 flex items-center ${destacada ? 'text-xl' : 'text-lg'}`}>
+            <User size={18} className="mr-2 text-slate-400" />
+            {cita.paciente?.nombre || 'Paciente Desconocido'}
+          </h4>
+          {cita.modalidad === 'virtual' && (
+            <span className="bg-violet-100 text-violet-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center">
+              <Video size={10} className="mr-1" /> Virtual
+            </span>
+          )}
+        </div>
         <p className="text-slate-500 font-medium mb-6">{cita.motivo}</p>
+
+        {cita.modalidad === 'virtual' && cita.estado === 'programada' && !isPasada && (
+          <div className="mb-4">
+            <button 
+              onClick={() => window.open(cita.enlace_video, '_blank')}
+              className="w-full flex justify-center items-center py-2 px-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-bold rounded-xl hover:shadow-md transition-all duration-300"
+            >
+              <Video size={16} className="mr-2" />
+              Entrar a Videoconsulta
+            </button>
+          </div>
+        )}
 
         {cita.estado === 'programada' && (
           <div className="flex space-x-3 pt-4 border-t border-slate-50">

@@ -4,11 +4,15 @@ import { supabase } from '../services/supabase/client';
 import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet, Settings, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Permisos } from '../types';
+import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 
 export default function MainLayout() {
   const { usuarioActual, logout } = useAuth();
   const navigate = useNavigate();
   const [permisos, setPermisos] = useState<Permisos | null>(null);
+
+  // Inicializar el timeout de inactividad
+  useInactivityTimeout();
 
   useEffect(() => {
     const fetchPermisos = async () => {

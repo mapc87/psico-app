@@ -16,9 +16,11 @@ import ModalNuevoMedicamento from '../components/medicamentos/ModalNuevoMedicame
 import RecetaPrint from '../components/medicamentos/RecetaPrint';
 import ModalFirma from '../components/documentos/ModalFirma';
 import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
+import ModalAsignarEvaluacion from '../components/evaluaciones/ModalAsignarEvaluacion';
+import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEvaluacion';
 import Toast from '../components/common/Toast';
 import { useReactToPrint } from 'react-to-print';
-import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento } from '../types';
+import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla } from '../types';
 import type { SendEmailResult } from '../services/email/emailService';
 
 export default function PacienteDetalle() {
@@ -44,11 +46,17 @@ export default function PacienteDetalle() {
   const [notas, setNotas] = useState<any[]>([]);
   const [diagnosticos, setDiagnosticos] = useState<any[]>([]);
   const [medicamentos, setMedicamentos] = useState<any[]>([]);
-    const [consentimientos, setConsentimientos] = useState<ConsentimientoFirmado[]>([]);
+  const [consentimientos, setConsentimientos] = useState<ConsentimientoFirmado[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
   const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
+
+  // Evaluaciones Psicométricas
+  const [evaluaciones, setEvaluaciones] = useState<EvaluacionPaciente[]>([]);
+  const [isAsignarEvaluacionModalOpen, setIsAsignarEvaluacionModalOpen] = useState(false);
+  const [isRealizarEvaluacionModalOpen, setIsRealizarEvaluacionModalOpen] = useState(false);
+  const [plantillaSeleccionada, setPlantillaSeleccionada] = useState<EvaluacionPlantilla | null>(null);
 
   const [modalCorreoState, setModalCorreoState] = useState<{
     isOpen: boolean;
@@ -109,6 +117,16 @@ export default function PacienteDetalle() {
       
       const { data: consentimientosData } = await supabase.from('consentimientos_firmados').select('*').eq('paciente_id', pId).order('fecha_firma', { ascending: false });
       if (consentimientosData) setConsentimientos(consentimientosData);
+
+      const { data: evalsData } = await supabase.from('evaluaciones_pacientes').select('*, evaluaciones_plantillas(*)').eq('paciente_id', pId).order('fecha', { ascending: false });
+      if (evalsData) {
+        // Mapear la relación para que coincida con la interfaz del Frontend
+        const mappedEvals = evalsData.map(e => ({
+          ...e,
+          plantilla: e.evaluaciones_plantillas
+        }));
+        setEvaluaciones(mappedEvals as EvaluacionPaciente[]);
+      }
 
       if (usuarioActual.clinica_id) {
         const { data: plData } = await supabase.from('plantillas_documentos').select('*').eq('clinica_id', usuarioActual.clinica_id);
@@ -400,9 +418,10 @@ export default function PacienteDetalle() {
     { id: 'resumen', label: 'Resumen', icon: <User size={18} />, key: 'verResumen' },
     { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
     { id: 'citas', label: 'Citas', icon: <CalendarPlus size={18} />, key: 'verCitas' },
+    { id: 'evaluaciones', label: 'Evaluaciones', icon: <BrainCircuit size={18} />, key: 'verHistorial' }, // Evaluaciones como 4ta opción
     { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={18} />, key: 'verExamenes' },
     { id: 'signos', label: 'Signos Vitales', icon: <Heart size={18} />, key: 'verSignos' },
-    { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={18} />, key: 'verMedicamentos' },
+    { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={18} />, key: 'verMedicamentos' }
   ];
 
   // Filtrar tabs según permisos
@@ -979,6 +998,65 @@ export default function PacienteDetalle() {
             </div>
           )}
 
+          {/* Pestaña: Evaluaciones Psicométricas */}
+          {activeTab === 'evaluaciones' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Evaluaciones Psicométricas</h3>
+                  <p className="text-sm text-slate-500">Cuestionarios y tests aplicados al paciente.</p>
+                </div>
+                <button 
+                  onClick={() => setIsAsignarEvaluacionModalOpen(true)}
+                  className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                >
+                  + Aplicar Test
+                </button>
+              </div>
+              
+              {evaluaciones && evaluaciones.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {evaluaciones.map(ev => (
+                    <div key={ev.id} className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center">
+                          <BrainCircuit size={24} className="text-violet-600 mr-3" />
+                          <div>
+                            <h4 className="font-bold text-lg text-slate-800 leading-tight">
+                              {ev.plantilla?.titulo || 'Evaluación'}
+                            </h4>
+                            <p className="text-sm text-slate-500 mt-1">
+                              {new Date(ev.fecha).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-slate-50 rounded-xl p-4 mt-4 border border-slate-100 flex justify-between items-center">
+                        <div>
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Puntaje Total</p>
+                          <p className="text-2xl font-black text-slate-800">{ev.puntaje_total}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Interpretación</p>
+                          <span className="px-3 py-1 text-sm font-bold bg-violet-100 text-violet-700 rounded-full inline-block">
+                            {ev.interpretacion}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                  <BrainCircuit size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-lg font-semibold text-slate-500">Sin evaluaciones registradas</p>
+                  <p className="text-sm text-slate-400 mt-2">Haz clic en "+ Aplicar Test" para realizar la primera evaluación psicométrica.</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Pestaña: Finanzas */}
           {activeTab === 'finanzas' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -1369,6 +1447,33 @@ export default function PacienteDetalle() {
         </div>
       </div>
       )}
+
+      {/* Modals de Evaluaciones */}
+      {usuarioActual?.clinica_id && (
+        <ModalAsignarEvaluacion
+          isOpen={isAsignarEvaluacionModalOpen}
+          onClose={() => setIsAsignarEvaluacionModalOpen(false)}
+          clinicaId={usuarioActual.clinica_id}
+          onSelect={(plantilla) => {
+            setPlantillaSeleccionada(plantilla);
+            setIsAsignarEvaluacionModalOpen(false);
+            setIsRealizarEvaluacionModalOpen(true);
+          }}
+        />
+      )}
+      
+      <ModalRealizarEvaluacion
+        isOpen={isRealizarEvaluacionModalOpen}
+        onClose={() => setIsRealizarEvaluacionModalOpen(false)}
+        plantilla={plantillaSeleccionada}
+        pacienteId={paciente.id}
+        onSuccess={(nuevaEvaluacion) => {
+          setEvaluaciones(prev => [nuevaEvaluacion, ...prev]);
+          setIsRealizarEvaluacionModalOpen(false);
+          setToast({ isVisible: true, message: 'Evaluación completada exitosamente', type: 'success' });
+        }}
+      />
+
       {/* Modal de Envío de Correo Personalizado */}
       <ModalEnviarCorreo
         isOpen={modalCorreoState.isOpen}

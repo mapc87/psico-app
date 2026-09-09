@@ -372,6 +372,49 @@ export default function PacienteDetalle() {
     });
   };
 
+  const handleAsignarEvaluacion = async (plantilla: PlantillaDocumento | any, mode: 'presencial' | 'remoto') => {
+    setIsAsignarEvaluacionModalOpen(false);
+    
+    if (mode === 'presencial') {
+      setPlantillaSeleccionada(plantilla);
+      setIsRealizarEvaluacionModalOpen(true);
+    } else {
+      // Modo Remoto
+      if (!usuarioActual) return;
+      const nuevaEvaluacion = {
+        clinica_id: usuarioActual.clinica_id,
+        paciente_id: id!,
+        medico_id: usuarioActual.id,
+        plantilla_id: plantilla.id,
+        respuestas: {},
+        puntaje_total: 0,
+        estado: 'pendiente',
+        fecha: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('evaluaciones_pacientes')
+        .insert([nuevaEvaluacion])
+        .select('*')
+        .single();
+
+      if (error) {
+        alert('Error al asignar la evaluación remota: ' + error.message);
+        return;
+      }
+      
+      const link = `${window.location.origin}/evaluacion/${data.id}`;
+      navigator.clipboard.writeText(link);
+      showToast('Enlace de evaluación copiado al portapapeles. ¡Envíalo al paciente!');
+      // Refetch for the list
+      const { data: evalData } = await supabase.from('evaluaciones_pacientes')
+        .select(`*, plantilla:evaluaciones_plantillas(*)`)
+        .eq('paciente_id', id!)
+        .order('fecha', { ascending: false });
+      if (evalData) setEvaluaciones(evalData);
+    }
+  };
+
   const calcularEdad = (fechaNacimiento?: string) => {
     if (!fechaNacimiento) return 0;
     const hoy = new Date();
@@ -1489,11 +1532,7 @@ export default function PacienteDetalle() {
           isOpen={isAsignarEvaluacionModalOpen}
           onClose={() => setIsAsignarEvaluacionModalOpen(false)}
           clinicaId={usuarioActual.clinica_id}
-          onSelect={(plantilla) => {
-            setPlantillaSeleccionada(plantilla);
-            setIsAsignarEvaluacionModalOpen(false);
-            setIsRealizarEvaluacionModalOpen(true);
-          }}
+          onSelect={handleAsignarEvaluacion}
         />
       )}
       

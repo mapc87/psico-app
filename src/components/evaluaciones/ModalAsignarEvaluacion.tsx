@@ -6,7 +6,7 @@ import type { EvaluacionPlantilla } from '../../types';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (plantilla: EvaluacionPlantilla) => void;
+  onSelect: (plantilla: EvaluacionPlantilla, mode: 'presencial' | 'remoto') => void;
   clinicaId: string;
 }
 
@@ -90,16 +90,26 @@ export default function ModalAsignarEvaluacion({ isOpen, onClose, onSelect, clin
               {filteredPlantillas.map((plantilla) => (
                 <div 
                   key={plantilla.id}
-                  onClick={() => onSelect(plantilla)}
-                  className="bg-white border border-slate-200 p-5 rounded-xl hover:border-violet-400 hover:shadow-md cursor-pointer transition-all duration-200 group relative overflow-hidden"
+                  className="bg-white border border-slate-200 p-5 rounded-xl hover:border-violet-400 hover:shadow-md transition-all duration-200 group relative overflow-hidden"
                 >
                   <div className="absolute inset-y-0 left-0 w-1 bg-violet-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <h3 className="text-lg font-bold text-slate-800 mb-1 group-hover:text-violet-700 transition-colors">{plantilla.titulo}</h3>
                   {plantilla.descripcion && (
-                    <p className="text-sm text-slate-500 leading-relaxed">{plantilla.descripcion}</p>
+                    <p className="text-sm text-slate-500 leading-relaxed mb-4">{plantilla.descripcion}</p>
                   )}
-                  <div className="mt-3 flex items-center text-xs font-semibold text-slate-400">
-                    <span className="bg-slate-100 px-2 py-1 rounded-md">{plantilla.preguntas.length} preguntas</span>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => onSelect(plantilla, 'presencial')}
+                      className="flex-1 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-sm font-bold transition-colors"
+                    >
+                      Realizar Ahora
+                    </button>
+                    <button 
+                      onClick={() => onSelect(plantilla, 'remoto')}
+                      className="flex-1 px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition-colors"
+                    >
+                      Enviar al Paciente
+                    </button>
                   </div>
                 </div>
               ))}

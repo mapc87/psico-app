@@ -18,6 +18,7 @@ import ModalFirma from '../components/documentos/ModalFirma';
 import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
 import ModalAsignarEvaluacion from '../components/evaluaciones/ModalAsignarEvaluacion';
 import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEvaluacion';
+import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones';
 import Toast from '../components/common/Toast';
 import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
@@ -1086,6 +1087,8 @@ export default function PacienteDetalle() {
                   <p className="text-sm text-slate-400 mt-2">Haz clic en "+ Aplicar Test" para realizar la primera evaluación psicométrica.</p>
                 </div>
               )}
+              
+              <GraficoEvaluaciones evaluaciones={evaluaciones || []} />
             </div>
           )}
 

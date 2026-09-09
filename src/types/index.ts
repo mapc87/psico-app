@@ -95,6 +95,18 @@ export interface Cita {
   created_at: string;
 }
 
+export interface ArchivoPaciente {
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  nombre_original: string;
+  ruta_storage: string;
+  tipo_mime: string;
+  tamano_bytes: number;
+  fecha_subida: string;
+  subido_por?: string;
+}
+
 export interface Examen {
   id: string;
   clinica_id: string;

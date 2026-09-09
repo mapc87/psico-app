@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock } from 'lucide-react';
+import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
@@ -19,6 +19,7 @@ import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
 import ModalAsignarEvaluacion from '../components/evaluaciones/ModalAsignarEvaluacion';
 import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEvaluacion';
 import Toast from '../components/common/Toast';
+import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
 import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla } from '../types';
 import type { SendEmailResult } from '../services/email/emailService';
@@ -418,6 +419,7 @@ export default function PacienteDetalle() {
 
     const allTabs = [
     { id: 'resumen', label: 'Resumen', icon: <User size={18} />, key: 'verResumen' },
+    { id: 'archivos', label: 'Archivos', icon: <Paperclip size={18} />, key: 'verResumen' },
     { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
     { id: 'citas', label: 'Citas', icon: <CalendarPlus size={18} />, key: 'verCitas' },
     { id: 'evaluaciones', label: 'Evaluaciones', icon: <BrainCircuit size={18} />, key: 'verHistorial' }, // Evaluaciones como 4ta opción
@@ -598,6 +600,13 @@ export default function PacienteDetalle() {
               )}
             </div>
           </div>
+          )}
+
+          {/* Pestaña: Archivos */}
+          {activeTab === 'archivos' && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <ArchivosTab pacienteId={id!} />
+            </div>
           )}
 
           {/* Pestaña: Citas */}

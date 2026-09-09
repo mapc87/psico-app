@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
-import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet, Settings, Building2 } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet, Settings, Building2, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Permisos } from '../types';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
+import CentroAyuda from '../components/help/CentroAyuda';
 
 export default function MainLayout() {
   const { usuarioActual, logout } = useAuth();
   const navigate = useNavigate();
   const [permisos, setPermisos] = useState<Permisos | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Inicializar el timeout de inactividad
   useInactivityTimeout();
@@ -142,9 +144,16 @@ export default function MainLayout() {
                 <p className="text-xs text-slate-400 capitalize">{usuarioActual?.rol}</p>
               </div>
             </div>
+            <button
+              onClick={() => setIsHelpOpen(true)}
+              className="mt-4 w-full flex items-center justify-center py-2 text-xs font-bold text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer"
+            >
+              <HelpCircle size={14} className="mr-2" />
+              Centro de Ayuda
+            </button>
             <Link 
               to="/perfil"
-              className="mt-4 w-full flex items-center justify-center py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-violet-600 rounded-lg transition-colors cursor-pointer"
+              className="mt-1 w-full flex items-center justify-center py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-violet-600 rounded-lg transition-colors cursor-pointer"
             >
               <Settings size={14} className="mr-2" />
               Mi Perfil
@@ -166,6 +175,14 @@ export default function MainLayout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Centro de Ayuda */}
+      <CentroAyuda
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        rol={usuarioActual?.rol as 'superadmin' | 'admin' | 'personal' || 'personal'}
+        permisos={permisos}
+      />
     </div>
   );
 }

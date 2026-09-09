@@ -12,6 +12,8 @@ export interface ConfirmacionCitaEmailParams {
   horaStr: string;
   motivo: string;
   doctorNombre?: string;
+  modalidad?: 'presencial' | 'virtual';
+  enlaceVideo?: string;
 }
 
 export interface RecetaMedicaEmailParams {
@@ -90,7 +92,10 @@ export function getConfirmacionCitaTemplate({
   horaStr,
   motivo,
   doctorNombre,
+  modalidad,
+  enlaceVideo,
 }: ConfirmacionCitaEmailParams): { subject: string; html: string } {
+  const isVirtual = modalidad === 'virtual' && enlaceVideo;
   const subject = `📅 Cita Confirmada: ${fechaStr} ${horaStr} - ${clinicaNombre}`;
   const html = `
     <!DOCTYPE html>
@@ -141,9 +146,24 @@ export function getConfirmacionCitaTemplate({
               <span class="detail-label">Especialista:</span>
               <span class="detail-val">${doctorNombre}</span>
             </div>` : ''}
+            
+            ${isVirtual ? `
+            <div class="detail-row" style="margin-top: 12px; margin-bottom: 0; border-top: 1px solid #a7f3d0; padding-top: 12px;">
+              <span class="detail-label" style="color: #4f46e5;">Modalidad:</span>
+              <span class="detail-val" style="color: #4f46e5;">🌐 Videollamada</span>
+            </div>
+            ` : ''}
           </div>
 
+          ${isVirtual ? `
+          <div style="background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
+            <p style="margin-top: 0; color: #4c1d95; font-weight: 600;">Para ingresar a tu videoconsulta, haz clic en el siguiente enlace a la hora acordada:</p>
+            <a href="${enlaceVideo}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff !important; font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 15px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); margin-top: 10px; margin-bottom: 10px;">Entrar a Videoconsulta</a>
+            <p style="font-size: 12px; color: #6d28d9; margin-bottom: 0;">O copia y pega este enlace: <br/><a href="${enlaceVideo}" style="color: #6d28d9; word-break: break-all;">${enlaceVideo}</a></p>
+          </div>
+          ` : `
           <p>Por favor preséntate 10 minutos antes de tu horario programado. Si deseas reprogramar o cancelar, comunícate con la clínica.</p>
+          `}
         </div>
         <div class="footer">
           ${clinicaNombre} - Notificación de Citas

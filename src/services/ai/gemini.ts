@@ -53,3 +53,42 @@ export async function generarNotaSOAP(borrador: string): Promise<string> {
     throw error;
   }
 }
+
+export async function generarInterpretacionPsicometrica(
+  testNombre: string, 
+  puntajeTotal: number, 
+  interpretacion: string, 
+  pacienteNombre: string, 
+  edad: number
+): Promise<string> {
+  if (!ai) {
+    throw new Error('La API Key de Gemini no está configurada o es inválida. Revisa tu archivo .env.local');
+  }
+
+  const prompt = `Eres un psicólogo clínico experto. 
+Acabas de administrar el instrumento "${testNombre}" al paciente ${pacienteNombre} (${edad} años).
+El paciente obtuvo un puntaje total de: ${puntajeTotal}.
+La interpretación inicial basada en los baremos de la prueba es: "${interpretacion}".
+
+Tu tarea es redactar una Interpretación Narrativa Psicométrica formal y empática de 2 a 3 párrafos. Este texto será incluido directamente en el informe psicológico del paciente.
+- Utiliza lenguaje clínico profesional, pero accesible.
+- Escríbelo de forma fluida (sin viñetas).
+- Incluye el contexto del puntaje, las posibles implicaciones clínicas y sugiere brevemente áreas a explorar en las próximas sesiones de psicoterapia.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.6-flash',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: { temperature: 0.4 }
+    });
+
+    if (response.text) {
+      return response.text;
+    } else {
+      throw new Error('No se pudo generar la interpretación narrativa.');
+    }
+  } catch (error) {
+    console.error('Error al llamar a Gemini:', error);
+    throw error;
+  }
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
-import { Settings, Save, Building2, Landmark, FileText, MapPin, Phone, Hash } from 'lucide-react';
+import { Settings, Save, Building2, Landmark, FileText, MapPin, Phone, Hash, Mail, Key, Eye, EyeOff } from 'lucide-react';
 import Toast from '../components/common/Toast';
 import type { Clinica } from '../types';
 
@@ -18,6 +18,11 @@ export default function ConfiguracionClinica() {
   const [nombreComercial, setNombreComercial] = useState('');
   const [abreviatura, setAbreviatura] = useState('');
   const [telefonoContacto, setTelefonoContacto] = useState('');
+  
+  // Email Config State
+  const [resendApiKey, setResendApiKey] = useState('');
+  const [emailRemitente, setEmailRemitente] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
   
   // SAT State
   const [nit, setNit] = useState('');
@@ -50,6 +55,10 @@ export default function ConfiguracionClinica() {
       setRazonSocial(data.razon_social || '');
       setDireccionFiscal(data.direccion_fiscal || '');
       setNoPatente(data.no_patente || '');
+
+      // Email config from DB
+      setResendApiKey(data.resend_api_key || '');
+      setEmailRemitente(data.email_remitente || '');
     }
     setLoading(false);
   };
@@ -74,7 +83,9 @@ export default function ConfiguracionClinica() {
       nit,
       razon_social: razonSocial,
       direccion_fiscal: direccionFiscal,
-      no_patente: noPatente
+      no_patente: noPatente,
+      resend_api_key: resendApiKey,
+      email_remitente: emailRemitente,
     };
 
     const { error } = await supabase
@@ -258,6 +269,58 @@ export default function ConfiguracionClinica() {
                     placeholder="Dirección exacta registrada en la SAT..."
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Configuración de Correo Electrónico */}
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center border-b border-slate-100 pb-3">
+              <Mail className="text-violet-500 mr-2" size={20} />
+              Configuración de Correo Electrónico
+            </h3>
+            <p className="text-sm text-slate-500 mb-6">Configura tu cuenta de <a href="https://resend.com" target="_blank" rel="noreferrer" className="text-violet-600 font-semibold hover:underline">Resend.com</a> para enviar correos reales (consentimientos, recetas, citas). Sin esta configuración el sistema funciona en modo demo (sin envíos reales).</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-bold text-slate-700">API Key de Resend</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                    <Key size={18} />
+                  </div>
+                  <input 
+                    type={showApiKey ? 'text' : 'password'}
+                    value={resendApiKey}
+                    onChange={(e) => setResendApiKey(e.target.value)}
+                    className="w-full pl-11 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 font-mono text-sm text-slate-700"
+                    placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(v => !v)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-violet-600"
+                  >
+                    {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400">Obtén tu API key gratis en <span className="font-semibold">resend.com → API Keys</span>.</p>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-bold text-slate-700">Correo Remitente (From)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                    <Mail size={18} />
+                  </div>
+                  <input 
+                    type="email"
+                    value={emailRemitente}
+                    onChange={(e) => setEmailRemitente(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 font-medium text-slate-700"
+                    placeholder="noreply@tuclinica.com"
+                  />
+                </div>
+                <p className="text-xs text-slate-400">Debe ser un dominio verificado en Resend. Si lo dejas vacío, se usará <span className="font-mono">onboarding@resend.dev</span> (solo para pruebas).</p>
               </div>
             </div>
           </div>

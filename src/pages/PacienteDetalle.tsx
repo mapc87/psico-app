@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, User, Calendar, Activity, FileText, Pill, Heart, Thermometer, Wind, Scale, AlertTriangle, CalendarPlus, ClipboardList, Printer, Clock, Wallet, DollarSign, Receipt, AlertCircle, BrainCircuit, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, Mail } from 'lucide-react';
+import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
@@ -16,9 +16,15 @@ import ModalNuevoMedicamento from '../components/medicamentos/ModalNuevoMedicame
 import RecetaPrint from '../components/medicamentos/RecetaPrint';
 import ModalFirma from '../components/documentos/ModalFirma';
 import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
+import ModalAsignarEvaluacion from '../components/evaluaciones/ModalAsignarEvaluacion';
+import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEvaluacion';
+import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones';
+import EvaluacionPrint from '../components/evaluaciones/EvaluacionPrint';
+import ModalAnalisisIA from '../components/evaluaciones/ModalAnalisisIA';
 import Toast from '../components/common/Toast';
+import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
-import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento } from '../types';
+import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla } from '../types';
 import type { SendEmailResult } from '../services/email/emailService';
 
 export default function PacienteDetalle() {
@@ -30,11 +36,25 @@ export default function PacienteDetalle() {
   const [isSignoModalOpen, setIsSignoModalOpen] = useState(false);
   const [isNotaModalOpen, setIsNotaModalOpen] = useState(false);
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
+  const [isAnalisisIAModalOpen, setIsAnalisisIAModalOpen] = useState(false);
+  const [evaluacionParaAnalisis, setEvaluacionParaAnalisis] = useState<EvaluacionPaciente | null>(null);
+  
   const [isDiagnosticoModalOpen, setIsDiagnosticoModalOpen] = useState(false);
   const [isMedicamentoModalOpen, setIsMedicamentoModalOpen] = useState(false);
-      const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
-    const printRef = useRef<HTMLDivElement>(null);
+  const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
+  const [evaluacionParaImprimir, setEvaluacionParaImprimir] = useState<EvaluacionPaciente | null>(null);
+  
+  const printRef = useRef<HTMLDivElement>(null);
   const recetaPrintRef = useRef<HTMLDivElement>(null);
+  const evaluacionPrintRef = useRef<HTMLDivElement>(null);
+
+  const handlePrintExamen = useReactToPrint({
+    content: () => printRef.current,
+  });
+
+  const handlePrintEvaluacion = useReactToPrint({
+    content: () => evaluacionPrintRef.current,
+  });
 
   const [paciente, setPaciente] = useState<any>(undefined);
   const [permisos, setPermisos] = useState<any>(null);
@@ -44,11 +64,17 @@ export default function PacienteDetalle() {
   const [notas, setNotas] = useState<any[]>([]);
   const [diagnosticos, setDiagnosticos] = useState<any[]>([]);
   const [medicamentos, setMedicamentos] = useState<any[]>([]);
-    const [consentimientos, setConsentimientos] = useState<ConsentimientoFirmado[]>([]);
+  const [consentimientos, setConsentimientos] = useState<ConsentimientoFirmado[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
   const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
+
+  // Evaluaciones Psicométricas
+  const [evaluaciones, setEvaluaciones] = useState<EvaluacionPaciente[]>([]);
+  const [isAsignarEvaluacionModalOpen, setIsAsignarEvaluacionModalOpen] = useState(false);
+  const [isRealizarEvaluacionModalOpen, setIsRealizarEvaluacionModalOpen] = useState(false);
+  const [plantillaSeleccionada, setPlantillaSeleccionada] = useState<EvaluacionPlantilla | null>(null);
 
   const [modalCorreoState, setModalCorreoState] = useState<{
     isOpen: boolean;
@@ -110,6 +136,16 @@ export default function PacienteDetalle() {
       const { data: consentimientosData } = await supabase.from('consentimientos_firmados').select('*').eq('paciente_id', pId).order('fecha_firma', { ascending: false });
       if (consentimientosData) setConsentimientos(consentimientosData);
 
+      const { data: evalsData } = await supabase.from('evaluaciones_pacientes').select('*, evaluaciones_plantillas(*)').eq('paciente_id', pId).order('fecha', { ascending: false });
+      if (evalsData) {
+        // Mapear la relación para que coincida con la interfaz del Frontend
+        const mappedEvals = evalsData.map(e => ({
+          ...e,
+          plantilla: e.evaluaciones_plantillas
+        }));
+        setEvaluaciones(mappedEvals as EvaluacionPaciente[]);
+      }
+
       if (usuarioActual.clinica_id) {
         const { data: plData } = await supabase.from('plantillas_documentos').select('*').eq('clinica_id', usuarioActual.clinica_id);
         if (plData) setPlantillas(plData);
@@ -126,7 +162,7 @@ export default function PacienteDetalle() {
 
   const ultimoSigno = signos && signos.length > 0 ? signos[0] : null;
 
-  const handleSaveCita = async (fecha_hora: string, motivo: string) => {
+  const handleSaveCita = async (fecha_hora: string, motivo: string, pacienteId?: string, modalidad?: 'presencial' | 'virtual', enlace_video?: string) => {
     if (!usuarioActual) return;
     const nuevaCita = {
       clinica_id: usuarioActual.clinica_id,
@@ -134,7 +170,9 @@ export default function PacienteDetalle() {
       medico_id: usuarioActual.id,
       fecha_hora,
       motivo,
-      estado: 'programada'
+      estado: 'programada',
+      modalidad: modalidad || 'presencial',
+      enlace_video
     };
     const { data, error } = await supabase.from('citas').insert([nuevaCita]).select().single();
     if (error) {
@@ -350,6 +388,49 @@ export default function PacienteDetalle() {
     });
   };
 
+  const handleAsignarEvaluacion = async (plantilla: PlantillaDocumento | any, mode: 'presencial' | 'remoto') => {
+    setIsAsignarEvaluacionModalOpen(false);
+    
+    if (mode === 'presencial') {
+      setPlantillaSeleccionada(plantilla);
+      setIsRealizarEvaluacionModalOpen(true);
+    } else {
+      // Modo Remoto
+      if (!usuarioActual) return;
+      const nuevaEvaluacion = {
+        clinica_id: usuarioActual.clinica_id,
+        paciente_id: id!,
+        medico_id: usuarioActual.id,
+        plantilla_id: plantilla.id,
+        respuestas: {},
+        puntaje_total: 0,
+        estado: 'pendiente',
+        fecha: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('evaluaciones_pacientes')
+        .insert([nuevaEvaluacion])
+        .select('*')
+        .single();
+
+      if (error) {
+        alert('Error al asignar la evaluación remota: ' + error.message);
+        return;
+      }
+      
+      const link = `${window.location.origin}/evaluacion/${data.id}`;
+      navigator.clipboard.writeText(link);
+      showToast('Enlace de evaluación copiado al portapapeles. ¡Envíalo al paciente!');
+      // Refetch for the list
+      const { data: evalData } = await supabase.from('evaluaciones_pacientes')
+        .select(`*, plantilla:evaluaciones_plantillas(*)`)
+        .eq('paciente_id', id!)
+        .order('fecha', { ascending: false });
+      if (evalData) setEvaluaciones(evalData);
+    }
+  };
+
   const calcularEdad = (fechaNacimiento?: string) => {
     if (!fechaNacimiento) return 0;
     const hoy = new Date();
@@ -398,11 +479,13 @@ export default function PacienteDetalle() {
 
     const allTabs = [
     { id: 'resumen', label: 'Resumen', icon: <User size={18} />, key: 'verResumen' },
+    { id: 'archivos', label: 'Archivos', icon: <Paperclip size={18} />, key: 'verResumen' },
     { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
     { id: 'citas', label: 'Citas', icon: <CalendarPlus size={18} />, key: 'verCitas' },
+    { id: 'evaluaciones', label: 'Evaluaciones', icon: <BrainCircuit size={18} />, key: 'verHistorial' }, // Evaluaciones como 4ta opción
     { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={18} />, key: 'verExamenes' },
     { id: 'signos', label: 'Signos Vitales', icon: <Heart size={18} />, key: 'verSignos' },
-    { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={18} />, key: 'verMedicamentos' },
+    { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={18} />, key: 'verMedicamentos' }
   ];
 
   // Filtrar tabs según permisos
@@ -579,6 +662,13 @@ export default function PacienteDetalle() {
           </div>
           )}
 
+          {/* Pestaña: Archivos */}
+          {activeTab === 'archivos' && (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <ArchivosTab pacienteId={id!} />
+            </div>
+          )}
+
           {/* Pestaña: Citas */}
           {activeTab === 'citas' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -606,26 +696,47 @@ export default function PacienteDetalle() {
                       : '';
 
                     return (
-                      <div key={cita.id} className="p-5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between hover:shadow-sm transition-all duration-300">
-                        <div className="flex items-center">
-                          <div className={`p-3 rounded-xl mr-4 ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-600' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                            <Calendar size={20} />
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-800 text-lg capitalize">
-                              {fechaTexto}
-                            </p>
-                            <div className="flex items-center text-sm font-medium mt-1">
-                              {horaTexto && <span className="text-violet-600 mr-3">{horaTexto} hrs</span>}
-                              <span className="text-slate-500">{cita.motivo}</span>
+                      <div key={cita.id} className="p-5 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col hover:shadow-sm transition-all duration-300">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className={`p-3 rounded-xl mr-4 ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-600' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                              <Calendar size={20} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-slate-800 text-lg capitalize">
+                                  {fechaTexto}
+                                </p>
+                                {cita.modalidad === 'virtual' && (
+                                  <span className="bg-violet-100 text-violet-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center">
+                                    <Video size={10} className="mr-1" /> Virtual
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center text-sm font-medium mt-1">
+                                {horaTexto && <span className="text-violet-600 mr-3">{horaTexto} hrs</span>}
+                                <span className="text-slate-500">{cita.motivo}</span>
+                              </div>
                             </div>
                           </div>
+                          <div className="text-right">
+                             <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-700' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                               {cita.estado}
+                             </span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                           <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-700' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                             {cita.estado}
-                           </span>
-                        </div>
+
+                        {cita.modalidad === 'virtual' && cita.estado === 'programada' && (
+                          <div className="mt-4 pt-4 border-t border-slate-200">
+                            <button 
+                              onClick={() => window.open(`/videoconsulta/${cita.id}`, '_blank')}
+                              className="w-full flex justify-center items-center py-2 px-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-bold rounded-xl hover:shadow-md transition-all duration-300"
+                            >
+                              <Video size={16} className="mr-2" />
+                              Entrar a Videoconsulta
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -979,6 +1090,91 @@ export default function PacienteDetalle() {
             </div>
           )}
 
+          {/* Pestaña: Evaluaciones Psicométricas */}
+          {activeTab === 'evaluaciones' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Evaluaciones Psicométricas</h3>
+                  <p className="text-sm text-slate-500">Cuestionarios y tests aplicados al paciente.</p>
+                </div>
+                <button 
+                  onClick={() => setIsAsignarEvaluacionModalOpen(true)}
+                  className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                >
+                  + Aplicar Test
+                </button>
+              </div>
+              
+              {evaluaciones && evaluaciones.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {evaluaciones.map(ev => (
+                    <div key={ev.id} className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center">
+                          <BrainCircuit size={24} className="text-violet-600 mr-3" />
+                          <div>
+                            <h4 className="font-bold text-lg text-slate-800 leading-tight">
+                              {ev.plantilla?.titulo || 'Evaluación'}
+                            </h4>
+                            <p className="text-sm text-slate-500 mt-1">
+                              {new Date(ev.fecha).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        {ev.estado === 'completado' && (
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => {
+                                setEvaluacionParaAnalisis(ev);
+                                setIsAnalisisIAModalOpen(true);
+                              }}
+                              className="p-2 text-slate-400 hover:text-fuchsia-600 hover:bg-fuchsia-50 rounded-lg transition-colors cursor-pointer"
+                              title="Analizar con IA (Gemini)"
+                            >
+                              <Sparkles size={18} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setEvaluacionParaImprimir(ev);
+                                setTimeout(() => handlePrintEvaluacion(), 100);
+                              }}
+                              className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer"
+                              title="Imprimir PDF"
+                            >
+                              <Printer size={18} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="bg-slate-50 rounded-xl p-4 mt-4 border border-slate-100 flex justify-between items-center">
+                        <div>
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Puntaje Total</p>
+                          <p className="text-2xl font-black text-slate-800">{ev.puntaje_total}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Interpretación</p>
+                          <span className="px-3 py-1 text-sm font-bold bg-violet-100 text-violet-700 rounded-full inline-block">
+                            {ev.interpretacion}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                  <BrainCircuit size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-lg font-semibold text-slate-500">Sin evaluaciones registradas</p>
+                  <p className="text-sm text-slate-400 mt-2">Haz clic en "+ Aplicar Test" para realizar la primera evaluación psicométrica.</p>
+                </div>
+              )}
+              
+              <GraficoEvaluaciones evaluaciones={evaluaciones || []} />
+            </div>
+          )}
+
           {/* Pestaña: Finanzas */}
           {activeTab === 'finanzas' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -1177,6 +1373,20 @@ export default function PacienteDetalle() {
           medicoNombre={usuarioActual?.nombre}
         />
       </div>
+
+      {/* Contenedor Oculto para Impresión de Evaluaciones Psicométricas */}
+      <div className="hidden">
+        {evaluacionParaImprimir && (
+          <EvaluacionPrint 
+            ref={evaluacionPrintRef}
+            evaluacion={evaluacionParaImprimir}
+            pacienteNombre={paciente.nombre}
+            pacienteEdad={calcularEdad(paciente.fechaNacimiento)}
+            medicoNombre={usuarioActual?.nombre}
+            clinicaNombre="Clínica Psicológica"
+          />
+        )}
+      </div>
     
       {/* Modal Lateral de Gestor de Documentos */}
       {isGestorDocumentosOpen && (
@@ -1369,6 +1579,37 @@ export default function PacienteDetalle() {
         </div>
       </div>
       )}
+
+      {/* Modals de Evaluaciones */}
+      {usuarioActual?.clinica_id && (
+        <ModalAsignarEvaluacion
+          isOpen={isAsignarEvaluacionModalOpen}
+          onClose={() => setIsAsignarEvaluacionModalOpen(false)}
+          clinicaId={usuarioActual.clinica_id}
+          onSelect={handleAsignarEvaluacion}
+        />
+      )}
+      
+      <ModalRealizarEvaluacion
+        isOpen={isRealizarEvaluacionModalOpen}
+        onClose={() => setIsRealizarEvaluacionModalOpen(false)}
+        plantilla={plantillaSeleccionada}
+        pacienteId={id!}
+        onSuccess={(nuevaEvaluacion) => {
+          setEvaluaciones(prev => [nuevaEvaluacion, ...prev]);
+          setIsRealizarEvaluacionModalOpen(false);
+          setToast({ isVisible: true, message: 'Evaluación completada exitosamente', type: 'success' });
+        }}
+      />
+
+      <ModalAnalisisIA 
+        isOpen={isAnalisisIAModalOpen}
+        onClose={() => setIsAnalisisIAModalOpen(false)}
+        evaluacion={evaluacionParaAnalisis}
+        pacienteNombre={paciente?.nombre || ''}
+        pacienteEdad={calcularEdad(paciente?.fechaNacimiento)}
+      />
+
       {/* Modal de Envío de Correo Personalizado */}
       <ModalEnviarCorreo
         isOpen={modalCorreoState.isOpen}

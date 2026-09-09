@@ -31,9 +31,19 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 - Se estandarizó la moneda del sistema a **Quetzales (Q.)**.
 - Se adaptó la base de datos para soportar los requerimientos legales de Guatemala (SAT), incluyendo campos como **NIT**, **Razón Social** en los pacientes, y **Número de Factura, Serie y Autorización (FEL)** en las facturas.
 - Las clínicas pueden configurar sus propios datos fiscales (NIT, Dirección Fiscal, No. Patente, etc.) a través de `/configuracion`.
+- **Impresión Térmica (POS):** Se implementó un módulo para imprimir facturas en formato de ticket utilizando CSS `@media print` y `React Portals` (aislando el componente `FacturaImprimible.tsx` en el `document.body`) para forzar un ancho de 80mm y márgenes de auto-corte, ideal para impresoras térmicas.
 
 ### Correos Electrónicos
 - Se implementó la integración con **EmailJS** para el envío de invitaciones de clínica y personal.
+
+### Características adicionales
+- **Citas**: Sistema de agenda, recordatorios, y videoconsultas (Jitsi Meet).
+- **Archivos Multimedia**: Subida de imágenes, PDFs y documentos directamente al expediente del paciente mediante Supabase Storage.
+- **Evaluaciones Psicométricas**:
+  - Generación y asignación de tests (presenciales o enlaces remotos).
+  - Gráficas longitudinales de progreso del paciente utilizando `recharts`.
+  - Generador de informes PDF de resultados mediante `react-to-print`.
+  - Integración con IA (Google Gemini) para generar interpretaciones narrativas de resultados psicométricos.
 
 ### Consentimientos Informados y Firmas Digitales
 - Se creó la tabla `plantillas_documentos` para gestionar plantillas predeterminadas de clínica (con un trigger para crear la plantilla estándar automáticamente al registrar una clínica).

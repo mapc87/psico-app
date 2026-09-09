@@ -52,10 +52,6 @@ export default function PacienteDetalle() {
     content: () => printRef.current,
   });
 
-  const handlePrintReceta = useReactToPrint({
-    content: () => recetaPrintRef.current,
-  });
-
   const handlePrintEvaluacion = useReactToPrint({
     content: () => evaluacionPrintRef.current,
   });

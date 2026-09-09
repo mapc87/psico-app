@@ -19,6 +19,7 @@ import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
 import ModalAsignarEvaluacion from '../components/evaluaciones/ModalAsignarEvaluacion';
 import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEvaluacion';
 import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones';
+import EvaluacionPrint from '../components/evaluaciones/EvaluacionPrint';
 import Toast from '../components/common/Toast';
 import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
@@ -36,9 +37,24 @@ export default function PacienteDetalle() {
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
   const [isDiagnosticoModalOpen, setIsDiagnosticoModalOpen] = useState(false);
   const [isMedicamentoModalOpen, setIsMedicamentoModalOpen] = useState(false);
-      const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
-    const printRef = useRef<HTMLDivElement>(null);
+  const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
+  const [evaluacionParaImprimir, setEvaluacionParaImprimir] = useState<EvaluacionPaciente | null>(null);
+  
+  const printRef = useRef<HTMLDivElement>(null);
   const recetaPrintRef = useRef<HTMLDivElement>(null);
+  const evaluacionPrintRef = useRef<HTMLDivElement>(null);
+
+  const handlePrintExamen = useReactToPrint({
+    content: () => printRef.current,
+  });
+
+  const handlePrintReceta = useReactToPrint({
+    content: () => recetaPrintRef.current,
+  });
+
+  const handlePrintEvaluacion = useReactToPrint({
+    content: () => evaluacionPrintRef.current,
+  });
 
   const [paciente, setPaciente] = useState<any>(undefined);
   const [permisos, setPermisos] = useState<any>(null);
@@ -1106,6 +1122,18 @@ export default function PacienteDetalle() {
                             </p>
                           </div>
                         </div>
+                        {ev.estado === 'completado' && (
+                          <button 
+                            onClick={() => {
+                              setEvaluacionParaImprimir(ev);
+                              setTimeout(() => handlePrintEvaluacion(), 100);
+                            }}
+                            className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer"
+                            title="Imprimir PDF"
+                          >
+                            <Printer size={18} />
+                          </button>
+                        )}
                       </div>
                       
                       <div className="bg-slate-50 rounded-xl p-4 mt-4 border border-slate-100 flex justify-between items-center">
@@ -1332,6 +1360,20 @@ export default function PacienteDetalle() {
           medicamentos={medicamentos?.filter(m => m.estado === 'activo') || []}
           medicoNombre={usuarioActual?.nombre}
         />
+      </div>
+
+      {/* Contenedor Oculto para Impresión de Evaluaciones Psicométricas */}
+      <div className="hidden">
+        {evaluacionParaImprimir && (
+          <EvaluacionPrint 
+            ref={evaluacionPrintRef}
+            evaluacion={evaluacionParaImprimir}
+            pacienteNombre={paciente.nombre}
+            pacienteEdad={calcularEdad(paciente.fechaNacimiento)}
+            medicoNombre={usuarioActual?.nombre}
+            clinicaNombre="Clínica Psicológica"
+          />
+        )}
       </div>
     
       {/* Modal Lateral de Gestor de Documentos */}

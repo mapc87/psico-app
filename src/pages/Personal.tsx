@@ -162,6 +162,19 @@ export default function Personal() {
     }
   };
 
+  const handleResetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/perfil',
+      });
+      if (error) throw error;
+      showToast(`Correo de recuperación enviado a ${email}`, 'success');
+    } catch (error: any) {
+      console.error('Error enviando reseteo:', error);
+      showToast(error.message || 'Error al solicitar el reseteo', 'error');
+    }
+  };
+
   if (usuarioActual?.rol !== 'admin' && usuarioActual?.rol !== 'doctor') {
     return <div className="p-8 text-center text-red-500 font-bold">No tienes acceso a esta sección.</div>;
   }
@@ -211,6 +224,7 @@ export default function Personal() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      <button onClick={() => empleado.email && handleResetPassword(empleado.email)} className="p-2 text-violet-500 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer" title="Resetear contraseña"><Key size={16} /></button>
                       <button onClick={() => handleOpenEdit(empleado)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"><Edit2 size={16} /></button>
                       <button onClick={() => empleado.id && handleDelete(empleado.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><Trash2 size={16} /></button>
                     </div>

@@ -9,6 +9,7 @@ export default function Perfil() {
   
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
@@ -41,6 +42,25 @@ export default function Perfil() {
     setLoading(true);
 
     try {
+      if (password) {
+        if (!currentPassword) {
+          showToast('Debes ingresar tu contraseña actual para poder cambiarla', 'error');
+          setLoading(false);
+          return;
+        }
+        
+        // Verify current password via sign in
+        const { error: verifyError } = await supabase.auth.signInWithPassword({
+          email: usuarioActual.email || email,
+          password: currentPassword
+        });
+        
+        if (verifyError) {
+          showToast('La contraseña actual es incorrecta', 'error');
+          setLoading(false);
+          return;
+        }
+      }
       let emailUpdated = false;
       let passwordUpdated = false;
 
@@ -74,6 +94,7 @@ export default function Perfil() {
       } else if (nameUpdated || passwordUpdated) {
         showToast('Perfil actualizado exitosamente', 'success');
         if (passwordUpdated) {
+          setCurrentPassword('');
           setPassword('');
           setConfirmPassword('');
         }
@@ -162,7 +183,22 @@ export default function Perfil() {
             </h3>
             <p className="text-sm text-slate-500 mb-6">Si no deseas cambiar tu contraseña, deja estos campos en blanco.</p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">Contraseña Actual</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                    <Lock size={18} />
+                  </div>
+                  <input 
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 font-medium text-slate-700"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">Nueva Contraseña</label>
                 <div className="relative">

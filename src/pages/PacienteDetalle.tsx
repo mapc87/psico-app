@@ -20,6 +20,7 @@ import ModalAsignarEvaluacion from '../components/evaluaciones/ModalAsignarEvalu
 import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEvaluacion';
 import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones';
 import EvaluacionPrint from '../components/evaluaciones/EvaluacionPrint';
+import ModalAnalisisIA from '../components/evaluaciones/ModalAnalisisIA';
 import Toast from '../components/common/Toast';
 import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
@@ -35,6 +36,9 @@ export default function PacienteDetalle() {
   const [isSignoModalOpen, setIsSignoModalOpen] = useState(false);
   const [isNotaModalOpen, setIsNotaModalOpen] = useState(false);
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
+  const [isAnalisisIAModalOpen, setIsAnalisisIAModalOpen] = useState(false);
+  const [evaluacionParaAnalisis, setEvaluacionParaAnalisis] = useState<EvaluacionPaciente | null>(null);
+  
   const [isDiagnosticoModalOpen, setIsDiagnosticoModalOpen] = useState(false);
   const [isMedicamentoModalOpen, setIsMedicamentoModalOpen] = useState(false);
   const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
@@ -1123,16 +1127,28 @@ export default function PacienteDetalle() {
                           </div>
                         </div>
                         {ev.estado === 'completado' && (
-                          <button 
-                            onClick={() => {
-                              setEvaluacionParaImprimir(ev);
-                              setTimeout(() => handlePrintEvaluacion(), 100);
-                            }}
-                            className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer"
-                            title="Imprimir PDF"
-                          >
-                            <Printer size={18} />
-                          </button>
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => {
+                                setEvaluacionParaAnalisis(ev);
+                                setIsAnalisisIAModalOpen(true);
+                              }}
+                              className="p-2 text-slate-400 hover:text-fuchsia-600 hover:bg-fuchsia-50 rounded-lg transition-colors cursor-pointer"
+                              title="Analizar con IA (Gemini)"
+                            >
+                              <Sparkles size={18} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setEvaluacionParaImprimir(ev);
+                                setTimeout(() => handlePrintEvaluacion(), 100);
+                              }}
+                              className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer"
+                              title="Imprimir PDF"
+                            >
+                              <Printer size={18} />
+                            </button>
+                          </div>
                         )}
                       </div>
                       
@@ -1582,12 +1598,20 @@ export default function PacienteDetalle() {
         isOpen={isRealizarEvaluacionModalOpen}
         onClose={() => setIsRealizarEvaluacionModalOpen(false)}
         plantilla={plantillaSeleccionada}
-        pacienteId={paciente.id}
+        pacienteId={id!}
         onSuccess={(nuevaEvaluacion) => {
           setEvaluaciones(prev => [nuevaEvaluacion, ...prev]);
           setIsRealizarEvaluacionModalOpen(false);
           setToast({ isVisible: true, message: 'Evaluación completada exitosamente', type: 'success' });
         }}
+      />
+
+      <ModalAnalisisIA 
+        isOpen={isAnalisisIAModalOpen}
+        onClose={() => setIsAnalisisIAModalOpen(false)}
+        evaluacion={evaluacionParaAnalisis}
+        pacienteNombre={paciente?.nombre || ''}
+        pacienteEdad={calcularEdad(paciente?.fechaNacimiento)}
       />
 
       {/* Modal de Envío de Correo Personalizado */}

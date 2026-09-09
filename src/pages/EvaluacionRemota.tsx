@@ -98,13 +98,6 @@ export default function EvaluacionRemota() {
 
   const handleSelectOption = (preguntaId: string, puntaje: number) => {
     setRespuestas(prev => ({ ...prev, [preguntaId]: puntaje }));
-    
-    // Auto avanzar
-    if (!isLastQuestion) {
-      setTimeout(() => {
-        setCurrentQuestionIndex(prev => prev + 1);
-      }, 400);
-    }
   };
 
   const calcularResultado = () => {

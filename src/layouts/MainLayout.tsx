@@ -45,6 +45,7 @@ export default function MainLayout() {
     navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
     navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
     navItems.push({ icon: <FileSignature size={20} />, label: 'Documentos', path: '/consentimientos' });
+    navItems.push({ icon: <ClipboardList size={20} />, label: 'Gestor de Pruebas', path: '/pruebas' });
   } else if (usuarioActual?.rol === 'personal' && permisos) {
     if (permisos.verAgenda) navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
     if (permisos.verPacientes) navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
@@ -127,20 +128,6 @@ export default function MainLayout() {
               >
                 <div className="mr-3 transition-transform group-hover:scale-110"><Settings size={20} /></div>
                 <span className="font-semibold text-sm">Ajustes de Clínica</span>
-              </NavLink>
-
-              <NavLink
-                to="/pruebas"
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-3 mt-1 rounded-xl transition-all duration-300 group ${
-                    isActive 
-                      ? 'bg-amber-100 text-amber-700' 
-                      : 'text-slate-500 hover:bg-amber-50 hover:text-amber-600'
-                  }`
-                }
-              >
-                <div className="mr-3 transition-transform group-hover:scale-110"><ClipboardList size={20} /></div>
-                <span className="font-semibold text-sm">Gestor de Pruebas</span>
               </NavLink>
             </div>
           )}

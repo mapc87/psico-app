@@ -31,8 +31,8 @@ export default function Pacientes() {
   }, [usuarioActual?.clinica_id]);
 
   // Función auxiliar para calcular edad
-  const calcularEdad = (fechaNacimiento: string) => {
-    if (!fechaNacimiento) return 0;
+  const calcularEdad = (fechaNacimiento: string | undefined | null) => {
+    if (!fechaNacimiento) return null;
     const hoy = new Date();
     const nacimiento = new Date(fechaNacimiento);
     let edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -40,7 +40,7 @@ export default function Pacientes() {
     if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
       edad--;
     }
-    return edad;
+    return Math.max(0, edad);
   };
 
   const pacientesFiltrados = pacientes.filter(p => 
@@ -110,7 +110,9 @@ export default function Pacientes() {
                       <div className="text-sm font-semibold text-slate-800">{paciente.nombre}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">{calcularEdad(paciente.fecha_nacimiento || '')} años</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                    {paciente.fecha_nacimiento ? `${calcularEdad(paciente.fecha_nacimiento)} años` : <span className="text-slate-400 italic">No registrada</span>}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{paciente.telefono}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-xs font-medium">{paciente.fecha_ingreso}</span>

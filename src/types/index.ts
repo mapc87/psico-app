@@ -21,6 +21,7 @@ export interface Usuario {
   email: string;
   rol: 'superadmin' | 'admin' | 'personal';
   rol_id?: string;
+  activo?: boolean;
   telefono?: string;
   dpi?: string;
   direccion?: string;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Save, X, Edit2, Trash2, Key, Ticket, Mail, Eye, Phone, MapPin, Briefcase, CreditCard, Award, Calendar } from 'lucide-react';
+import { Users, Plus, Save, X, Edit2, Trash2, Key, Ticket, Mail, Eye, Phone, MapPin, Briefcase, CreditCard, Award, Calendar, Power } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import type { Usuario, Rol } from '../types';
@@ -139,6 +139,19 @@ export default function Personal() {
     fetchDatos();
   };
 
+  const handleToggleActivo = async (usuario: Usuario) => {
+    // Si no tiene el campo activo definido explícitamente, asumimos que es true
+    const nuevoEstado = usuario.activo === false ? true : false;
+    const { error } = await supabase.from('usuarios').update({ activo: nuevoEstado }).eq('id', usuario.id);
+    
+    if (error) {
+      showToast('Error al cambiar el estado del usuario', 'error');
+    } else {
+      showToast(`Usuario ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`, 'success');
+      fetchDatos();
+    }
+  };
+
   const handleEnviarInvitacionEmail = async (email: string) => {
     if (!invitacionGenerada) return;
     
@@ -218,7 +231,10 @@ export default function Personal() {
                         {empleado.nombre.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-800">{empleado.nombre}</p>
+                        <p className="font-bold text-slate-800 flex items-center">
+                          {empleado.nombre}
+                          {empleado.activo === false && <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 rounded text-[10px] font-bold uppercase tracking-wider">Inactivo</span>}
+                        </p>
                         <p className="text-xs text-slate-500">{empleado.email}</p>
                         <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-wider">
                           {empleado.rol === 'admin' ? 'Administrador' : (rolEmpleado ? rolEmpleado.nombre : 'Rol Eliminado')}
@@ -228,6 +244,7 @@ export default function Personal() {
                     <div className="flex gap-2">
                       <button onClick={() => setViewingUser(empleado)} className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer" title="Ver detalles"><Eye size={16} /></button>
                       <button onClick={() => empleado.email && setResetConfirm({ email: empleado.email, nombre: empleado.nombre })} className="p-2 text-violet-500 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer" title="Resetear contraseña"><Key size={16} /></button>
+                      <button onClick={() => handleToggleActivo(empleado)} className={`p-2 rounded-lg transition-colors cursor-pointer ${empleado.activo === false ? 'text-green-500 hover:bg-green-50' : 'text-amber-500 hover:bg-amber-50'}`} title={empleado.activo === false ? "Activar usuario" : "Desactivar/Bloquear usuario"}><Power size={16} /></button>
                       <button onClick={() => handleOpenEdit(empleado)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" title="Editar Rol"><Edit2 size={16} /></button>
                       <button onClick={() => empleado.id && handleDelete(empleado.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Eliminar Empleado"><Trash2 size={16} /></button>
                     </div>

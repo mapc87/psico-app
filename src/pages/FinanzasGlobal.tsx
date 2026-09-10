@@ -7,6 +7,8 @@ import type { Factura, Clinica } from '../types';
 import ModalRegistrarPago from '../components/finanzas/ModalRegistrarPago';
 import ModalNuevaFacturaGlobal from '../components/finanzas/ModalNuevaFacturaGlobal';
 import FacturaImprimible from '../components/finanzas/FacturaImprimible';
+import CajaPanel from '../components/finanzas/CajaPanel';
+import HistorialCaja from '../components/finanzas/HistorialCaja';
 
 interface FacturaExtendida extends Factura {
   pacientes?: {
@@ -18,8 +20,11 @@ export default function FinanzasGlobal() {
   const { usuarioActual } = useAuth();
   const [facturas, setFacturas] = useState<FacturaExtendida[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'facturacion' | 'caja' | 'historial'>('facturacion');
+  
   const [filtroEstado, setFiltroEstado] = useState<'todas' | 'pendiente' | 'parcial' | 'pagada'>('todas');
   const [searchTerm, setSearchTerm] = useState('');
+  const [filtroFecha, setFiltroFecha] = useState(new Date().toISOString().split('T')[0]);
   
   const [isNuevaFacturaModalOpen, setIsNuevaFacturaModalOpen] = useState(false);
   const [isPagoModalOpen, setIsPagoModalOpen] = useState(false);
@@ -31,7 +36,12 @@ export default function FinanzasGlobal() {
   const handleImprimir = (factura: FacturaExtendida) => {
     setFacturaAImprimir(factura);
     setTimeout(() => {
+      document.body.classList.add('print-invoice');
       window.print();
+      // Remove class after print dialog closes
+      window.addEventListener('afterprint', () => {
+        document.body.classList.remove('print-invoice');
+      }, { once: true });
     }, 100);
   };
 
@@ -67,18 +77,22 @@ export default function FinanzasGlobal() {
     fetchData();
   }, [usuarioActual?.clinica_id]);
 
-  // Cálculos de KPIs
-  const totalFacturado = facturas.reduce((acc, f) => acc + f.monto_total, 0);
-  const totalPendiente = facturas.reduce((acc, f) => acc + f.saldo_pendiente, 0);
-  const totalCobrado = totalFacturado - totalPendiente;
-
   const facturasFiltradas = facturas.filter(f => {
     const matchEstado = filtroEstado === 'todas' || f.estado === filtroEstado;
+    const matchFecha = filtroFecha ? f.fecha_emision === filtroFecha : true;
     const nombreBuscado = (f.nombre_factura || f.pacientes?.nombre || '').toLowerCase();
     const matchSearch = nombreBuscado.includes(searchTerm.toLowerCase()) || 
                         f.concepto.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchEstado && matchSearch;
+    return matchEstado && matchFecha && matchSearch;
   });
+
+  // Cálculos de KPIs basados en los filtros aplicados (por fecha, etc)
+  // Pero ignorando el filtro de "estado" para los totales globales del día
+  const facturasDelDia = facturas.filter(f => filtroFecha ? f.fecha_emision === filtroFecha : true);
+  
+  const totalFacturado = facturasDelDia.reduce((acc, f) => acc + f.monto_total, 0);
+  const totalPendiente = facturasDelDia.reduce((acc, f) => acc + f.saldo_pendiente, 0);
+  const totalCobrado = totalFacturado - totalPendiente;
 
   if (loading) {
     return <div className="p-8 text-center text-slate-500">Cargando datos financieros...</div>;
@@ -105,8 +119,47 @@ export default function FinanzasGlobal() {
         </button>
       </div>
 
-      {/* Tarjetas de Resumen (KPIs) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 gap-6">
+        <button
+          onClick={() => setActiveTab('facturacion')}
+          className={`pb-4 text-sm font-bold transition-all border-b-2 ${
+            activeTab === 'facturacion' 
+              ? 'border-emerald-500 text-emerald-600' 
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Facturación y Cobros
+        </button>
+        <button
+          onClick={() => setActiveTab('caja')}
+          className={`pb-4 text-sm font-bold transition-all border-b-2 ${
+            activeTab === 'caja' 
+              ? 'border-emerald-500 text-emerald-600' 
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Control de Caja
+        </button>
+        <button
+          onClick={() => setActiveTab('historial')}
+          className={`pb-4 text-sm font-bold transition-all border-b-2 ${
+            activeTab === 'historial' 
+              ? 'border-emerald-500 text-emerald-600' 
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Libro Mayor (Historial)
+        </button>
+      </div>
+
+      {activeTab === 'caja' && <CajaPanel />}
+      {activeTab === 'historial' && <HistorialCaja />}
+
+      {activeTab === 'facturacion' && (
+        <div className="space-y-8 animate-in fade-in duration-300">
+          {/* Tarjetas de Resumen (KPIs) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex items-center">
           <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 mr-5">
             <TrendingUp size={28} />
@@ -133,7 +186,7 @@ export default function FinanzasGlobal() {
           </div>
           <div>
             <p className="text-sm font-bold text-violet-100 uppercase tracking-wider mb-1">Facturas Emitidas</p>
-            <h4 className="text-3xl font-black">{facturas.length}</h4>
+            <h4 className="text-3xl font-black">{facturasDelDia.length}</h4>
           </div>
         </div>
       </div>
@@ -141,7 +194,7 @@ export default function FinanzasGlobal() {
       {/* Filtros y Tabla */}
       <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
             {(['todas', 'pendiente', 'parcial', 'pagada'] as const).map(estado => (
               <button
                 key={estado}
@@ -155,6 +208,24 @@ export default function FinanzasGlobal() {
                 {estado}
               </button>
             ))}
+            
+            <div className="flex items-center ml-2 border-l border-slate-200 pl-4">
+              <Calendar size={16} className="text-slate-400 mr-2" />
+              <input 
+                type="date"
+                value={filtroFecha}
+                onChange={(e) => setFiltroFecha(e.target.value)}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:border-emerald-500"
+              />
+              {filtroFecha && (
+                <button 
+                  onClick={() => setFiltroFecha('')}
+                  className="ml-2 text-xs text-slate-400 hover:text-slate-600 underline"
+                >
+                  Ver todas
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="relative w-full md:w-64">
@@ -253,6 +324,8 @@ export default function FinanzasGlobal() {
           </table>
         </div>
       </div>
+      </div>
+      )}
 
       {facturaSeleccionada && (
         <ModalRegistrarPago 

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Calendar, Activity, UserPlus, CalendarPlus, ChevronRight, Cake, Clock, Building2 } from 'lucide-react';
+import { Users, Calendar, Activity, UserPlus, CalendarPlus, ChevronRight, Cake, Clock, Building2, ClipboardList, BrainCircuit, ClipboardCheck } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import type { Cita, Paciente, Rol, Clinica } from '../types';
+import type { Cita, Paciente, Rol, Clinica, EvaluacionPaciente, EvaluacionPlantilla } from '../types';
 
 export default function Dashboard() {
   const { usuarioActual } = useAuth();
@@ -11,6 +11,7 @@ export default function Dashboard() {
   // Estados para la clínica médica
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [citas, setCitas] = useState<Cita[]>([]);
+  const [evaluaciones, setEvaluaciones] = useState<EvaluacionPaciente[]>([]);
   const [permisos, setPermisos] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,14 +46,16 @@ export default function Dashboard() {
           });
         }
 
-        // 2. Cargar Pacientes y Citas
-        const [pacientesRes, citasRes] = await Promise.all([
+        // 2. Cargar Pacientes, Citas y Evaluaciones
+        const [pacientesRes, citasRes, evalRes] = await Promise.all([
           supabase.from('pacientes').select('*'),
-          supabase.from('citas').select('*')
+          supabase.from('citas').select('*'),
+          supabase.from('evaluaciones_pacientes').select('*, plantilla:plantilla_id(*)').eq('estado', 'pendiente').order('fecha', { ascending: false }).limit(5)
         ]);
 
         if (pacientesRes.data) setPacientes(pacientesRes.data as Paciente[]);
         if (citasRes.data) setCitas(citasRes.data as Cita[]);
+        if (evalRes.data) setEvaluaciones(evalRes.data as EvaluacionPaciente[]);
       }
 
       setLoading(false);
@@ -145,16 +148,6 @@ export default function Dashboard() {
 
   const pacientesRecientes = [...pacientes].sort((a, b) => new Date(b.fecha_ingreso).getTime() - new Date(a.fecha_ingreso).getTime()).slice(0, 4);
 
-  const mesActual = new Date().getMonth();
-  const cumpleañeros = pacientes.filter(p => {
-    if (!p.fecha_nacimiento) return false;
-    const nacimiento = new Date(p.fecha_nacimiento);
-    return nacimiento.getMonth() === mesActual;
-  }).sort((a, b) => {
-    if (!a.fecha_nacimiento || !b.fecha_nacimiento) return 0;
-    return new Date(a.fecha_nacimiento).getDate() - new Date(b.fecha_nacimiento).getDate();
-  });
-
   const obtenerSaludo = () => {
     const hora = new Date().getHours();
     if (hora >= 5 && hora < 12) {
@@ -170,22 +163,22 @@ export default function Dashboard() {
     <div className="space-y-8 animate-in fade-in duration-500">
       
       {/* Saludo Personalizado */}
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">
             {obtenerSaludo()}, {usuarioActual?.nombre.split(' ')[0]}
           </h1>
           <p className="text-slate-500 font-medium mt-1">Aquí tienes el resumen de tu clínica hoy.</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
           {puedeVerPacientes && (
-            <Link to="/pacientes/nuevo" className="flex items-center px-4 py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-violet-600 hover:border-violet-200 hover:bg-violet-50 font-bold rounded-xl shadow-sm transition-all duration-300">
+            <Link to="/pacientes/nuevo" className="flex justify-center items-center px-4 py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-violet-600 hover:border-violet-200 hover:bg-violet-50 font-bold rounded-xl shadow-sm transition-all duration-300 w-full sm:w-auto">
               <UserPlus size={18} className="mr-2" />
               Nuevo Paciente
             </Link>
           )}
           {puedeVerAgenda && (
-            <Link to="/agenda" className="flex items-center px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-md shadow-violet-500/20 transition-all duration-300">
+            <Link to="/agenda" className="flex justify-center items-center px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-md shadow-violet-500/20 transition-all duration-300 w-full sm:w-auto">
               <CalendarPlus size={18} className="mr-2" />
               Agendar Cita
             </Link>
@@ -323,36 +316,42 @@ export default function Dashboard() {
 
         <div className="space-y-8">
           
-          {/* Cumpleaños del Mes */}
+          {/* Evaluaciones Pendientes */}
           {puedeVerPacientes && (
-            <div className="bg-gradient-to-b from-fuchsia-50 to-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-fuchsia-100 overflow-hidden">
-              <div className="p-6 border-b border-fuchsia-100/50">
-                <h3 className="text-lg font-bold text-fuchsia-900 flex items-center">
-                  <Cake className="mr-2 text-fuchsia-500" size={20} />
-                  Cumpleaños del Mes
+            <div className="bg-gradient-to-b from-indigo-50 to-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-indigo-100 overflow-hidden">
+              <div className="p-6 border-b border-indigo-100/50">
+                <h3 className="text-lg font-bold text-indigo-900 flex items-center">
+                  <ClipboardList className="mr-2 text-indigo-500" size={20} />
+                  Evaluaciones Pendientes
                 </h3>
               </div>
               <div className="p-6">
-                {cumpleañeros.length > 0 ? (
+                {evaluaciones.length > 0 ? (
                   <div className="space-y-4">
-                    {cumpleañeros.map(paciente => (
-                      <div key={paciente.id} className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-fuchsia-50">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-fuchsia-100 text-fuchsia-600 rounded-full flex items-center justify-center font-bold mr-3">
-                            {paciente.fecha_nacimiento && new Date(paciente.fecha_nacimiento).getDate()}
+                    {evaluaciones.map(evaluacion => {
+                      const paciente = pacientes.find(p => p.id === evaluacion.paciente_id);
+                      return (
+                        <div key={evaluacion.id} className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-indigo-50 group">
+                          <div className="flex items-center overflow-hidden">
+                            <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold mr-3 shrink-0">
+                              <BrainCircuit size={18} />
+                            </div>
+                            <div className="truncate">
+                              <p className="font-bold text-slate-800 text-sm truncate">{paciente?.nombre || 'Paciente'}</p>
+                              <p className="text-xs text-slate-500 truncate">{evaluacion.plantilla?.titulo}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-slate-800 text-sm">{paciente.nombre}</p>
-                            <p className="text-xs text-slate-400">{paciente.fecha_nacimiento && (new Date().getFullYear() - new Date(paciente.fecha_nacimiento).getFullYear())} años</p>
-                          </div>
+                          <Link to={`/pacientes/${evaluacion.paciente_id}`} className="ml-2 p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0">
+                            <ChevronRight size={18} />
+                          </Link>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Cake size={32} className="mx-auto text-fuchsia-200 mb-3" />
-                    <p className="text-sm font-semibold text-fuchsia-600/70">Ningún cumpleaños este mes.</p>
+                    <ClipboardCheck size={32} className="mx-auto text-indigo-200 mb-3" />
+                    <p className="text-sm font-semibold text-indigo-600/70">No hay evaluaciones pendientes.</p>
                   </div>
                 )}
               </div>

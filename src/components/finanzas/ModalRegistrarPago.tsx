@@ -16,6 +16,31 @@ export default function ModalRegistrarPago({ isOpen, onClose, onSave, factura }:
   const [monto, setMonto] = useState(factura?.saldo_pendiente?.toString() || '');
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'tarjeta' | 'transferencia' | 'seguro'>('efectivo');
   const [isSaving, setIsSaving] = useState(false);
+  const [cajaActivaId, setCajaActivaId] = useState<string | null>(null);
+  const [verificandoCaja, setVerificandoCaja] = useState(true);
+
+  React.useEffect(() => {
+    if (isOpen && usuarioActual?.clinica_id) {
+      const checkCaja = async () => {
+        setVerificandoCaja(true);
+        const { data, error } = await supabase
+          .from('cajas')
+          .select('id')
+          .eq('clinica_id', usuarioActual.clinica_id)
+          .eq('estado', 'abierta')
+          .order('fecha_apertura', { ascending: false })
+          .limit(1);
+          
+        if (data && data.length > 0) {
+          setCajaActivaId(data[0].id);
+        } else {
+          setCajaActivaId(null);
+        }
+        setVerificandoCaja(false);
+      };
+      checkCaja();
+    }
+  }, [isOpen, usuarioActual?.clinica_id]);
 
   if (!isOpen || !factura) return null;
 
@@ -38,6 +63,12 @@ export default function ModalRegistrarPago({ isOpen, onClose, onSave, factura }:
         return;
       }
 
+      if (!cajaActivaId) {
+        alert("Debe haber una caja abierta para registrar un cobro.");
+        setIsSaving(false);
+        return;
+      }
+
       // 1. Guardar el pago
       const nuevoPago = {
         clinica_id: usuarioActual.clinica_id,
@@ -47,8 +78,24 @@ export default function ModalRegistrarPago({ isOpen, onClose, onSave, factura }:
         fecha_pago: new Date().toISOString()
       };
 
-      const { error: errorPago } = await supabase.from('pagos').insert([nuevoPago]);
+      const { data: pagoData, error: errorPago } = await supabase.from('pagos').insert([nuevoPago]).select();
       if (errorPago) throw errorPago;
+      const pagoId = pagoData && pagoData[0] ? pagoData[0].id : undefined;
+
+      // 1.5. Registrar el movimiento en la caja
+      const nuevoMovimiento = {
+        caja_id: cajaActivaId,
+        clinica_id: usuarioActual.clinica_id,
+        usuario_id: usuarioActual.id,
+        tipo: 'ingreso',
+        monto: montoNum,
+        metodo_pago: metodoPago,
+        concepto: `Cobro de Factura ${factura.numero_factura ? '#' + factura.numero_factura : ''} - ${factura.concepto}`,
+        referencia_id: pagoId
+      };
+      
+      const { error: errorMovimiento } = await supabase.from('movimientos_caja').insert([nuevoMovimiento]);
+      if (errorMovimiento) console.error("No se pudo registrar el movimiento en caja", errorMovimiento);
 
       // 2. Actualizar la factura
       const nuevoSaldo = factura.saldo_pendiente - montoNum;
@@ -156,12 +203,19 @@ export default function ModalRegistrarPago({ isOpen, onClose, onSave, factura }:
             </button>
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || verificandoCaja || !cajaActivaId}
               className="px-6 py-2.5 rounded-xl font-medium text-white bg-teal-600 hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/20 disabled:opacity-70 flex items-center"
+              title={!cajaActivaId && !verificandoCaja ? "Debe abrir la caja primero en la sección 'Control de Caja'" : ""}
             >
-              {isSaving ? 'Registrando...' : 'Confirmar Pago'}
+              {verificandoCaja ? 'Verificando Caja...' : isSaving ? 'Registrando...' : 'Confirmar Pago'}
             </button>
           </div>
+          
+          {!verificandoCaja && !cajaActivaId && (
+            <div className="mt-4 p-3 bg-rose-50 text-rose-700 rounded-lg text-sm flex items-start">
+              <span className="font-bold mr-2">¡Atención!</span> No hay una caja abierta actualmente. Ve a la pestaña "Control de Caja" para abrir una antes de cobrar.
+            </div>
+          )}
         </form>
       </div>
     </div>

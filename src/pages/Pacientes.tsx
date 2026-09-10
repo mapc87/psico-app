@@ -31,8 +31,8 @@ export default function Pacientes() {
   }, [usuarioActual?.clinica_id]);
 
   // Función auxiliar para calcular edad
-  const calcularEdad = (fechaNacimiento: string) => {
-    if (!fechaNacimiento) return 0;
+  const calcularEdad = (fechaNacimiento: string | undefined | null) => {
+    if (!fechaNacimiento) return null;
     const hoy = new Date();
     const nacimiento = new Date(fechaNacimiento);
     let edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -40,7 +40,7 @@ export default function Pacientes() {
     if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
       edad--;
     }
-    return edad;
+    return Math.max(0, edad);
   };
 
   const pacientesFiltrados = pacientes.filter(p => 
@@ -49,14 +49,14 @@ export default function Pacientes() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Directorio de Pacientes</h2>
           <p className="text-slate-500 mt-1">Gestiona y accede al expediente clínico de tus pacientes</p>
         </div>
         <Link 
           to="/pacientes/nuevo"
-          className="flex items-center px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:-translate-y-0.5 cursor-pointer"
+          className="flex justify-center items-center w-full md:w-auto px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:-translate-y-0.5 cursor-pointer"
         >
           <Plus size={20} className="mr-2" />
           Nuevo Paciente
@@ -110,7 +110,9 @@ export default function Pacientes() {
                       <div className="text-sm font-semibold text-slate-800">{paciente.nombre}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">{calcularEdad(paciente.fecha_nacimiento || '')} años</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
+                    {paciente.fecha_nacimiento ? `${calcularEdad(paciente.fecha_nacimiento)} años` : <span className="text-slate-400 italic">No registrada</span>}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{paciente.telefono}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-xs font-medium">{paciente.fecha_ingreso}</span>

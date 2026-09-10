@@ -39,7 +39,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (perfil) {
-          if (perfil.rol === 'superadmin') {
+          if (perfil.activo === false) {
+            console.error("Usuario inactivo, denegando acceso");
+            alert("Tu cuenta ha sido desactivada. Por favor contacta al administrador de tu clínica.");
+            setUsuarioActual(null);
+            await supabase.auth.signOut();
+          } else if (perfil.rol === 'superadmin') {
             setUsuarioActual(perfil as Usuario);
           } else {
             // Check si la clinica está activa

@@ -41,9 +41,16 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 - **Archivos Multimedia**: Subida de imágenes, PDFs y documentos directamente al expediente del paciente mediante Supabase Storage.
 - **Evaluaciones Psicométricas**:
   - Generación y asignación de tests (presenciales o enlaces remotos).
+  - Gestor de Pruebas dinámico integrado en la barra lateral superior.
   - Gráficas longitudinales de progreso del paciente utilizando `recharts`.
   - Generador de informes PDF de resultados mediante `react-to-print`.
   - Integración con IA (Google Gemini) para generar interpretaciones narrativas de resultados psicométricos.
+
+### Mejoras de UI/UX Recientes
+- **Dashboard Principal**: Se rediseñó la tarjeta lateral, reemplazando "Cumpleañeros del Mes" por "Evaluaciones Pendientes" para dar seguimiento a los pacientes remotos.
+- **Detalle de Pacientes**: 
+  - Corrección de la lógica de edad (se parsean correctamente fechas pasadas nulas/vacías sin arrojar "0 años").
+  - Extracción de la pestaña de "Citas" hacia un botón superior dedicado que despliega un modal centrado con el historial de citas y opciones de programación, para una visualización clínica más limpia de las pestañas médicas.
 
 ### Consentimientos Informados y Firmas Digitales
 - Se creó la tabla `plantillas_documentos` para gestionar plantillas predeterminadas de clínica (con un trigger para crear la plantilla estándar automáticamente al registrar una clínica).

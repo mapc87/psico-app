@@ -49,16 +49,17 @@ export default function PacienteDetalle() {
   const evaluacionPrintRef = useRef<HTMLDivElement>(null);
 
   const handlePrintExamen = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
   });
 
   const handlePrintEvaluacion = useReactToPrint({
-    content: () => evaluacionPrintRef.current,
+    contentRef: evaluacionPrintRef,
   });
 
   const [paciente, setPaciente] = useState<any>(undefined);
   const [permisos, setPermisos] = useState<any>(null);
   const [citas, setCitas] = useState<any[]>([]);
+  const [isHistorialCitasOpen, setIsHistorialCitasOpen] = useState(false);
   const [examenes, setExamenes] = useState<Examen[]>([]);
   const [signos, setSignos] = useState<SignosVitales[]>([]);
   const [notas, setNotas] = useState<any[]>([]);
@@ -66,6 +67,7 @@ export default function PacienteDetalle() {
   const [medicamentos, setMedicamentos] = useState<any[]>([]);
   const [consentimientos, setConsentimientos] = useState<ConsentimientoFirmado[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
+  const [clinicaData, setClinicaData] = useState<any>(null);;
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
   const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
@@ -149,6 +151,10 @@ export default function PacienteDetalle() {
       if (usuarioActual.clinica_id) {
         const { data: plData } = await supabase.from('plantillas_documentos').select('*').eq('clinica_id', usuarioActual.clinica_id);
         if (plData) setPlantillas(plData);
+
+        // Cargar datos de la clínica para los documentos imprimibles
+        const { data: clinicaRes } = await supabase.from('clinicas').select('*').eq('id', usuarioActual.clinica_id).single();
+        if (clinicaRes) setClinicaData(clinicaRes);
       }
     };
     
@@ -431,8 +437,8 @@ export default function PacienteDetalle() {
     }
   };
 
-  const calcularEdad = (fechaNacimiento?: string) => {
-    if (!fechaNacimiento) return 0;
+  const calcularEdad = (fechaNacimiento?: string | null) => {
+    if (!fechaNacimiento) return null;
     const hoy = new Date();
     const nacimiento = new Date(fechaNacimiento);
     let edad = hoy.getFullYear() - nacimiento.getFullYear();
@@ -440,7 +446,7 @@ export default function PacienteDetalle() {
     if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
       edad--;
     }
-    return edad;
+    return Math.max(0, edad);
   };
 
   const handleSaveFirma = async (dataUrl: string) => {
@@ -481,7 +487,6 @@ export default function PacienteDetalle() {
     { id: 'resumen', label: 'Resumen', icon: <User size={18} />, key: 'verResumen' },
     { id: 'archivos', label: 'Archivos', icon: <Paperclip size={18} />, key: 'verResumen' },
     { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
-    { id: 'citas', label: 'Citas', icon: <CalendarPlus size={18} />, key: 'verCitas' },
     { id: 'evaluaciones', label: 'Evaluaciones', icon: <BrainCircuit size={18} />, key: 'verHistorial' }, // Evaluaciones como 4ta opción
     { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={18} />, key: 'verExamenes' },
     { id: 'signos', label: 'Signos Vitales', icon: <Heart size={18} />, key: 'verSignos' },
@@ -509,31 +514,40 @@ export default function PacienteDetalle() {
     <div className="max-w-6xl mx-auto space-y-6">
       
       {/* Botón de Regresar y Acciones Globales */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <Link to="/pacientes" className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-violet-600 transition-colors group">
           <ArrowLeft size={16} className="mr-1.5 group-hover:-translate-x-1 transition-transform" />
           Volver a Pacientes
         </Link>
-        <button 
-          onClick={() => setIsGestorDocumentosOpen(true)}
-          className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
-        >
-          <FileSignature size={16} className="mr-2" />
-          Documentos Legales
-        </button>
+        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+          <button 
+            onClick={() => setIsHistorialCitasOpen(true)}
+            className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-violet-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
+          >
+            <Calendar size={16} className="mr-2" />
+            Citas
+          </button>
+          <button 
+            onClick={() => setIsGestorDocumentosOpen(true)}
+            className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
+          >
+            <FileSignature size={16} className="mr-2" />
+            Documentos Legales
+          </button>
+        </div>
       </div>
 
       {/* Header del Expediente */}
-      <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white flex items-center relative overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white flex flex-col sm:flex-row items-center sm:items-center relative overflow-hidden text-center sm:text-left">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-violet-200/40 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-        <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-fuchsia-50 rounded-2xl flex items-center justify-center text-violet-600 text-3xl font-extrabold mr-6 shadow-inner border border-violet-100/50 z-10">
+        <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-fuchsia-50 rounded-2xl flex items-center justify-center text-violet-600 text-3xl font-extrabold sm:mr-6 mb-4 sm:mb-0 shadow-inner border border-violet-100/50 z-10 shrink-0">
           {paciente.nombre.charAt(0)}
         </div>
-        <div className="z-10">
+        <div className="z-10 w-full">
           <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{paciente.nombre}</h2>
-          <p className="text-slate-500 flex items-center mt-2 font-medium">
-            <span className="mr-6 flex items-center"><User size={16} className="mr-2 opacity-70"/> Edad: {calcularEdad(paciente.fechaNacimiento)} años</span>
-            <span className="flex items-center">Teléfono: {paciente.telefono}</span>
+          <p className="text-slate-500 flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start mt-2 font-medium gap-2 sm:gap-0">
+            <span className="sm:mr-6 flex items-center"><User size={16} className="mr-2 opacity-70"/> Edad: {paciente.fecha_nacimiento ? `${calcularEdad(paciente.fecha_nacimiento)} años` : 'No registrada'}</span>
+            <span className="flex items-center"><Phone size={16} className="mr-2 opacity-70"/> Teléfono: {paciente.telefono}</span>
           </p>
         </div>
       </div>
@@ -669,87 +683,6 @@ export default function PacienteDetalle() {
             </div>
           )}
 
-          {/* Pestaña: Citas */}
-          {activeTab === 'citas' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-slate-800">Citas Programadas</h3>
-                <button 
-                  onClick={() => setIsCitaModalOpen(true)}
-                  className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                >
-                  + Programar Cita
-                </button>
-              </div>
-              
-              {citas && citas.length > 0 ? (
-                <div className="space-y-4">
-                  {citas.map((cita) => {
-                    const rawFecha = cita.fecha_hora || cita.fechaHora;
-                    const dateObj = rawFecha ? new Date(rawFecha) : null;
-                    const fechaValida = dateObj && !isNaN(dateObj.getTime());
-                    const fechaTexto = fechaValida
-                      ? dateObj.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-                      : 'Fecha no válida';
-                    const horaTexto = fechaValida
-                      ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      : '';
-
-                    return (
-                      <div key={cita.id} className="p-5 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col hover:shadow-sm transition-all duration-300">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className={`p-3 rounded-xl mr-4 ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-600' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                              <Calendar size={20} />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-bold text-slate-800 text-lg capitalize">
-                                  {fechaTexto}
-                                </p>
-                                {cita.modalidad === 'virtual' && (
-                                  <span className="bg-violet-100 text-violet-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center">
-                                    <Video size={10} className="mr-1" /> Virtual
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center text-sm font-medium mt-1">
-                                {horaTexto && <span className="text-violet-600 mr-3">{horaTexto} hrs</span>}
-                                <span className="text-slate-500">{cita.motivo}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                             <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-700' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                               {cita.estado}
-                             </span>
-                          </div>
-                        </div>
-
-                        {cita.modalidad === 'virtual' && cita.estado === 'programada' && (
-                          <div className="mt-4 pt-4 border-t border-slate-200">
-                            <button 
-                              onClick={() => window.open(`/videoconsulta/${cita.id}`, '_blank')}
-                              className="w-full flex justify-center items-center py-2 px-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-bold rounded-xl hover:shadow-md transition-all duration-300"
-                            >
-                              <Video size={16} className="mr-2" />
-                              Entrar a Videoconsulta
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 text-center text-slate-500">
-                  <CalendarPlus size={48} className="mx-auto text-slate-300 mb-4" />
-                  <p className="text-lg font-semibold">No hay citas programadas</p>
-                  <p className="text-sm mt-1">Haz clic en "Programar Cita" para agendar una.</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Pestaña: Exámenes */}
           {activeTab === 'examenes' && (
@@ -1137,7 +1070,7 @@ export default function PacienteDetalle() {
                             <button 
                               onClick={() => {
                                 setEvaluacionParaImprimir(ev);
-                                setTimeout(() => handlePrintEvaluacion(), 100);
+                                setTimeout(() => handlePrintEvaluacion(), 400);
                               }}
                               className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer"
                               title="Imprimir PDF"
@@ -1353,7 +1286,7 @@ export default function PacienteDetalle() {
         <OrdenExamenPrint 
           ref={printRef}
           pacienteNombre={paciente.nombre}
-          pacienteEdad={calcularEdad(paciente.fechaNacimiento)}
+          pacienteEdad={calcularEdad(paciente.fecha_nacimiento) || 0}
           fecha={new Date().toISOString()}
           examen={examenParaImprimir || {
             pacienteId: 0, medicoId: 0, fecha_solicitud: '', estado: 'pendiente', tipo_examen: ''
@@ -1367,10 +1300,16 @@ export default function PacienteDetalle() {
         <RecetaPrint 
           ref={recetaPrintRef}
           pacienteNombre={paciente.nombre}
-          pacienteEdad={calcularEdad(paciente.fechaNacimiento)}
+          pacienteEdad={calcularEdad(paciente.fecha_nacimiento) || 0}
           fecha={new Date().toISOString()}
           medicamentos={medicamentos?.filter(m => m.estado === 'activo') || []}
           medicoNombre={usuarioActual?.nombre}
+          medicoProfesion={usuarioActual?.profesion || usuarioActual?.especialidad}
+          medicoColegiado={usuarioActual?.no_colegiado}
+          clinicaNombre={clinicaData?.nombre_comercial || clinicaData?.nombre}
+          clinicaDireccion={clinicaData?.direccion_fiscal || clinicaData?.direccion}
+          clinicaTelefono={clinicaData?.telefono_contacto}
+          clinicaNit={clinicaData?.nit}
         />
       </div>
 
@@ -1381,13 +1320,112 @@ export default function PacienteDetalle() {
             ref={evaluacionPrintRef}
             evaluacion={evaluacionParaImprimir}
             pacienteNombre={paciente.nombre}
-            pacienteEdad={calcularEdad(paciente.fechaNacimiento)}
+            pacienteEdad={calcularEdad(paciente.fecha_nacimiento) || 0}
             medicoNombre={usuarioActual?.nombre}
             clinicaNombre="Clínica Psicológica"
           />
         )}
       </div>
     
+      {/* Modal Historial de Citas */}
+      {isHistorialCitasOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex justify-center items-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+                <Calendar size={24} className="mr-3 text-violet-600" />
+                Citas Programadas
+              </h2>
+              <button 
+                onClick={() => setIsHistorialCitasOpen(false)}
+                className="w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-50 hover:text-rose-500 transition-colors shadow-sm"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+               <div className="flex justify-between items-center mb-6">
+                 <p className="text-slate-500 font-medium text-sm">Historial de citas de {paciente.nombre}</p>
+                 <button 
+                   onClick={() => { setIsHistorialCitasOpen(false); setIsCitaModalOpen(true); }}
+                   className="px-5 py-2.5 bg-violet-600 text-white hover:bg-violet-700 rounded-xl text-sm font-bold transition-all shadow-md hover:shadow-lg flex items-center"
+                 >
+                   <CalendarPlus size={16} className="mr-2" />
+                   Programar Nueva Cita
+                 </button>
+               </div>
+               
+               {citas && citas.length > 0 ? (
+                <div className="space-y-4">
+                  {citas.map((cita) => {
+                    const rawFecha = cita.fecha_hora || cita.fechaHora;
+                    const dateObj = rawFecha ? new Date(rawFecha) : null;
+                    const fechaValida = dateObj && !isNaN(dateObj.getTime());
+                    const fechaTexto = fechaValida
+                      ? dateObj.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                      : 'Fecha no válida';
+                    const horaTexto = fechaValida
+                      ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : '';
+
+                    return (
+                      <div key={cita.id} className="p-5 bg-white border border-slate-200 rounded-2xl flex flex-col shadow-sm hover:shadow-md transition-all duration-300">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className={`p-3 rounded-xl mr-4 ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-600' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                              <Calendar size={20} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-slate-800 text-lg capitalize">
+                                  {fechaTexto}
+                                </p>
+                                {cita.modalidad === 'virtual' && (
+                                  <span className="bg-violet-100 text-violet-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center">
+                                    <Video size={10} className="mr-1" /> Virtual
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center text-sm font-medium mt-1">
+                                {horaTexto && <span className="text-violet-600 mr-3">{horaTexto} hrs</span>}
+                                <span className="text-slate-500">{cita.motivo}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                             <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${cita.estado === 'programada' ? 'bg-violet-100 text-violet-700' : cita.estado === 'completada' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                               {cita.estado}
+                             </span>
+                          </div>
+                        </div>
+
+                        {cita.modalidad === 'virtual' && cita.estado === 'programada' && (
+                          <div className="mt-4 pt-4 border-t border-slate-100">
+                            <button 
+                              onClick={() => window.open(`/videoconsulta/${cita.id}`, '_blank')}
+                              className="w-full flex justify-center items-center py-2 px-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-bold rounded-xl hover:shadow-md transition-all duration-300"
+                            >
+                              <Video size={16} className="mr-2" />
+                              Unirse a la Videoconsulta
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-slate-50 p-12 rounded-2xl border border-slate-100 text-center">
+                  <Calendar size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-slate-500 font-medium">No hay citas programadas para este paciente.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Lateral de Gestor de Documentos */}
       {isGestorDocumentosOpen && (
         <div className="fixed inset-0 z-50 flex justify-end p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -1607,7 +1645,7 @@ export default function PacienteDetalle() {
         onClose={() => setIsAnalisisIAModalOpen(false)}
         evaluacion={evaluacionParaAnalisis}
         pacienteNombre={paciente?.nombre || ''}
-        pacienteEdad={calcularEdad(paciente?.fechaNacimiento)}
+        pacienteEdad={calcularEdad(paciente?.fecha_nacimiento) || 0}
       />
 
       {/* Modal de Envío de Correo Personalizado */}

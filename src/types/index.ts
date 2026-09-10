@@ -21,6 +21,16 @@ export interface Usuario {
   email: string;
   rol: 'superadmin' | 'admin' | 'personal';
   rol_id?: string;
+  activo?: boolean;
+  telefono?: string;
+  dpi?: string;
+  direccion?: string;
+  profesion?: string;
+  no_colegiado?: string;
+  especialidad?: string;
+  fecha_nacimiento?: string;
+  genero?: 'masculino' | 'femenino' | 'otro' | 'prefiero_no_decir';
+  foto_url?: string;
   created_at: string;
 }
 
@@ -248,4 +258,40 @@ export interface EvaluacionPaciente {
   estado: 'pendiente' | 'completado';
   fecha: string;
   created_at?: string;
+}
+
+// === Control de Caja y Finanzas ===
+
+export interface Caja {
+  id: string;
+  clinica_id: string;
+  usuario_apertura_id: string;
+  usuario_cierre_id?: string;
+  monto_apertura: number;
+  monto_cierre_esperado?: number;
+  monto_cierre_real?: number;
+  diferencia?: number;
+  fecha_apertura: string;
+  fecha_cierre?: string;
+  estado: 'abierta' | 'cerrada';
+  notas?: string;
+  created_at: string;
+}
+
+export interface MovimientoCaja {
+  id: string;
+  caja_id: string;
+  clinica_id: string;
+  usuario_id: string;
+  tipo: 'ingreso' | 'egreso';
+  monto: number;
+  metodo_pago: 'efectivo' | 'tarjeta' | 'transferencia' | 'otro';
+  concepto: string;
+  referencia_id?: string;
+  fecha: string;
+  created_at: string;
+  // Para frontend
+  usuarios?: {
+    nombre: string;
+  };
 }

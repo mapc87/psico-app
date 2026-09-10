@@ -23,6 +23,7 @@ import { AuthProvider } from './context/AuthContext';
 import RegistroInvitado from './pages/RegistroInvitado';
 import SalaPaciente from './pages/SalaPaciente';
 import SalaVirtual from './pages/SalaVirtual';
+import GestorPruebas from './pages/GestorPruebas';
 
 function AppRoutes() {
   return (
@@ -52,6 +53,7 @@ function AppRoutes() {
           <Route path="/roles" element={<Roles />} />
           <Route path="/personal" element={<Personal />} />
           <Route path="/perfil" element={<Perfil />} />
+          <Route path="/pruebas" element={<GestorPruebas />} />
           
           {/* Rutas Privadas solo para Administradores */}
           <Route element={<ProtectedRoute requireAdmin={true} />}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
-import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet, Settings, Building2, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet, Settings, Building2, HelpCircle, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Permisos } from '../types';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
@@ -127,6 +127,20 @@ export default function MainLayout() {
               >
                 <div className="mr-3 transition-transform group-hover:scale-110"><Settings size={20} /></div>
                 <span className="font-semibold text-sm">Ajustes de Clínica</span>
+              </NavLink>
+
+              <NavLink
+                to="/pruebas"
+                className={({ isActive }) =>
+                  `flex items-center px-4 py-3 mt-1 rounded-xl transition-all duration-300 group ${
+                    isActive 
+                      ? 'bg-amber-100 text-amber-700' 
+                      : 'text-slate-500 hover:bg-amber-50 hover:text-amber-600'
+                  }`
+                }
+              >
+                <div className="mr-3 transition-transform group-hover:scale-110"><ClipboardList size={20} /></div>
+                <span className="font-semibold text-sm">Gestor de Pruebas</span>
               </NavLink>
             </div>
           )}

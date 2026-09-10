@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Save, X, Edit2, Trash2, Key, Ticket, Mail } from 'lucide-react';
+import { Users, Plus, Save, X, Edit2, Trash2, Key, Ticket, Mail, Eye, Phone, MapPin, Briefcase, CreditCard, Award, Calendar } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import type { Usuario, Rol } from '../types';
@@ -19,7 +19,9 @@ export default function Personal() {
   const { usuarioActual } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [viewingUser, setViewingUser] = useState<Usuario | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, type: 'empleado' | 'invitacion' } | null>(null);
+  const [resetConfirm, setResetConfirm] = useState<{ email: string, nombre: string } | null>(null);
   
   // Para editar usuario
   const [nombre, setNombre] = useState('');
@@ -198,9 +200,9 @@ export default function Personal() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Personal Activo */}
-        <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
+        <div className="lg:col-span-2 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
           <div className="p-4 bg-slate-50 border-b border-slate-100 font-bold text-slate-700 flex justify-between">
             <span>Personal Activo</span>
             <span className="bg-teal-100 text-teal-700 px-2 rounded-full text-sm">{personal.length}</span>
@@ -224,9 +226,10 @@ export default function Personal() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => empleado.email && handleResetPassword(empleado.email)} className="p-2 text-violet-500 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer" title="Resetear contraseña"><Key size={16} /></button>
-                      <button onClick={() => handleOpenEdit(empleado)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"><Edit2 size={16} /></button>
-                      <button onClick={() => empleado.id && handleDelete(empleado.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"><Trash2 size={16} /></button>
+                      <button onClick={() => setViewingUser(empleado)} className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer" title="Ver detalles"><Eye size={16} /></button>
+                      <button onClick={() => empleado.email && setResetConfirm({ email: empleado.email, nombre: empleado.nombre })} className="p-2 text-violet-500 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer" title="Resetear contraseña"><Key size={16} /></button>
+                      <button onClick={() => handleOpenEdit(empleado)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" title="Editar Rol"><Edit2 size={16} /></button>
+                      <button onClick={() => empleado.id && handleDelete(empleado.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Eliminar Empleado"><Trash2 size={16} /></button>
                     </div>
                   </li>
                 );
@@ -238,7 +241,7 @@ export default function Personal() {
         </div>
 
         {/* Invitaciones Pendientes */}
-        <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
+        <div className="lg:col-span-1 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
           <div className="p-4 bg-slate-50 border-b border-slate-100 font-bold text-slate-700 flex justify-between">
             <span>Invitaciones Pendientes</span>
             <span className="bg-amber-100 text-amber-700 px-2 rounded-full text-sm">{invitaciones.length}</span>
@@ -393,6 +396,105 @@ export default function Personal() {
                 className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-all shadow-md shadow-red-500/20 cursor-pointer w-full"
               >
                 Sí, eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalles del Empleado */}
+      {viewingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50">
+              <h3 className="text-xl font-bold text-indigo-900 flex items-center">
+                <Users className="mr-2 text-indigo-600" size={24} />
+                Detalles del Personal
+              </h3>
+              <button 
+                onClick={() => setViewingUser(null)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-full transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-2xl">
+                  {viewingUser.nombre?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="text-2xl font-bold text-slate-800">{viewingUser.nombre}</h4>
+                  <p className="text-slate-500">{viewingUser.email}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 space-y-3">
+                   <h5 className="font-bold text-slate-700 flex items-center border-b border-slate-200 pb-2 mb-2"><Phone size={16} className="mr-2 text-slate-400" /> Contacto</h5>
+                   <p className="text-sm"><span className="text-slate-500">Teléfono:</span> <span className="font-medium text-slate-800">{viewingUser.telefono || 'No registrado'}</span></p>
+                   <p className="text-sm"><span className="text-slate-500">Dirección:</span> <span className="font-medium text-slate-800">{viewingUser.direccion || 'No registrada'}</span></p>
+                </div>
+                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 space-y-3">
+                   <h5 className="font-bold text-slate-700 flex items-center border-b border-slate-200 pb-2 mb-2"><CreditCard size={16} className="mr-2 text-slate-400" /> Personal</h5>
+                   <p className="text-sm"><span className="text-slate-500">DPI:</span> <span className="font-medium text-slate-800">{viewingUser.dpi || 'No registrado'}</span></p>
+                   <p className="text-sm"><span className="text-slate-500">Nacimiento:</span> <span className="font-medium text-slate-800">{viewingUser.fecha_nacimiento ? new Date(viewingUser.fecha_nacimiento).toLocaleDateString() : 'No registrada'}</span></p>
+                   <p className="text-sm"><span className="text-slate-500">Género:</span> <span className="font-medium text-slate-800 capitalize">{viewingUser.genero ? viewingUser.genero.replace('_', ' ') : 'No registrado'}</span></p>
+                </div>
+                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 space-y-3 md:col-span-2">
+                   <h5 className="font-bold text-slate-700 flex items-center border-b border-slate-200 pb-2 mb-2"><Briefcase size={16} className="mr-2 text-slate-400" /> Profesional</h5>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <p className="text-sm"><span className="text-slate-500 block text-xs uppercase mb-1">Profesión</span> <span className="font-medium text-slate-800">{viewingUser.profesion || 'No registrada'}</span></p>
+                     <p className="text-sm"><span className="text-slate-500 block text-xs uppercase mb-1">Especialidad</span> <span className="font-medium text-slate-800">{viewingUser.especialidad || 'No registrada'}</span></p>
+                     <p className="text-sm"><span className="text-slate-500 block text-xs uppercase mb-1">No. Colegiado</span> <span className="font-medium text-slate-800">{viewingUser.no_colegiado || 'No registrado'}</span></p>
+                   </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button 
+                onClick={() => setViewingUser(null)}
+                className="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación de Reseteo de Contraseña */}
+      {resetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-violet-100 text-violet-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Key size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">
+                Restablecer Contraseña
+              </h3>
+              <p className="text-slate-500">
+                ¿Estás seguro de que deseas enviar un correo de recuperación de contraseña a <b>{resetConfirm.nombre}</b> ({resetConfirm.email})?
+              </p>
+            </div>
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-center space-x-3">
+              <button 
+                onClick={() => setResetConfirm(null)}
+                className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors cursor-pointer w-full"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  handleResetPassword(resetConfirm.email);
+                  setResetConfirm(null);
+                }}
+                className="px-5 py-2.5 bg-violet-500 hover:bg-violet-600 text-white font-bold rounded-xl transition-all shadow-md shadow-violet-500/20 cursor-pointer w-full"
+              >
+                Sí, enviar correo
               </button>
             </div>
           </div>

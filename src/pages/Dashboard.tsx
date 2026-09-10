@@ -163,22 +163,22 @@ export default function Dashboard() {
     <div className="space-y-8 animate-in fade-in duration-500">
       
       {/* Saludo Personalizado */}
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">
             {obtenerSaludo()}, {usuarioActual?.nombre.split(' ')[0]}
           </h1>
           <p className="text-slate-500 font-medium mt-1">Aquí tienes el resumen de tu clínica hoy.</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
           {puedeVerPacientes && (
-            <Link to="/pacientes/nuevo" className="flex items-center px-4 py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-violet-600 hover:border-violet-200 hover:bg-violet-50 font-bold rounded-xl shadow-sm transition-all duration-300">
+            <Link to="/pacientes/nuevo" className="flex justify-center items-center px-4 py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-violet-600 hover:border-violet-200 hover:bg-violet-50 font-bold rounded-xl shadow-sm transition-all duration-300 w-full sm:w-auto">
               <UserPlus size={18} className="mr-2" />
               Nuevo Paciente
             </Link>
           )}
           {puedeVerAgenda && (
-            <Link to="/agenda" className="flex items-center px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-md shadow-violet-500/20 transition-all duration-300">
+            <Link to="/agenda" className="flex justify-center items-center px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-md shadow-violet-500/20 transition-all duration-300 w-full sm:w-auto">
               <CalendarPlus size={18} className="mr-2" />
               Agendar Cita
             </Link>

@@ -49,14 +49,14 @@ export default function Pacientes() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Directorio de Pacientes</h2>
           <p className="text-slate-500 mt-1">Gestiona y accede al expediente clínico de tus pacientes</p>
         </div>
         <Link 
           to="/pacientes/nuevo"
-          className="flex items-center px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:-translate-y-0.5 cursor-pointer"
+          className="flex justify-center items-center w-full md:w-auto px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:-translate-y-0.5 cursor-pointer"
         >
           <Plus size={20} className="mr-2" />
           Nuevo Paciente

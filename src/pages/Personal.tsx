@@ -196,7 +196,7 @@ export default function Personal() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center">
+      <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
             <Users className="text-teal-600" size={32} />
@@ -206,7 +206,7 @@ export default function Personal() {
         </div>
         <button 
           onClick={handleOpenNewInv}
-          className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md shadow-teal-500/20 transition-all duration-300 flex items-center cursor-pointer"
+          className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md shadow-teal-500/20 transition-all duration-300 flex justify-center items-center w-full sm:w-auto cursor-pointer"
         >
           <Plus size={20} className="mr-2" />
           Generar Invitación
@@ -225,7 +225,7 @@ export default function Personal() {
               {personal.map((empleado) => {
                 const rolEmpleado = roles?.find(r => r.id === empleado.rol_id);
                 return (
-                  <li key={empleado.id} className="p-4 hover:bg-slate-50/50 flex justify-between items-center">
+                  <li key={empleado.id} className="p-4 hover:bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-50 last:border-0">
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold mr-3">
                         {empleado.nombre.charAt(0).toUpperCase()}
@@ -241,7 +241,7 @@ export default function Personal() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
                       <button onClick={() => setViewingUser(empleado)} className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer" title="Ver detalles"><Eye size={16} /></button>
                       <button onClick={() => empleado.email && setResetConfirm({ email: empleado.email, nombre: empleado.nombre })} className="p-2 text-violet-500 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer" title="Resetear contraseña"><Key size={16} /></button>
                       <button onClick={() => handleToggleActivo(empleado)} className={`p-2 rounded-lg transition-colors cursor-pointer ${empleado.activo === false ? 'text-green-500 hover:bg-green-50' : 'text-amber-500 hover:bg-amber-50'}`} title={empleado.activo === false ? "Activar usuario" : "Desactivar/Bloquear usuario"}><Power size={16} /></button>

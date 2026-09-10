@@ -19,7 +19,6 @@ export default function ModalNuevaFacturaGlobal({ isOpen, onClose, onSave }: Mod
   const [numeroFactura, setNumeroFactura] = useState('');
   const [concepto, setConcepto] = useState('');
   const [montoTotal, setMontoTotal] = useState('');
-  const [fechaVencimiento, setFechaVencimiento] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [pacientes, setPacientes] = useState<{id: string, nombre: string}[]>([]);
   const [loadingPacientes, setLoadingPacientes] = useState(false);
@@ -68,8 +67,7 @@ export default function ModalNuevaFacturaGlobal({ isOpen, onClose, onSave }: Mod
         direccion,
         serie: serie || null,
         numero_factura: numeroFactura || null,
-        fecha_emision: new Date().toISOString().split('T')[0],
-        fecha_vencimiento: fechaVencimiento || null
+        fecha_emision: new Date().toISOString().split('T')[0]
       };
 
       const { error } = await supabase.from('facturas').insert([nuevaFactura]);
@@ -84,7 +82,6 @@ export default function ModalNuevaFacturaGlobal({ isOpen, onClose, onSave }: Mod
       setPacienteId('');
       setConcepto('');
       setMontoTotal('');
-      setFechaVencimiento('');
     } catch (error) {
       console.error('Error saving factura:', error);
       alert('Ocurrió un error al guardar la factura.');
@@ -233,23 +230,6 @@ export default function ModalNuevaFacturaGlobal({ isOpen, onClose, onSave }: Mod
                 value={montoTotal}
                 onChange={(e) => setMontoTotal(e.target.value)}
                 placeholder="500.00"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Fecha de Vencimiento (Opcional)
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <Calendar size={18} />
-              </div>
-              <input
-                type="date"
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all duration-300"
-                value={fechaVencimiento}
-                onChange={(e) => setFechaVencimiento(e.target.value)}
               />
             </div>
           </div>

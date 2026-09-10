@@ -259,3 +259,39 @@ export interface EvaluacionPaciente {
   fecha: string;
   created_at?: string;
 }
+
+// === Control de Caja y Finanzas ===
+
+export interface Caja {
+  id: string;
+  clinica_id: string;
+  usuario_apertura_id: string;
+  usuario_cierre_id?: string;
+  monto_apertura: number;
+  monto_cierre_esperado?: number;
+  monto_cierre_real?: number;
+  diferencia?: number;
+  fecha_apertura: string;
+  fecha_cierre?: string;
+  estado: 'abierta' | 'cerrada';
+  notas?: string;
+  created_at: string;
+}
+
+export interface MovimientoCaja {
+  id: string;
+  caja_id: string;
+  clinica_id: string;
+  usuario_id: string;
+  tipo: 'ingreso' | 'egreso';
+  monto: number;
+  metodo_pago: 'efectivo' | 'tarjeta' | 'transferencia' | 'otro';
+  concepto: string;
+  referencia_id?: string;
+  fecha: string;
+  created_at: string;
+  // Para frontend
+  usuarios?: {
+    nombre: string;
+  };
+}

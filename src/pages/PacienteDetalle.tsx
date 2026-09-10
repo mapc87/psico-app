@@ -49,11 +49,11 @@ export default function PacienteDetalle() {
   const evaluacionPrintRef = useRef<HTMLDivElement>(null);
 
   const handlePrintExamen = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
   });
 
   const handlePrintEvaluacion = useReactToPrint({
-    content: () => evaluacionPrintRef.current,
+    contentRef: evaluacionPrintRef,
   });
 
   const [paciente, setPaciente] = useState<any>(undefined);
@@ -66,6 +66,7 @@ export default function PacienteDetalle() {
   const [medicamentos, setMedicamentos] = useState<any[]>([]);
   const [consentimientos, setConsentimientos] = useState<ConsentimientoFirmado[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
+  const [clinicaData, setClinicaData] = useState<any>(null);;
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
   const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
@@ -149,6 +150,10 @@ export default function PacienteDetalle() {
       if (usuarioActual.clinica_id) {
         const { data: plData } = await supabase.from('plantillas_documentos').select('*').eq('clinica_id', usuarioActual.clinica_id);
         if (plData) setPlantillas(plData);
+
+        // Cargar datos de la clínica para los documentos imprimibles
+        const { data: clinicaRes } = await supabase.from('clinicas').select('*').eq('id', usuarioActual.clinica_id).single();
+        if (clinicaRes) setClinicaData(clinicaRes);
       }
     };
     
@@ -1137,7 +1142,7 @@ export default function PacienteDetalle() {
                             <button 
                               onClick={() => {
                                 setEvaluacionParaImprimir(ev);
-                                setTimeout(() => handlePrintEvaluacion(), 100);
+                                setTimeout(() => handlePrintEvaluacion(), 400);
                               }}
                               className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer"
                               title="Imprimir PDF"
@@ -1371,6 +1376,12 @@ export default function PacienteDetalle() {
           fecha={new Date().toISOString()}
           medicamentos={medicamentos?.filter(m => m.estado === 'activo') || []}
           medicoNombre={usuarioActual?.nombre}
+          medicoProfesion={usuarioActual?.profesion || usuarioActual?.especialidad}
+          medicoColegiado={usuarioActual?.no_colegiado}
+          clinicaNombre={clinicaData?.nombre_comercial || clinicaData?.nombre}
+          clinicaDireccion={clinicaData?.direccion_fiscal || clinicaData?.direccion}
+          clinicaTelefono={clinicaData?.telefono_contacto}
+          clinicaNit={clinicaData?.nit}
         />
       </div>
 

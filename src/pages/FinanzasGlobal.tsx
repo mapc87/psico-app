@@ -31,7 +31,12 @@ export default function FinanzasGlobal() {
   const handleImprimir = (factura: FacturaExtendida) => {
     setFacturaAImprimir(factura);
     setTimeout(() => {
+      document.body.classList.add('print-invoice');
       window.print();
+      // Remove class after print dialog closes
+      window.addEventListener('afterprint', () => {
+        document.body.classList.remove('print-invoice');
+      }, { once: true });
     }, 100);
   };
 

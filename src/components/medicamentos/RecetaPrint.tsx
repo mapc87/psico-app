@@ -6,25 +6,40 @@ interface RecetaPrintProps {
   pacienteEdad: number;
   fecha: string;
   medicamentos: Medicamento[];
-  medicoNombre?: string; // Asumiremos que se lo podemos pasar
+  medicoNombre?: string;
+  medicoProfesion?: string;
+  medicoColegiado?: string;
+  clinicaNombre?: string;
+  clinicaDireccion?: string;
+  clinicaTelefono?: string;
+  clinicaNit?: string;
 }
 
 const RecetaPrint = forwardRef<HTMLDivElement, RecetaPrintProps>(
-  ({ pacienteNombre, pacienteEdad, fecha, medicamentos, medicoNombre = 'Dr. Médico Psiquiatra' }, ref) => {
+  ({ pacienteNombre, pacienteEdad, fecha, medicamentos, medicoNombre = 'Médico Tratante', medicoProfesion, medicoColegiado, clinicaNombre, clinicaDireccion, clinicaTelefono, clinicaNit }, ref) => {
     return (
       <div ref={ref} className="p-12 max-w-4xl mx-auto bg-white min-h-[1056px] text-slate-800" style={{ fontFamily: "'Inter', sans-serif" }}>
         
         {/* Cabecera de la Clínica */}
         <div className="flex justify-between items-start border-b-2 border-slate-800 pb-6 mb-8">
           <div>
-            <h1 className="text-3xl font-black tracking-tighter text-slate-900">CLÍNICA <span className="text-slate-400 font-light">MENTAL</span></h1>
-            <p className="text-sm font-semibold tracking-widest text-slate-500 uppercase mt-1">Salud Mental y Bienestar</p>
+            <h1 className="text-3xl font-black tracking-tighter text-slate-900">
+              {clinicaNombre || 'CLÍNICA'}
+            </h1>
+            {clinicaDireccion && (
+              <p className="text-sm text-slate-500 mt-1">{clinicaDireccion}</p>
+            )}
+            {clinicaTelefono && (
+              <p className="text-sm text-slate-500">Tel: {clinicaTelefono}</p>
+            )}
+            {clinicaNit && (
+              <p className="text-sm text-slate-500">NIT: {clinicaNit}</p>
+            )}
           </div>
           <div className="text-right">
             <h2 className="text-xl font-bold text-slate-800">{medicoNombre}</h2>
-            <p className="text-sm text-slate-500">Colegiado No. 12345</p>
-            <p className="text-xs text-slate-400 mt-1">Av. Principal 123, Ciudad</p>
-            <p className="text-xs text-slate-400">Tel: (555) 123-4567</p>
+            {medicoProfesion && <p className="text-sm text-slate-600 font-medium">{medicoProfesion}</p>}
+            {medicoColegiado && <p className="text-sm text-slate-500">Colegiado No. {medicoColegiado}</p>}
           </div>
         </div>
 
@@ -108,3 +123,4 @@ const RecetaPrint = forwardRef<HTMLDivElement, RecetaPrintProps>(
 RecetaPrint.displayName = 'RecetaPrint';
 
 export default RecetaPrint;
+

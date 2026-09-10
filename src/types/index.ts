@@ -21,6 +21,15 @@ export interface Usuario {
   email: string;
   rol: 'superadmin' | 'admin' | 'personal';
   rol_id?: string;
+  telefono?: string;
+  dpi?: string;
+  direccion?: string;
+  profesion?: string;
+  no_colegiado?: string;
+  especialidad?: string;
+  fecha_nacimiento?: string;
+  genero?: 'masculino' | 'femenino' | 'otro' | 'prefiero_no_decir';
+  foto_url?: string;
   created_at: string;
 }
 

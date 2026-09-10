@@ -18,6 +18,9 @@ import ModalFirma from '../components/documentos/ModalFirma';
 import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
 import ModalAsignarEvaluacion from '../components/evaluaciones/ModalAsignarEvaluacion';
 import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEvaluacion';
+import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones';
+import EvaluacionPrint from '../components/evaluaciones/EvaluacionPrint';
+import ModalAnalisisIA from '../components/evaluaciones/ModalAnalisisIA';
 import Toast from '../components/common/Toast';
 import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
@@ -33,11 +36,25 @@ export default function PacienteDetalle() {
   const [isSignoModalOpen, setIsSignoModalOpen] = useState(false);
   const [isNotaModalOpen, setIsNotaModalOpen] = useState(false);
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
+  const [isAnalisisIAModalOpen, setIsAnalisisIAModalOpen] = useState(false);
+  const [evaluacionParaAnalisis, setEvaluacionParaAnalisis] = useState<EvaluacionPaciente | null>(null);
+  
   const [isDiagnosticoModalOpen, setIsDiagnosticoModalOpen] = useState(false);
   const [isMedicamentoModalOpen, setIsMedicamentoModalOpen] = useState(false);
-      const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
-    const printRef = useRef<HTMLDivElement>(null);
+  const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
+  const [evaluacionParaImprimir, setEvaluacionParaImprimir] = useState<EvaluacionPaciente | null>(null);
+  
+  const printRef = useRef<HTMLDivElement>(null);
   const recetaPrintRef = useRef<HTMLDivElement>(null);
+  const evaluacionPrintRef = useRef<HTMLDivElement>(null);
+
+  const handlePrintExamen = useReactToPrint({
+    content: () => printRef.current,
+  });
+
+  const handlePrintEvaluacion = useReactToPrint({
+    content: () => evaluacionPrintRef.current,
+  });
 
   const [paciente, setPaciente] = useState<any>(undefined);
   const [permisos, setPermisos] = useState<any>(null);
@@ -369,6 +386,49 @@ export default function PacienteDetalle() {
         return { success: false, error: 'Error creando consentimiento', mode: 'resend' };
       },
     });
+  };
+
+  const handleAsignarEvaluacion = async (plantilla: PlantillaDocumento | any, mode: 'presencial' | 'remoto') => {
+    setIsAsignarEvaluacionModalOpen(false);
+    
+    if (mode === 'presencial') {
+      setPlantillaSeleccionada(plantilla);
+      setIsRealizarEvaluacionModalOpen(true);
+    } else {
+      // Modo Remoto
+      if (!usuarioActual) return;
+      const nuevaEvaluacion = {
+        clinica_id: usuarioActual.clinica_id,
+        paciente_id: id!,
+        medico_id: usuarioActual.id,
+        plantilla_id: plantilla.id,
+        respuestas: {},
+        puntaje_total: 0,
+        estado: 'pendiente',
+        fecha: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('evaluaciones_pacientes')
+        .insert([nuevaEvaluacion])
+        .select('*')
+        .single();
+
+      if (error) {
+        alert('Error al asignar la evaluación remota: ' + error.message);
+        return;
+      }
+      
+      const link = `${window.location.origin}/evaluacion/${data.id}`;
+      navigator.clipboard.writeText(link);
+      showToast('Enlace de evaluación copiado al portapapeles. ¡Envíalo al paciente!');
+      // Refetch for the list
+      const { data: evalData } = await supabase.from('evaluaciones_pacientes')
+        .select(`*, plantilla:evaluaciones_plantillas(*)`)
+        .eq('paciente_id', id!)
+        .order('fecha', { ascending: false });
+      if (evalData) setEvaluaciones(evalData);
+    }
   };
 
   const calcularEdad = (fechaNacimiento?: string) => {
@@ -1062,6 +1122,30 @@ export default function PacienteDetalle() {
                             </p>
                           </div>
                         </div>
+                        {ev.estado === 'completado' && (
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => {
+                                setEvaluacionParaAnalisis(ev);
+                                setIsAnalisisIAModalOpen(true);
+                              }}
+                              className="p-2 text-slate-400 hover:text-fuchsia-600 hover:bg-fuchsia-50 rounded-lg transition-colors cursor-pointer"
+                              title="Analizar con IA (Gemini)"
+                            >
+                              <Sparkles size={18} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setEvaluacionParaImprimir(ev);
+                                setTimeout(() => handlePrintEvaluacion(), 100);
+                              }}
+                              className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer"
+                              title="Imprimir PDF"
+                            >
+                              <Printer size={18} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="bg-slate-50 rounded-xl p-4 mt-4 border border-slate-100 flex justify-between items-center">
@@ -1086,6 +1170,8 @@ export default function PacienteDetalle() {
                   <p className="text-sm text-slate-400 mt-2">Haz clic en "+ Aplicar Test" para realizar la primera evaluación psicométrica.</p>
                 </div>
               )}
+              
+              <GraficoEvaluaciones evaluaciones={evaluaciones || []} />
             </div>
           )}
 
@@ -1287,6 +1373,20 @@ export default function PacienteDetalle() {
           medicoNombre={usuarioActual?.nombre}
         />
       </div>
+
+      {/* Contenedor Oculto para Impresión de Evaluaciones Psicométricas */}
+      <div className="hidden">
+        {evaluacionParaImprimir && (
+          <EvaluacionPrint 
+            ref={evaluacionPrintRef}
+            evaluacion={evaluacionParaImprimir}
+            pacienteNombre={paciente.nombre}
+            pacienteEdad={calcularEdad(paciente.fechaNacimiento)}
+            medicoNombre={usuarioActual?.nombre}
+            clinicaNombre="Clínica Psicológica"
+          />
+        )}
+      </div>
     
       {/* Modal Lateral de Gestor de Documentos */}
       {isGestorDocumentosOpen && (
@@ -1486,11 +1586,7 @@ export default function PacienteDetalle() {
           isOpen={isAsignarEvaluacionModalOpen}
           onClose={() => setIsAsignarEvaluacionModalOpen(false)}
           clinicaId={usuarioActual.clinica_id}
-          onSelect={(plantilla) => {
-            setPlantillaSeleccionada(plantilla);
-            setIsAsignarEvaluacionModalOpen(false);
-            setIsRealizarEvaluacionModalOpen(true);
-          }}
+          onSelect={handleAsignarEvaluacion}
         />
       )}
       
@@ -1498,12 +1594,20 @@ export default function PacienteDetalle() {
         isOpen={isRealizarEvaluacionModalOpen}
         onClose={() => setIsRealizarEvaluacionModalOpen(false)}
         plantilla={plantillaSeleccionada}
-        pacienteId={paciente.id}
+        pacienteId={id!}
         onSuccess={(nuevaEvaluacion) => {
           setEvaluaciones(prev => [nuevaEvaluacion, ...prev]);
           setIsRealizarEvaluacionModalOpen(false);
           setToast({ isVisible: true, message: 'Evaluación completada exitosamente', type: 'success' });
         }}
+      />
+
+      <ModalAnalisisIA 
+        isOpen={isAnalisisIAModalOpen}
+        onClose={() => setIsAnalisisIAModalOpen(false)}
+        evaluacion={evaluacionParaAnalisis}
+        pacienteNombre={paciente?.nombre || ''}
+        pacienteEdad={calcularEdad(paciente?.fechaNacimiento)}
       />
 
       {/* Modal de Envío de Correo Personalizado */}

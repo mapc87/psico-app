@@ -36,6 +36,15 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 ### Correos Electrónicos
 - Se implementó la integración con **EmailJS** para el envío de invitaciones de clínica y personal.
 
+### Características adicionales
+- **Citas**: Sistema de agenda, recordatorios, y videoconsultas (Jitsi Meet).
+- **Archivos Multimedia**: Subida de imágenes, PDFs y documentos directamente al expediente del paciente mediante Supabase Storage.
+- **Evaluaciones Psicométricas**:
+  - Generación y asignación de tests (presenciales o enlaces remotos).
+  - Gráficas longitudinales de progreso del paciente utilizando `recharts`.
+  - Generador de informes PDF de resultados mediante `react-to-print`.
+  - Integración con IA (Google Gemini) para generar interpretaciones narrativas de resultados psicométricos.
+
 ### Consentimientos Informados y Firmas Digitales
 - Se creó la tabla `plantillas_documentos` para gestionar plantillas predeterminadas de clínica (con un trigger para crear la plantilla estándar automáticamente al registrar una clínica).
 - Se implementó la firma presencial (lienzo táctil en `ModalFirma.tsx`) desde el expediente del paciente.

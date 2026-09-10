@@ -27,13 +27,6 @@ export default function ModalRealizarEvaluacion({ isOpen, onClose, plantilla, pa
 
   const handleSelectOption = (preguntaId: string, puntaje: number) => {
     setRespuestas(prev => ({ ...prev, [preguntaId]: puntaje }));
-    
-    // Auto avanzar a la siguiente pregunta después de 400ms para mejor UX
-    if (!isLastQuestion) {
-      setTimeout(() => {
-        setCurrentQuestionIndex(prev => prev + 1);
-      }, 400);
-    }
   };
 
   const calcularResultado = () => {

@@ -8,6 +8,7 @@ import NuevoPaciente from './pages/NuevoPaciente';
 import PacienteDetalle from './pages/PacienteDetalle';
 import Consentimientos from './pages/Consentimientos';
 import FirmaRemota from './pages/FirmaRemota';
+import EvaluacionRemota from './pages/EvaluacionRemota';
 import FinanzasGlobal from './pages/FinanzasGlobal';
 import Login from './pages/Login';
 import RegistroInicial from './pages/RegistroInicial';
@@ -31,6 +32,7 @@ function AppRoutes() {
       <Route path="/registro-inicial" element={<RegistroInicial />} />
       <Route path="/registro" element={<RegistroInvitado />} />
       <Route path="/firmar/:id" element={<FirmaRemota />} />
+      <Route path="/evaluacion/:id" element={<EvaluacionRemota />} />
       <Route path="/sala-virtual/:roomId" element={<SalaPaciente />} />
 
       {/* Rutas Privadas (Protegidas) */}

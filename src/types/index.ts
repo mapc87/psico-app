@@ -295,3 +295,38 @@ export interface MovimientoCaja {
     nombre: string;
   };
 }
+
+// === Paquetes de Sesiones y Tareas ===
+
+export interface PaqueteSesion {
+  id: string;
+  clinica_id: string;
+  nombre: string;
+  num_sesiones: number;
+  precio: number;
+  activo: boolean;
+  created_at: string;
+}
+
+export interface PacientePaquete {
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  paquete_id: string;
+  paquete?: PaqueteSesion; // Relación frontend
+  sesiones_restantes: number;
+  estado: 'activo' | 'agotado';
+  fecha_compra: string;
+}
+
+export interface TareaPaciente {
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  medico_id: string;
+  titulo: string;
+  descripcion?: string;
+  estado: 'pendiente' | 'completada';
+  fecha_asignacion: string;
+  fecha_completada?: string;
+}

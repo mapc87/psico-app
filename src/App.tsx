@@ -24,6 +24,7 @@ import RegistroInvitado from './pages/RegistroInvitado';
 import SalaPaciente from './pages/SalaPaciente';
 import SalaVirtual from './pages/SalaVirtual';
 import GestorPruebas from './pages/GestorPruebas';
+import VentaPaquetes from './pages/VentaPaquetes';
 
 function AppRoutes() {
   return (
@@ -54,6 +55,7 @@ function AppRoutes() {
           <Route path="/personal" element={<Personal />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/pruebas" element={<GestorPruebas />} />
+          <Route path="/paquetes" element={<VentaPaquetes />} />
           
           {/* Rutas Privadas solo para Administradores */}
           <Route element={<ProtectedRoute requireAdmin={true} />}>

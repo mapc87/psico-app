@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip } from 'lucide-react';
+import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip, Package } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { useEffect } from 'react';
@@ -22,7 +22,6 @@ import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones'
 import EvaluacionPrint from '../components/evaluaciones/EvaluacionPrint';
 import ModalAnalisisIA from '../components/evaluaciones/ModalAnalisisIA';
 import ModalNuevaTarea from '../components/tareas/ModalNuevaTarea';
-import ModalVenderPaquete from '../components/paquetes/ModalVenderPaquete';
 import Toast from '../components/common/Toast';
 import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
@@ -40,7 +39,6 @@ export default function PacienteDetalle() {
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
   const [isAnalisisIAModalOpen, setIsAnalisisIAModalOpen] = useState(false);
   const [isTareaModalOpen, setIsTareaModalOpen] = useState(false);
-  const [isVenderPaqueteOpen, setIsVenderPaqueteOpen] = useState(false);
   const [evaluacionParaAnalisis, setEvaluacionParaAnalisis] = useState<EvaluacionPaciente | null>(null);
   
   const [isDiagnosticoModalOpen, setIsDiagnosticoModalOpen] = useState(false);
@@ -644,18 +642,10 @@ export default function PacienteDetalle() {
                     <p className="text-sm font-medium text-violet-700/80">
                       {paqueteActivo 
                         ? `Quedan ${paqueteActivo.sesiones_restantes} sesiones de este paquete.`
-                        : 'El paciente paga por sesión individual actualmente.'}
+                        : 'El paciente paga por sesión individual actualmente o debe renovar en Venta de Paquetes.'}
                     </p>
                   </div>
                 </div>
-                {!paqueteActivo && (
-                  <button 
-                    onClick={() => setIsVenderPaqueteOpen(true)}
-                    className="px-5 py-2.5 bg-violet-600 text-white rounded-xl shadow-sm hover:bg-violet-700 transition-colors font-bold text-sm cursor-pointer whitespace-nowrap"
-                  >
-                    Vender Paquete
-                  </button>
-                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1809,13 +1799,6 @@ export default function PacienteDetalle() {
         isOpen={isTareaModalOpen}
         onClose={() => setIsTareaModalOpen(false)}
         onSave={handleSaveTarea}
-      />
-
-      <ModalVenderPaquete
-        isOpen={isVenderPaqueteOpen}
-        onClose={() => setIsVenderPaqueteOpen(false)}
-        pacienteId={id!}
-        onVentaCompletada={recargarPaqueteActivo}
       />
 
       {/* Toast Flotante Elegante */}

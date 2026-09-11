@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
-import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet, Settings, Building2, HelpCircle, ClipboardList, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet, Settings, Building2, HelpCircle, ClipboardList, Menu, X, ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { Permisos } from '../types';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
@@ -46,12 +46,16 @@ export default function MainLayout() {
     navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
     navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
     navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
+    navItems.push({ icon: <Package size={20} />, label: 'Venta de Paquetes', path: '/paquetes' });
     navItems.push({ icon: <FileSignature size={20} />, label: 'Documentos', path: '/consentimientos' });
     navItems.push({ icon: <ClipboardList size={20} />, label: 'Gestor de Pruebas', path: '/pruebas' });
   } else if (usuarioActual?.rol === 'personal' && permisos) {
     if (permisos.verAgenda) navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
     if (permisos.verPacientes) navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
-    if (permisos.verFinanzas) navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
+    if (permisos.verFinanzas) {
+      navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
+      navItems.push({ icon: <Package size={20} />, label: 'Venta de Paquetes', path: '/paquetes' });
+    }
   }
 
   return (

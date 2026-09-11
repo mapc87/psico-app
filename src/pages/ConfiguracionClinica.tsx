@@ -3,7 +3,6 @@ import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { Settings, Save, Building2, Landmark, FileText, MapPin, Phone, Hash, Mail, Key, Eye, EyeOff } from 'lucide-react';
 import Toast from '../components/common/Toast';
-import CatalogoPaquetes from '../components/configuracion/CatalogoPaquetes';
 import type { Clinica } from '../types';
 
 export default function ConfiguracionClinica() {
@@ -341,11 +340,6 @@ export default function ConfiguracionClinica() {
             </button>
           </div>
         </form>
-      </div>
-      
-      {/* Catálogo de Paquetes de Sesiones */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden p-8">
-        <CatalogoPaquetes />
       </div>
 
       <Toast 

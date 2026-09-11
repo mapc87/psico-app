@@ -46,7 +46,7 @@ export default function MainLayout() {
     navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
     navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
     navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
-    navItems.push({ icon: <Package size={20} />, label: 'Venta de Paquetes', path: '/paquetes' });
+    navItems.push({ icon: <Package size={20} />, label: 'Paquetes', path: '/paquetes' });
     navItems.push({ icon: <FileSignature size={20} />, label: 'Documentos', path: '/consentimientos' });
     navItems.push({ icon: <ClipboardList size={20} />, label: 'Gestor de Pruebas', path: '/pruebas' });
   } else if (usuarioActual?.rol === 'personal' && permisos) {
@@ -54,7 +54,7 @@ export default function MainLayout() {
     if (permisos.verPacientes) navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
     if (permisos.verFinanzas) {
       navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
-      navItems.push({ icon: <Package size={20} />, label: 'Venta de Paquetes', path: '/paquetes' });
+      navItems.push({ icon: <Package size={20} />, label: 'Paquetes', path: '/paquetes' });
     }
   }
 

@@ -21,9 +21,9 @@ Antes de empezar, asegúrate de tener cuentas creadas en las siguientes platafor
 3. Espera un par de minutos a que el proyecto termine de crearse.
 4. En el panel izquierdo de Supabase, ve a **SQL Editor**.
 5. Haz clic en **New query** (Nueva consulta).
-6. Copia todo el contenido del archivo `database_scripts/init_completo.sql` que está en este repositorio y pégalo en el editor.
+6. Copia todo el contenido del archivo `init_database_full.sql` que está en este repositorio y pégalo en el editor.
 7. Presiona el botón **Run** (Ejecutar).
-   - *Este script unificado crea todos los módulos (facturación, invitaciones, RLS, plantillas, evaluaciones psicométricas, videoconsultas, caja, paquetes/tareas y archivos) e inserta los roles y plantillas necesarios. Requiere que existan las tablas base del proyecto (`clinicas`, `usuarios`, `pacientes`, `citas`, `diagnosticos`, `medicamentos`, `examenes`, `signos_vitales`, `notas_clinicas`); es idempotente y puede re-ejecutarse sin errores.*
+   - *Este script creará todas las tablas, configurará la seguridad (RLS), e insertará los roles y plantillas necesarias para que el sistema funcione.*
 
 ### Obtener tus Llaves de Supabase
 1. En el panel izquierdo, ve a **Project Settings** (el ícono de engranaje ⚙️) y luego a **API**.

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, User, Eye, Edit2, UserCog, X, Save } from 'lucide-react';
+import { Search, Plus, User, FolderOpen, Edit2, UserCog, X, Save } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
@@ -194,7 +194,7 @@ export default function Pacientes() {
                         className="p-2 text-slate-400 hover:text-fuchsia-600 hover:bg-fuchsia-50 rounded-lg transition-colors"
                         title="Ver Expediente"
                       >
-                        <Eye size={18} />
+                        <FolderOpen size={18} />
                       </Link>
                     </div>
                   </td>

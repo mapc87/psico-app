@@ -76,7 +76,7 @@ export default function EditarPaciente() {
       
       if (error) throw error;
       
-      navigate(`/pacientes/${id}`, { state: { mensaje: 'Paciente actualizado exitosamente.' } });
+      navigate(`/pacientes`, { state: { mensaje: 'Paciente actualizado exitosamente.' } });
     } catch (error) {
       console.error('Error al actualizar el paciente', error);
       alert('Hubo un error al actualizar el paciente. Por favor intenta de nuevo.');
@@ -102,9 +102,9 @@ export default function EditarPaciente() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header y Botón de Regresar */}
       <div className="flex items-center justify-between">
-        <Link to={`/pacientes/${id}`} className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-violet-600 transition-colors group">
+        <Link to={`/pacientes`} className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-violet-600 transition-colors group">
           <ArrowLeft size={16} className="mr-1.5 group-hover:-translate-x-1 transition-transform" />
-          Volver a Expediente
+          Volver a Pacientes
         </Link>
         <h2 className="text-2xl font-bold text-slate-800">Editar Paciente</h2>
       </div>
@@ -382,7 +382,7 @@ export default function EditarPaciente() {
         <div className="flex justify-end space-x-4 pt-4 pb-12">
           <button 
             type="button"
-            onClick={() => navigate(`/pacientes/${id}`)}
+            onClick={() => navigate(`/pacientes`)}
             className="flex items-center px-6 py-3 text-slate-600 font-bold hover:bg-white rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200"
           >
             <X size={18} className="mr-2" />

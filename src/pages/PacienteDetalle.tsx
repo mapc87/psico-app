@@ -534,14 +534,14 @@ export default function PacienteDetalle() {
   };
 
   const allTabs = [
-    { id: 'resumen', label: 'Resumen', icon: <User size={18} />, key: 'verResumen' },
-    { id: 'archivos', label: 'Archivos', icon: <Paperclip size={18} />, key: 'verResumen' },
-    { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
-    { id: 'evaluaciones', label: 'Evaluaciones', icon: <BrainCircuit size={18} />, key: 'verHistorial' }, // Evaluaciones como 4ta opción
-    { id: 'tareas', label: 'Tareas', icon: <ClipboardList size={18} />, key: 'verHistorial' },
-    { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={18} />, key: 'verExamenes' },
-    { id: 'signos', label: 'Signos Vitales', icon: <Heart size={18} />, key: 'verSignos' },
-    { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={18} />, key: 'verMedicamentos' }
+    { id: 'resumen', label: 'Resumen', icon: <User size={16} />, key: 'verResumen' },
+    { id: 'archivos', label: 'Archivos', icon: <Paperclip size={16} />, key: 'verResumen' },
+    { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={16} />, key: 'verDiagnosticos' },
+    { id: 'evaluaciones', label: 'Evaluaciones', icon: <BrainCircuit size={16} />, key: 'verHistorial' }, // Evaluaciones como 4ta opción
+    { id: 'tareas', label: 'Tareas', icon: <ClipboardList size={16} />, key: 'verHistorial' },
+    { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={16} />, key: 'verExamenes' },
+    { id: 'signos', label: 'S. Vitales', icon: <Heart size={16} />, key: 'verSignos' },
+    { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={16} />, key: 'verMedicamentos' }
   ];
 
   // Filtrar tabs según permisos
@@ -666,18 +666,18 @@ export default function PacienteDetalle() {
 
       {/* Sistema de Pestañas */}
       <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white overflow-hidden">
-        <div className="border-b border-slate-100 flex overflow-x-auto px-2 pt-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {tabs.map(tab => (
+        <div className="border-b border-slate-100 flex overflow-x-auto pl-2 pr-6 pt-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center px-4 md:px-3 lg:px-5 py-3.5 text-sm font-bold transition-all duration-300 border-b-2 cursor-pointer rounded-t-xl mx-0.5 md:mx-1 whitespace-nowrap shrink-0 ${
+              className={`flex items-center px-3 md:px-2 lg:px-3 py-3.5 text-[13px] font-bold transition-all duration-300 border-b-2 cursor-pointer rounded-t-xl mx-0.5 whitespace-nowrap shrink-0 ${
                 activeTab === tab.id 
                   ? 'border-violet-600 text-violet-700 bg-violet-50/50 shadow-[inset_0_-2px_10px_rgba(139,92,246,0.05)]' 
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/50'
               }`}
             >
-              <span className={`mr-2 transition-transform ${activeTab === tab.id ? 'scale-110' : ''}`}>{tab.icon}</span>
+              <span className={`mr-1.5 transition-transform ${activeTab === tab.id ? 'scale-110' : ''}`}>{tab.icon}</span>
               {tab.label}
             </button>
           ))}

@@ -589,34 +589,95 @@ export default function PacienteDetalle() {
       </div>
 
       {/* Header del Expediente */}
-      <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white flex flex-col sm:flex-row items-center sm:items-center relative overflow-hidden text-center sm:text-left">
+      <div className="bg-white/80 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white flex flex-col lg:flex-row items-center lg:items-start justify-between relative overflow-hidden gap-6">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-violet-200/40 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-        <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-fuchsia-50 rounded-2xl flex items-center justify-center text-violet-600 text-3xl font-extrabold sm:mr-6 mb-4 sm:mb-0 shadow-inner border border-violet-100/50 z-10 shrink-0">
-          {paciente.nombre.charAt(0)}
+        
+        {/* Izquierda: Info principal */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left z-10 w-full lg:w-auto shrink-0">
+          <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-fuchsia-50 rounded-2xl flex items-center justify-center text-violet-600 text-3xl font-extrabold sm:mr-6 mb-4 sm:mb-0 shadow-inner border border-violet-100/50 shrink-0">
+            {paciente.nombre.charAt(0)}
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{paciente.nombre}</h2>
+            <p className="text-slate-500 flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start mt-2 font-medium gap-2 sm:gap-0">
+              <span className="sm:mr-6 flex items-center"><User size={16} className="mr-2 opacity-70"/> Edad: {paciente.fecha_nacimiento ? `${calcularEdad(paciente.fecha_nacimiento)} años` : 'No registrada'}</span>
+              <span className="flex items-center"><Phone size={16} className="mr-2 opacity-70"/> Teléfono: {paciente.telefono}</span>
+            </p>
+            {paciente.nombre_responsable && (
+              <p className="text-slate-500 flex items-center justify-center sm:justify-start mt-1 text-sm">
+                <Shield size={14} className="mr-1.5 opacity-70" />
+                Resp: <span className="font-semibold text-slate-700 ml-1">{paciente.nombre_responsable}</span> 
+                {paciente.parentesco && <span className="ml-1 text-slate-400">({paciente.parentesco})</span>}
+                {paciente.telefono_responsable && <span className="ml-2 px-2 py-0.5 bg-slate-100 rounded-md text-xs">{paciente.telefono_responsable}</span>}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="z-10 w-full">
-          <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{paciente.nombre}</h2>
-          <p className="text-slate-500 flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start mt-2 font-medium gap-2 sm:gap-0">
-            <span className="sm:mr-6 flex items-center"><User size={16} className="mr-2 opacity-70"/> Edad: {paciente.fecha_nacimiento ? `${calcularEdad(paciente.fecha_nacimiento)} años` : 'No registrada'}</span>
-            <span className="flex items-center"><Phone size={16} className="mr-2 opacity-70"/> Teléfono: {paciente.telefono}</span>
-          </p>
+
+        {/* Derecha: Tarjetas de resumen */}
+        <div className="z-10 flex flex-wrap lg:flex-nowrap gap-3 w-full lg:w-auto lg:justify-end mt-4 lg:mt-0">
+          {/* Paquete Activo */}
+          {paqueteActivo && (
+            <div className="p-3 bg-fuchsia-50/80 backdrop-blur-sm rounded-xl border border-fuchsia-200 flex-1 min-w-[140px] max-w-[220px] flex items-center shadow-sm">
+              <div className="p-1.5 bg-fuchsia-100 rounded-lg mr-2 text-fuchsia-600 shrink-0">
+                <Package size={16} />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-[10px] font-bold text-fuchsia-500 uppercase tracking-wider mb-0.5 truncate" title={paqueteActivo.paquete.nombre}>{paqueteActivo.paquete.nombre}</h4>
+                <p className="text-fuchsia-700 font-bold text-xs truncate">{paqueteActivo.sesiones_restantes} sesiones</p>
+              </div>
+            </div>
+          )}
+
+          {/* Próxima Cita */}
+          <div className="p-3 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200 flex-1 min-w-[160px] max-w-[240px] flex items-center shadow-sm">
+            <div className="p-1.5 bg-violet-100 rounded-lg mr-2 text-violet-600 shrink-0">
+              <Calendar size={16} />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Próxima Cita</h4>
+              {(() => {
+                const proxima = citas?.find(c => c.estado === 'programada');
+                if (!proxima) return <p className="text-slate-600 font-semibold text-xs truncate">Sin citas</p>;
+                const raw = proxima.fecha_hora || proxima.fechaHora;
+                const dateObj = raw ? new Date(raw) : null;
+                const fechaStr = dateObj && !isNaN(dateObj.getTime())
+                  ? dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  : 'Pendiente';
+                return <p className="text-violet-700 font-bold text-xs truncate capitalize" title={fechaStr}>{fechaStr}</p>;
+              })()}
+            </div>
+          </div>
+          
+          {/* Ingreso */}
+          <div className="p-3 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200 flex-1 min-w-[160px] max-w-[240px] flex items-center shadow-sm">
+            <div className="p-1.5 bg-emerald-100 rounded-lg mr-2 text-emerald-600 shrink-0">
+              <FileText size={16} />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Ingreso</h4>
+              <p className="text-emerald-700 font-bold text-xs truncate">
+                {paciente.fecha_ingreso ? new Date(paciente.fecha_ingreso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Sistema de Pestañas */}
       <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white overflow-hidden">
-        <div className="border-b border-slate-100 flex overflow-x-auto px-2 pt-2">
+        <div className="border-b border-slate-100 flex overflow-x-auto px-2 pt-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center px-6 py-4 text-sm font-bold transition-all duration-300 border-b-2 cursor-pointer rounded-t-xl mx-1 ${
+              className={`flex items-center px-4 md:px-3 lg:px-5 py-3.5 text-sm font-bold transition-all duration-300 border-b-2 cursor-pointer rounded-t-xl mx-0.5 md:mx-1 whitespace-nowrap shrink-0 ${
                 activeTab === tab.id 
                   ? 'border-violet-600 text-violet-700 bg-violet-50/50 shadow-[inset_0_-2px_10px_rgba(139,92,246,0.05)]' 
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/50'
               }`}
             >
-              <span className={`mr-2.5 transition-transform ${activeTab === tab.id ? 'scale-110' : ''}`}>{tab.icon}</span>
+              <span className={`mr-2 transition-transform ${activeTab === tab.id ? 'scale-110' : ''}`}>{tab.icon}</span>
               {tab.label}
             </button>
           ))}
@@ -629,70 +690,10 @@ export default function PacienteDetalle() {
           {activeTab === 'resumen' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
               
-              {/* Sección Paquete Activo */}
-              <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 p-5 rounded-2xl border border-violet-100 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="flex items-center">
-                  <div className="p-3 bg-white rounded-xl shadow-sm text-violet-600 mr-4">
-                    <Package size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-violet-900">
-                      {paqueteActivo ? `Paquete: ${paqueteActivo.paquete.nombre}` : 'Sin paquete activo'}
-                    </h3>
-                    <p className="text-sm font-medium text-violet-700/80">
-                      {paqueteActivo 
-                        ? `Quedan ${paqueteActivo.sesiones_restantes} sesiones de este paquete.`
-                        : 'El paciente paga por sesión individual actualmente o debe renovar en Venta de Paquetes.'}
-                    </p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-100 flex flex-col justify-center">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Responsable</h4>
-                  {paciente.nombreResponsable ? (
-                    <div className="text-sm">
-                      <p className="text-slate-700 font-semibold">{paciente.nombreResponsable} <span className="font-normal text-slate-500">({paciente.parentesco})</span></p>
-                      <p className="text-slate-500">{paciente.telefonoResponsable}</p>
-                    </div>
-                  ) : (
-                    <p className="text-slate-500 text-sm italic">Sin responsable</p>
-                  )}
-                </div>
-                
-                <div className="p-4 bg-violet-50/50 rounded-xl border border-violet-100 flex items-center">
-                  <div className="p-2 bg-white rounded-lg shadow-sm mr-3 text-violet-500">
-                    <Calendar size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-violet-400 uppercase tracking-wider mb-0.5">Próxima Cita</h4>
-                    {(() => {
-                      const proxima = citas?.find(c => c.estado === 'programada');
-                      if (!proxima) return <p className="text-violet-900/60 font-semibold text-sm">Sin citas programadas</p>;
-                      const raw = proxima.fecha_hora || proxima.fechaHora;
-                      const dateObj = raw ? new Date(raw) : null;
-                      const fechaStr = dateObj && !isNaN(dateObj.getTime())
-                        ? dateObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) + ' - ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' hrs'
-                        : 'Fecha pendiente';
-                      return <p className="text-violet-900 font-semibold text-sm capitalize">{fechaStr}</p>;
-                    })()}
-                  </div>
-                </div>
-                
-                <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100 flex items-center">
-                  <div className="p-2 bg-white rounded-lg shadow-sm mr-3 text-emerald-500">
-                    <FileText size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-0.5">Ingreso al Consultorio</h4>
-                    <p className="text-emerald-900 font-semibold text-sm">{paciente.fechaIngreso}</p>
-                  </div>
-                </div>
-              </div>
-            
+
               {/* --- Inicio Historial integrado en Resumen --- */}
-              <div className="mt-12 border-t border-slate-100 pt-8">
+              <div className="mt-4">
 
               <div className="flex justify-between items-center mb-6">
                 <div>

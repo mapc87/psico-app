@@ -1,4 +1,4 @@
-export interface Clinica {
+﻿export interface Clinica {
   id: string;
   nombre: string;
   direccion?: string;
@@ -73,6 +73,7 @@ export interface Paciente {
   telefono_responsable?: string;
   ocupacion_responsable?: string;
   estado_civil_padres?: string;
+  estado: 'activo' | 'baja' | 'alta';
   notas_dinamica?: string;
   created_at: string;
 }
@@ -331,3 +332,4 @@ export interface TareaPaciente {
   fecha_asignacion: string;
   fecha_completada?: string;
 }
+

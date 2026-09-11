@@ -7,6 +7,7 @@ import type { Paciente } from '../types';
 
 export default function Pacientes() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState<'activo' | 'baja' | 'alta' | 'todos'>('activo');
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const location = useLocation();
   const mensajeExito = location.state?.mensaje;
@@ -30,7 +31,6 @@ export default function Pacientes() {
     fetchPacientes();
   }, [usuarioActual?.clinica_id]);
 
-  // Función auxiliar para calcular edad
   const calcularEdad = (fechaNacimiento: string | undefined | null) => {
     if (!fechaNacimiento) return null;
     const hoy = new Date();
@@ -43,9 +43,11 @@ export default function Pacientes() {
     return Math.max(0, edad);
   };
 
-  const pacientesFiltrados = pacientes.filter(p => 
-    p.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const pacientesFiltrados = pacientes.filter(p => {
+    const coincideTexto = p.nombre.toLowerCase().includes(searchTerm.toLowerCase());
+    const coincideEstado = filtroEstado === 'todos' || (p.estado || 'activo') === filtroEstado;
+    return coincideTexto && coincideEstado;
+  });
 
   return (
     <div className="space-y-6">
@@ -71,7 +73,24 @@ export default function Pacientes() {
       )}
 
       <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white overflow-hidden relative z-0">
-        {/* Header de la tabla */}
+        
+        {/* Filtros de estado (Tabs) */}
+        <div className="px-6 pt-6 flex overflow-x-auto hide-scrollbar border-b border-slate-100 gap-6">
+          {[{ id: 'activo', label: 'Activos' }, { id: 'baja', label: 'De Baja' }, { id: 'alta', label: 'De Alta' }, { id: 'todos', label: 'Todos' }].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFiltroEstado(tab.id as any)}
+              className={"pb-4 text-sm font-medium whitespace-nowrap transition-all duration-300 relative " + (filtroEstado === tab.id ? 'text-violet-700' : 'text-slate-500 hover:text-slate-700')}
+            >
+              {tab.label}
+              {filtroEstado === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600 rounded-t-full" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Header de la tabla (Buscador) */}
         <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
           <div className="relative w-full sm:w-80">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -107,7 +126,14 @@ export default function Pacientes() {
                       <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-xs mr-3">
                         {paciente.nombre.charAt(0)}
                       </div>
-                      <div className="text-sm font-semibold text-slate-800">{paciente.nombre}</div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-slate-800">{paciente.nombre}</span>
+                        {filtroEstado === 'todos' && (paciente.estado === 'baja' || paciente.estado === 'alta') && (
+                          <span className={"text-xs font-medium " + (paciente.estado === 'baja' ? 'text-red-500' : 'text-emerald-500')}>
+                            {paciente.estado === 'baja' ? 'De baja' : 'De alta'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
@@ -142,8 +168,7 @@ export default function Pacientes() {
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
                     <User size={48} className="mx-auto text-slate-300 mb-4" />
-                    <p className="text-lg font-semibold">No hay pacientes registrados</p>
-                    <p className="text-sm mt-1">Crea un paciente nuevo para comenzar.</p>
+                    <p className="text-lg font-semibold">No hay pacientes {filtroEstado !== 'todos' ? filtroEstado + 's' : ''}</p>
                   </td>
                 </tr>
               )}

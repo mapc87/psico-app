@@ -19,14 +19,8 @@ ALTER TABLE public.paquetes_sesiones ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Superadmin tiene acceso total a paquetes_sesiones" ON public.paquetes_sesiones
     FOR ALL TO authenticated USING (auth.jwt() ->> 'rol' = 'superadmin');
 
-CREATE POLICY "Usuarios de clínica pueden ver paquetes_sesiones" ON public.paquetes_sesiones
-    FOR SELECT TO authenticated USING (clinica_id = (auth.jwt() ->> 'clinica_id')::uuid);
-
-CREATE POLICY "Admins pueden gestionar paquetes_sesiones" ON public.paquetes_sesiones
-    FOR ALL TO authenticated USING (
-        clinica_id = (auth.jwt() ->> 'clinica_id')::uuid 
-        AND auth.jwt() ->> 'rol' = 'admin'
-    );
+CREATE POLICY "Usuarios de clínica pueden gestionar paquetes_sesiones" ON public.paquetes_sesiones
+    FOR ALL TO authenticated USING (clinica_id = (auth.jwt() ->> 'clinica_id')::uuid);
 
 
 -- 2. Paquetes comprados por el Paciente

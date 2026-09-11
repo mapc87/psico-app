@@ -23,13 +23,14 @@ export default function NuevoPaciente() {
     telefono_responsable: '',
     ocupacion_responsable: '',
     estado_civil_padres: '',
-    notas_dinamica: ''
+    notas_dinamica: '',
+    estado: 'activo'
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usuarioActual) {
-      alert('Error: Sesión no válida.');
+      alert('Error: SesiÃ³n no vÃ¡lida.');
       return;
     }
     
@@ -58,9 +59,9 @@ export default function NuevoPaciente() {
   if (!usuarioActual?.clinica_id) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 mt-12 p-8 bg-red-50 border border-red-200 rounded-2xl text-center">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">Error Crítico: Clínica no asignada</h2>
-        <p className="text-slate-700">Tu usuario actual ({usuarioActual?.email}) <strong>NO tiene una clínica asignada</strong> (clinica_id es nulo).</p>
-        <p className="text-slate-700 mt-2">Por las reglas de seguridad (RLS), es imposible guardar un paciente sin asignar a qué clínica pertenece. Si estás usando la cuenta "SuperAdmin" del sistema, recuerda que los SuperAdmins no pueden crear pacientes directamente; debes crear una clínica y luego iniciar sesión con el administrador de esa clínica.</p>
+        <h2 className="text-2xl font-bold text-red-600 mb-4">Error CrÃ­tico: ClÃ­nica no asignada</h2>
+        <p className="text-slate-700">Tu usuario actual ({usuarioActual?.email}) <strong>NO tiene una clÃ­nica asignada</strong> (clinica_id es nulo).</p>
+        <p className="text-slate-700 mt-2">Por las reglas de seguridad (RLS), es imposible guardar un paciente sin asignar a quÃ© clÃ­nica pertenece. Si estÃ¡s usando la cuenta "SuperAdmin" del sistema, recuerda que los SuperAdmins no pueden crear pacientes directamente; debes crear una clÃ­nica y luego iniciar sesiÃ³n con el administrador de esa clÃ­nica.</p>
         <button onClick={() => navigate(-1)} className="mt-6 px-6 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700">Regresar</button>
       </div>
     );
@@ -68,7 +69,7 @@ export default function NuevoPaciente() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header y Botón de Regresar */}
+      {/* Header y BotÃ³n de Regresar */}
       <div className="flex items-center justify-between">
         <Link to="/pacientes" className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-violet-600 transition-colors group">
           <ArrowLeft size={16} className="mr-1.5 group-hover:-translate-x-1 transition-transform" />
@@ -79,7 +80,7 @@ export default function NuevoPaciente() {
 
       <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
-        {/* SECCIÓN 1: Datos Personales */}
+        {/* SECCIÃ“N 1: Datos Personales */}
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 mr-4">
@@ -90,7 +91,7 @@ export default function NuevoPaciente() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-600 mb-2">DPI (Documento de Identificación)</label>
+              <label className="block text-sm font-bold text-slate-600 mb-2">DPI (Documento de IdentificaciÃ³n)</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <FileText size={18} className="text-slate-400" />
@@ -113,7 +114,7 @@ export default function NuevoPaciente() {
                 name="nombre"
                 required
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300"
-                placeholder="Ej. Juan Pérez"
+                placeholder="Ej. Juan PÃ©rez"
                 value={formData.nombre}
                 onChange={handleChange}
               />
@@ -144,10 +145,24 @@ export default function NuevoPaciente() {
                 onChange={handleChange}
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-600 mb-2">Estado del Paciente</label>
+              <select 
+                name="estado"
+                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300"
+                value={formData.estado}
+                onChange={handleChange}
+              >
+                <option value="activo">Activo</option>
+                <option value="baja">De Baja</option>
+                <option value="alta">De Alta</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        {/* SECCIÓN 2: Datos del Responsable (Opcional - Para Menores) */}
+        {/* SECCIÃ“N 2: Datos del Responsable (Opcional - Para Menores) */}
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 mr-4">
@@ -166,7 +181,7 @@ export default function NuevoPaciente() {
                 type="text" 
                 name="nombre_responsable"
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300"
-                placeholder="Ej. María Sánchez"
+                placeholder="Ej. MarÃ­a SÃ¡nchez"
                 value={formData.nombre_responsable}
                 onChange={handleChange}
               />
@@ -190,7 +205,7 @@ export default function NuevoPaciente() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-600 mb-2">Teléfono del Responsable</label>
+              <label className="block text-sm font-bold text-slate-600 mb-2">TelÃ©fono del Responsable</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Phone size={18} className="text-slate-400" />
@@ -207,7 +222,7 @@ export default function NuevoPaciente() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-600 mb-2">Ocupación</label>
+              <label className="block text-sm font-bold text-slate-600 mb-2">OcupaciÃ³n</label>
               <input 
                 type="text" 
                 name="ocupacion_responsable"
@@ -230,18 +245,18 @@ export default function NuevoPaciente() {
                 <option value="casados">Casados</option>
                 <option value="separados">Separados</option>
                 <option value="divorciados">Divorciados</option>
-                <option value="union_libre">Unión Libre</option>
+                <option value="union_libre">UniÃ³n Libre</option>
                 <option value="soltero">Madre/Padre Soltero</option>
               </select>
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-600 mb-2">Notas de Dinámica Familiar</label>
+              <label className="block text-sm font-bold text-slate-600 mb-2">Notas de DinÃ¡mica Familiar</label>
               <textarea 
                 name="notas_dinamica"
                 rows={3}
                 className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 resize-none"
-                placeholder="Ej. El niño vive principalmente con los abuelos maternos durante la semana..."
+                placeholder="Ej. El niÃ±o vive principalmente con los abuelos maternos durante la semana..."
                 value={formData.notas_dinamica}
                 onChange={handleChange as any}
               />
@@ -249,7 +264,7 @@ export default function NuevoPaciente() {
           </div>
         </div>
 
-        {/* SECCIÓN 3: Datos de Contacto */}
+        {/* SECCIÃ“N 3: Datos de Contacto */}
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-4">
@@ -260,7 +275,7 @@ export default function NuevoPaciente() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-bold text-slate-600 mb-2">Teléfono <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-bold text-slate-600 mb-2">TelÃ©fono <span className="text-red-500">*</span></label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Phone size={18} className="text-slate-400" />
@@ -278,7 +293,7 @@ export default function NuevoPaciente() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-600 mb-2">Correo Electrónico</label>
+              <label className="block text-sm font-bold text-slate-600 mb-2">Correo ElectrÃ³nico</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Mail size={18} className="text-slate-400" />
@@ -295,7 +310,7 @@ export default function NuevoPaciente() {
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-slate-600 mb-2">Dirección de Residencia</label>
+              <label className="block text-sm font-bold text-slate-600 mb-2">DirecciÃ³n de Residencia</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 pt-3.5 pointer-events-none">
                   <MapPin size={18} className="text-slate-400" />
@@ -313,13 +328,13 @@ export default function NuevoPaciente() {
           </div>
         </div>
 
-        {/* SECCIÓN 3: Datos de Facturación */}
+        {/* SECCIÃ“N 3: Datos de FacturaciÃ³n */}
         <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white">
           <div className="flex items-center mb-6">
             <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 mr-4">
               <CreditCard size={20} />
             </div>
-            <h3 className="text-xl font-bold text-slate-800">Datos de Facturación</h3>
+            <h3 className="text-xl font-bold text-slate-800">Datos de FacturaciÃ³n</h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -338,7 +353,7 @@ export default function NuevoPaciente() {
                   onChange={handleChange}
                 />
               </div>
-              <p className="text-xs text-slate-500 mt-2">Si el paciente no proporciona NIT, se usará CF (Consumidor Final).</p>
+              <p className="text-xs text-slate-500 mt-2">Si el paciente no proporciona NIT, se usarÃ¡ CF (Consumidor Final).</p>
             </div>
           </div>
         </div>
@@ -366,3 +381,4 @@ export default function NuevoPaciente() {
     </div>
   );
 }
+

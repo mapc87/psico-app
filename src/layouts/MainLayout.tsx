@@ -36,25 +36,27 @@ export default function MainLayout() {
   };
 
   // Filtrado de navegación
-  const navItems = [];
+  const mainNavItems = [];
+  const contabilidadNavItems = [];
   
   if (usuarioActual?.rol === 'superadmin') {
-    navItems.push({ icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' });
-    navItems.push({ icon: <Building2 size={20} />, label: 'Clínicas', path: '/admin/clinicas' });
+    mainNavItems.push({ icon: <LayoutDashboard size={18} />, label: 'Dashboard', path: '/dashboard' });
+    mainNavItems.push({ icon: <Building2 size={18} />, label: 'Clínicas', path: '/admin/clinicas' });
   } else if (usuarioActual?.rol === 'admin') {
-    navItems.push({ icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' });
-    navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
-    navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
-    navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
-    navItems.push({ icon: <Package size={20} />, label: 'Paquetes', path: '/paquetes' });
-    navItems.push({ icon: <FileSignature size={20} />, label: 'Documentos', path: '/consentimientos' });
-    navItems.push({ icon: <ClipboardList size={20} />, label: 'Gestor de Pruebas', path: '/pruebas' });
+    mainNavItems.push({ icon: <LayoutDashboard size={18} />, label: 'Dashboard', path: '/dashboard' });
+    mainNavItems.push({ icon: <Users size={18} />, label: 'Pacientes', path: '/pacientes' });
+    mainNavItems.push({ icon: <Calendar size={18} />, label: 'Agenda', path: '/agenda' });
+    mainNavItems.push({ icon: <FileSignature size={18} />, label: 'Documentos', path: '/consentimientos' });
+    mainNavItems.push({ icon: <ClipboardList size={18} />, label: 'Gestor de Pruebas', path: '/pruebas' });
+    
+    contabilidadNavItems.push({ icon: <Wallet size={18} />, label: 'Facturación', path: '/finanzas' });
+    contabilidadNavItems.push({ icon: <Package size={18} />, label: 'Paquetes', path: '/paquetes' });
   } else if (usuarioActual?.rol === 'personal' && permisos) {
-    if (permisos.verAgenda) navItems.push({ icon: <Calendar size={20} />, label: 'Agenda', path: '/agenda' });
-    if (permisos.verPacientes) navItems.push({ icon: <Users size={20} />, label: 'Pacientes', path: '/pacientes' });
+    if (permisos.verAgenda) mainNavItems.push({ icon: <Calendar size={18} />, label: 'Agenda', path: '/agenda' });
+    if (permisos.verPacientes) mainNavItems.push({ icon: <Users size={18} />, label: 'Pacientes', path: '/pacientes' });
     if (permisos.verFinanzas) {
-      navItems.push({ icon: <Wallet size={20} />, label: 'Facturación', path: '/finanzas' });
-      navItems.push({ icon: <Package size={20} />, label: 'Paquetes', path: '/paquetes' });
+      contabilidadNavItems.push({ icon: <Wallet size={18} />, label: 'Facturación', path: '/finanzas' });
+      contabilidadNavItems.push({ icon: <Package size={18} />, label: 'Paquetes', path: '/paquetes' });
     }
   }
 
@@ -69,7 +71,7 @@ export default function MainLayout() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 ${isSidebarCollapsed ? 'w-20' : 'w-72'} bg-white/90 backdrop-blur-xl border-r border-slate-100 flex flex-col z-50 transform transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 ${isSidebarCollapsed ? 'w-20' : 'w-[260px]'} bg-white/90 backdrop-blur-xl border-r border-slate-100 flex flex-col z-50 transform transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="absolute inset-0 bg-gradient-to-b from-violet-50/50 to-transparent pointer-events-none"></div>
         
         {/* Toggle Button for Desktop */}
@@ -80,25 +82,26 @@ export default function MainLayout() {
           {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
 
-        <div className={`p-8 flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center px-4' : ''}`}>
-          <div className={`w-10 h-10 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0 ${isSidebarCollapsed ? '' : 'mr-3'}`}>
-            <Activity className="text-white" size={24} />
+        <div className={`p-6 flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center px-4' : ''}`}>
+          <div className={`w-9 h-9 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0 ${isSidebarCollapsed ? '' : 'mr-3'}`}>
+            <Activity className="text-white" size={20} />
           </div>
           {!isSidebarCollapsed && (
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 tracking-tight transition-opacity duration-300">PsicoApp</h1>
           )}
         </div>
         
-        <nav className="flex-1 py-8 space-y-2 px-4 relative z-10">
-          {navItems.map((item) => (
+        <nav className="flex-1 py-2 space-y-0.5 px-3 relative z-10 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {/* Main Section */}
+          {mainNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-3 rounded-xl transition-all duration-300 group relative ${
+                `flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl transition-all duration-300 group relative ${
                   isActive 
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-violet-500/30' 
-                    : 'text-slate-500 hover:bg-white hover:shadow-sm hover:text-violet-600'
+                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md shadow-violet-500/20' 
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-violet-600'
                 }`
               }
               onClick={() => setIsMobileMenuOpen(false)}
@@ -109,17 +112,44 @@ export default function MainLayout() {
             </NavLink>
           ))}
 
+          {/* Contabilidad Section */}
+          {contabilidadNavItems.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-slate-200/50">
+              {!isSidebarCollapsed && (
+                <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Contabilidad</p>
+              )}
+              {contabilidadNavItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl transition-all duration-300 group relative ${
+                      isActive 
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-md shadow-emerald-500/20' 
+                        : 'text-slate-500 hover:bg-slate-50 hover:text-emerald-600'
+                    }`
+                  }
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  title={isSidebarCollapsed ? item.label : undefined}
+                >
+                  <div className={`${isSidebarCollapsed ? '' : 'mr-3'} transition-transform group-hover:scale-110 shrink-0`}>{item.icon}</div>
+                  {!isSidebarCollapsed && <span className="font-semibold text-sm whitespace-nowrap overflow-hidden">{item.label}</span>}
+                </NavLink>
+              ))}
+            </div>
+          )}
+
           {/* Opciones de Administración (Admin) */}
           {usuarioActual?.rol === 'admin' && (
-            <div className="mt-8 pt-6 border-t border-slate-200/50">
+            <div className="mt-4 pt-3 border-t border-slate-200/50">
               {!isSidebarCollapsed && (
-                <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Administración</p>
+                <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Administración</p>
               )}
               
               <NavLink
                 to="/roles"
                 className={({ isActive }) =>
-                  `flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-3 rounded-xl transition-all duration-300 group ${
+                  `flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl transition-all duration-300 group ${
                     isActive 
                       ? 'bg-amber-100 text-amber-700' 
                       : 'text-slate-500 hover:bg-amber-50 hover:text-amber-600'
@@ -128,14 +158,14 @@ export default function MainLayout() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 title={isSidebarCollapsed ? "Roles y Permisos" : undefined}
               >
-                <div className={`${isSidebarCollapsed ? '' : 'mr-3'} transition-transform group-hover:scale-110 shrink-0`}><Shield size={20} /></div>
+                <div className={`${isSidebarCollapsed ? '' : 'mr-3'} transition-transform group-hover:scale-110 shrink-0`}><Shield size={18} /></div>
                 {!isSidebarCollapsed && <span className="font-semibold text-sm whitespace-nowrap overflow-hidden">Roles y Permisos</span>}
               </NavLink>
 
               <NavLink
                 to="/personal"
                 className={({ isActive }) =>
-                  `flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-3 mt-1 rounded-xl transition-all duration-300 group ${
+                  `flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 mt-0.5 rounded-xl transition-all duration-300 group ${
                     isActive 
                       ? 'bg-amber-100 text-amber-700' 
                       : 'text-slate-500 hover:bg-amber-50 hover:text-amber-600'
@@ -144,14 +174,14 @@ export default function MainLayout() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 title={isSidebarCollapsed ? "Personal" : undefined}
               >
-                <div className={`${isSidebarCollapsed ? '' : 'mr-3'} transition-transform group-hover:scale-110 shrink-0`}><UsersRound size={20} /></div>
+                <div className={`${isSidebarCollapsed ? '' : 'mr-3'} transition-transform group-hover:scale-110 shrink-0`}><UsersRound size={18} /></div>
                 {!isSidebarCollapsed && <span className="font-semibold text-sm whitespace-nowrap overflow-hidden">Personal</span>}
               </NavLink>
 
               <NavLink
                 to="/configuracion"
                 className={({ isActive }) =>
-                  `flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-4'} py-3 mt-1 rounded-xl transition-all duration-300 group ${
+                  `flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-3'} py-2.5 mt-0.5 rounded-xl transition-all duration-300 group ${
                     isActive 
                       ? 'bg-amber-100 text-amber-700' 
                       : 'text-slate-500 hover:bg-amber-50 hover:text-amber-600'
@@ -160,7 +190,7 @@ export default function MainLayout() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 title={isSidebarCollapsed ? "Ajustes de Clínica" : undefined}
               >
-                <div className={`${isSidebarCollapsed ? '' : 'mr-3'} transition-transform group-hover:scale-110 shrink-0`}><Settings size={20} /></div>
+                <div className={`${isSidebarCollapsed ? '' : 'mr-3'} transition-transform group-hover:scale-110 shrink-0`}><Settings size={18} /></div>
                 {!isSidebarCollapsed && <span className="font-semibold text-sm whitespace-nowrap overflow-hidden">Ajustes de Clínica</span>}
               </NavLink>
             </div>
@@ -168,45 +198,61 @@ export default function MainLayout() {
         </nav>
 
         {/* User Profile Footer */}
-        <div className={`p-4 mt-auto relative z-10 ${isSidebarCollapsed ? 'px-2' : ''}`}>
-          <div className={`bg-white/80 ${isSidebarCollapsed ? 'p-2' : 'p-4'} rounded-2xl shadow-sm border border-slate-100 backdrop-blur-sm`}>
+        <div className={`p-3 mt-auto relative z-10 ${isSidebarCollapsed ? 'px-2' : ''}`}>
+          <div className={`bg-white/80 ${isSidebarCollapsed ? 'p-2' : 'p-3'} rounded-2xl shadow-sm border border-slate-100 backdrop-blur-sm`}>
             <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : ''}`}>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold shadow-md uppercase shrink-0">
+              <div className="w-8 h-8 text-sm rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold shadow-md uppercase shrink-0">
                 {usuarioActual?.nombre ? usuarioActual.nombre.charAt(0) : 'U'}
               </div>
               {!isSidebarCollapsed && (
-                <div className="ml-3 overflow-hidden">
-                  <p className="text-sm font-bold text-slate-800 truncate">{usuarioActual?.nombre}</p>
-                  <p className="text-xs text-slate-400 capitalize">{usuarioActual?.rol}</p>
+                <div className="ml-2 overflow-hidden">
+                  <p className="text-[13px] font-bold text-slate-800 truncate leading-tight">{usuarioActual?.nombre}</p>
+                  <p className="text-[10px] text-slate-400 capitalize">{usuarioActual?.rol}</p>
                 </div>
               )}
             </div>
             
-            <button
-              onClick={() => setIsHelpOpen(true)}
-              className={`mt-4 w-full flex items-center justify-center py-2 text-xs font-bold text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer`}
-              title={isSidebarCollapsed ? "Centro de Ayuda" : undefined}
-            >
-              <HelpCircle size={14} className={isSidebarCollapsed ? '' : 'mr-2'} />
-              {!isSidebarCollapsed && "Centro de Ayuda"}
-            </button>
-            <Link 
-              to="/perfil"
-              className={`mt-1 w-full flex items-center justify-center py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-violet-600 rounded-lg transition-colors cursor-pointer`}
-              onClick={() => setIsMobileMenuOpen(false)}
-              title={isSidebarCollapsed ? "Mi Perfil" : undefined}
-            >
-              <Settings size={14} className={isSidebarCollapsed ? '' : 'mr-2'} />
-              {!isSidebarCollapsed && "Mi Perfil"}
-            </Link>
-            <button 
-              onClick={handleLogout}
-              className={`mt-1 w-full flex items-center justify-center py-2 text-xs font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer`}
-              title={isSidebarCollapsed ? "Cerrar Sesión" : undefined}
-            >
-              <LogOut size={14} className={isSidebarCollapsed ? '' : 'mr-2'} />
-              {!isSidebarCollapsed && "Cerrar Sesión"}
-            </button>
+            {!isSidebarCollapsed ? (
+              <div className="mt-3 flex gap-1 border-t border-slate-100 pt-2">
+                <button
+                  onClick={() => setIsHelpOpen(true)}
+                  className="flex-1 flex flex-col items-center justify-center py-1.5 text-[10px] font-bold text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer"
+                  title="Centro de Ayuda"
+                >
+                  <HelpCircle size={14} className="mb-0.5" />
+                  Ayuda
+                </button>
+                <Link 
+                  to="/perfil"
+                  className="flex-1 flex flex-col items-center justify-center py-1.5 text-[10px] font-bold text-slate-600 hover:bg-slate-50 hover:text-violet-600 rounded-lg transition-colors cursor-pointer"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  title="Mi Perfil"
+                >
+                  <Settings size={14} className="mb-0.5" />
+                  Perfil
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="flex-1 flex flex-col items-center justify-center py-1.5 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                  title="Cerrar Sesión"
+                >
+                  <LogOut size={14} className="mb-0.5" />
+                  Salir
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-1">
+                <button onClick={() => setIsHelpOpen(true)} className="w-full flex justify-center p-1.5 text-violet-600 hover:bg-violet-50 rounded-lg transition-colors" title="Centro de Ayuda">
+                  <HelpCircle size={16} />
+                </button>
+                <Link to="/perfil" className="w-full flex justify-center p-1.5 text-slate-600 hover:bg-slate-50 hover:text-violet-600 rounded-lg transition-colors" title="Mi Perfil">
+                  <Settings size={16} />
+                </Link>
+                <button onClick={handleLogout} className="w-full flex justify-center p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Cerrar Sesión">
+                  <LogOut size={16} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </aside>

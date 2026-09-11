@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, User, ChevronRight } from 'lucide-react';
+import { Search, Plus, User, Eye, Edit2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
@@ -118,13 +118,22 @@ export default function Pacientes() {
                     <span className="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md text-xs font-medium">{paciente.fecha_ingreso}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                    <Link 
-                      to={`/pacientes/${paciente.id}`}
-                      className="inline-flex items-center text-violet-600 hover:text-fuchsia-600 font-bold transition-colors group cursor-pointer px-4 py-2 hover:bg-violet-50 rounded-lg"
-                    >
-                      Ver Expediente
-                      <ChevronRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                    <div className="flex justify-end space-x-2">
+                      <Link 
+                        to={`/pacientes/${paciente.id}/editar`}
+                        className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                        title="Editar Paciente"
+                      >
+                        <Edit2 size={18} />
+                      </Link>
+                      <Link 
+                        to={`/pacientes/${paciente.id}`}
+                        className="p-2 text-slate-400 hover:text-fuchsia-600 hover:bg-fuchsia-50 rounded-lg transition-colors"
+                        title="Ver Expediente"
+                      >
+                        <Eye size={18} />
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

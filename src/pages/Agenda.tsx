@@ -66,8 +66,30 @@ export default function Agenda() {
 
   const cambiarEstadoCita = async (citaId: string, nuevoEstado: 'completada' | 'cancelada') => {
     try {
+      const cita = citasDb.find(c => c.id === citaId);
+      if (!cita) return;
+
       const { error } = await supabase.from('citas').update({ estado: nuevoEstado }).eq('id', citaId);
       if (error) throw error;
+
+      // Descontar del paquete si se completó
+      if (nuevoEstado === 'completada' && cita.paciente_id) {
+        const { data: paquete } = await supabase.from('paciente_paquetes')
+          .select('*')
+          .eq('paciente_id', cita.paciente_id)
+          .eq('estado', 'activo')
+          .single();
+        
+        if (paquete && paquete.sesiones_restantes > 0) {
+          const nuevasSesiones = paquete.sesiones_restantes - 1;
+          const nuevoEstadoPaquete = nuevasSesiones <= 0 ? 'agotado' : 'activo';
+          
+          await supabase.from('paciente_paquetes')
+            .update({ sesiones_restantes: nuevasSesiones, estado: nuevoEstadoPaquete })
+            .eq('id', paquete.id);
+        }
+      }
+
       fetchDatos(); // Refrescar datos
     } catch (error) {
       console.error('Error al actualizar estado:', error);

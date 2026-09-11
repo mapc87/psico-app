@@ -22,6 +22,7 @@ import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones'
 import EvaluacionPrint from '../components/evaluaciones/EvaluacionPrint';
 import ModalAnalisisIA from '../components/evaluaciones/ModalAnalisisIA';
 import ModalNuevaTarea from '../components/tareas/ModalNuevaTarea';
+import ModalVenderPaquete from '../components/paquetes/ModalVenderPaquete';
 import Toast from '../components/common/Toast';
 import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
@@ -39,6 +40,7 @@ export default function PacienteDetalle() {
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
   const [isAnalisisIAModalOpen, setIsAnalisisIAModalOpen] = useState(false);
   const [isTareaModalOpen, setIsTareaModalOpen] = useState(false);
+  const [isVenderPaqueteOpen, setIsVenderPaqueteOpen] = useState(false);
   const [evaluacionParaAnalisis, setEvaluacionParaAnalisis] = useState<EvaluacionPaciente | null>(null);
   
   const [isDiagnosticoModalOpen, setIsDiagnosticoModalOpen] = useState(false);
@@ -59,6 +61,7 @@ export default function PacienteDetalle() {
   });
 
   const [paciente, setPaciente] = useState<any>(undefined);
+  const [paqueteActivo, setPaqueteActivo] = useState<any>(null);
   const [permisos, setPermisos] = useState<any>(null);
   const [citas, setCitas] = useState<any[]>([]);
   const [isHistorialCitasOpen, setIsHistorialCitasOpen] = useState(false);
@@ -161,6 +164,14 @@ export default function PacienteDetalle() {
         const { data: clinicaRes } = await supabase.from('clinicas').select('*').eq('id', usuarioActual.clinica_id).single();
         if (clinicaRes) setClinicaData(clinicaRes);
       }
+
+      // Obtener paquete activo
+      const { data: paqueteData } = await supabase.from('paciente_paquetes')
+        .select(`*, paquete:paquetes_sesiones(*)`)
+        .eq('paciente_id', pId)
+        .eq('estado', 'activo')
+        .single();
+      if (paqueteData) setPaqueteActivo(paqueteData);
     };
     
     fetchData();
@@ -514,7 +525,17 @@ export default function PacienteDetalle() {
     setConsentimientoActivo(null);
   };
 
-    const allTabs = [
+  const recargarPaqueteActivo = async () => {
+    const { data: paqueteData } = await supabase.from('paciente_paquetes')
+      .select(`*, paquete:paquetes_sesiones(*)`)
+      .eq('paciente_id', id)
+      .eq('estado', 'activo')
+      .single();
+    if (paqueteData) setPaqueteActivo(paqueteData);
+    else setPaqueteActivo(null);
+  };
+
+  const allTabs = [
     { id: 'resumen', label: 'Resumen', icon: <User size={18} />, key: 'verResumen' },
     { id: 'archivos', label: 'Archivos', icon: <Paperclip size={18} />, key: 'verResumen' },
     { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
@@ -609,6 +630,34 @@ export default function PacienteDetalle() {
           {/* Pestaña: Resumen */}
           {activeTab === 'resumen' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              
+              {/* Sección Paquete Activo */}
+              <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 p-5 rounded-2xl border border-violet-100 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex items-center">
+                  <div className="p-3 bg-white rounded-xl shadow-sm text-violet-600 mr-4">
+                    <Package size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-violet-900">
+                      {paqueteActivo ? `Paquete: ${paqueteActivo.paquete.nombre}` : 'Sin paquete activo'}
+                    </h3>
+                    <p className="text-sm font-medium text-violet-700/80">
+                      {paqueteActivo 
+                        ? `Quedan ${paqueteActivo.sesiones_restantes} sesiones de este paquete.`
+                        : 'El paciente paga por sesión individual actualmente.'}
+                    </p>
+                  </div>
+                </div>
+                {!paqueteActivo && (
+                  <button 
+                    onClick={() => setIsVenderPaqueteOpen(true)}
+                    className="px-5 py-2.5 bg-violet-600 text-white rounded-xl shadow-sm hover:bg-violet-700 transition-colors font-bold text-sm cursor-pointer whitespace-nowrap"
+                  >
+                    Vender Paquete
+                  </button>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-100 flex flex-col justify-center">
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Responsable</h4>
@@ -1754,6 +1803,19 @@ export default function PacienteDetalle() {
         subtitulo={modalCorreoState.subtitulo}
         emailDefault={modalCorreoState.emailDefault}
         onSend={modalCorreoState.onSend}
+      />
+
+      <ModalNuevaTarea
+        isOpen={isTareaModalOpen}
+        onClose={() => setIsTareaModalOpen(false)}
+        onSave={handleSaveTarea}
+      />
+
+      <ModalVenderPaquete
+        isOpen={isVenderPaqueteOpen}
+        onClose={() => setIsVenderPaqueteOpen(false)}
+        pacienteId={id!}
+        onVentaCompletada={recargarPaqueteActivo}
       />
 
       {/* Toast Flotante Elegante */}

@@ -21,10 +21,11 @@ import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEva
 import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones';
 import EvaluacionPrint from '../components/evaluaciones/EvaluacionPrint';
 import ModalAnalisisIA from '../components/evaluaciones/ModalAnalisisIA';
+import ModalNuevaTarea from '../components/tareas/ModalNuevaTarea';
 import Toast from '../components/common/Toast';
 import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
-import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla } from '../types';
+import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla, TareaPaciente } from '../types';
 import type { SendEmailResult } from '../services/email/emailService';
 
 export default function PacienteDetalle() {
@@ -37,6 +38,7 @@ export default function PacienteDetalle() {
   const [isNotaModalOpen, setIsNotaModalOpen] = useState(false);
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
   const [isAnalisisIAModalOpen, setIsAnalisisIAModalOpen] = useState(false);
+  const [isTareaModalOpen, setIsTareaModalOpen] = useState(false);
   const [evaluacionParaAnalisis, setEvaluacionParaAnalisis] = useState<EvaluacionPaciente | null>(null);
   
   const [isDiagnosticoModalOpen, setIsDiagnosticoModalOpen] = useState(false);
@@ -65,6 +67,7 @@ export default function PacienteDetalle() {
   const [notas, setNotas] = useState<any[]>([]);
   const [diagnosticos, setDiagnosticos] = useState<any[]>([]);
   const [medicamentos, setMedicamentos] = useState<any[]>([]);
+  const [tareas, setTareas] = useState<TareaPaciente[]>([]);
   const [consentimientos, setConsentimientos] = useState<ConsentimientoFirmado[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
   const [clinicaData, setClinicaData] = useState<any>(null);;
@@ -134,6 +137,8 @@ export default function PacienteDetalle() {
       const { data: mData } = await supabase.from('medicamentos').select('*').eq('paciente_id', pId).order('fecha_prescripcion', { ascending: false });
       if (mData) setMedicamentos(mData);
 
+      const { data: tData } = await supabase.from('tareas_paciente').select('*').eq('paciente_id', pId).order('fecha_asignacion', { ascending: false });
+      if (tData) setTareas(tData);
       
       const { data: consentimientosData } = await supabase.from('consentimientos_firmados').select('*').eq('paciente_id', pId).order('fecha_firma', { ascending: false });
       if (consentimientosData) setConsentimientos(consentimientosData);
@@ -268,6 +273,32 @@ export default function PacienteDetalle() {
       throw new Error(error.message);
     }
     if (data) setDiagnosticos([data, ...diagnosticos].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()));
+  };
+
+  const handleSaveTarea = async (titulo: string, descripcion: string) => {
+    if (!usuarioActual) return;
+    const nuevaTarea = {
+      clinica_id: usuarioActual.clinica_id,
+      paciente_id: id,
+      medico_id: usuarioActual.id,
+      titulo,
+      descripcion,
+      estado: 'pendiente'
+    };
+    const { data, error } = await supabase.from('tareas_paciente').insert([nuevaTarea]).select().single();
+    if (error) {
+      console.error("Error exacto de Supabase:", error);
+      throw new Error(error.message);
+    }
+    if (data) setTareas([data, ...tareas].sort((a, b) => new Date(b.fecha_asignacion).getTime() - new Date(a.fecha_asignacion).getTime()));
+  };
+
+  const cambiarEstadoTarea = async (tareaId: string, nuevoEstado: 'pendiente' | 'completada') => {
+    const { data } = await supabase.from('tareas_paciente').update({ 
+      estado: nuevoEstado,
+      fecha_completada: nuevoEstado === 'completada' ? new Date().toISOString() : null
+    }).eq('id', tareaId).select().single();
+    if (data) setTareas(tareas.map(t => t.id === tareaId ? data : t));
   };
 
   const cambiarEstadoDiagnostico = async (diagnosticoId: string, nuevoEstado: 'activo' | 'resuelto') => {
@@ -488,6 +519,7 @@ export default function PacienteDetalle() {
     { id: 'archivos', label: 'Archivos', icon: <Paperclip size={18} />, key: 'verResumen' },
     { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
     { id: 'evaluaciones', label: 'Evaluaciones', icon: <BrainCircuit size={18} />, key: 'verHistorial' }, // Evaluaciones como 4ta opción
+    { id: 'tareas', label: 'Tareas', icon: <ClipboardList size={18} />, key: 'verHistorial' },
     { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={18} />, key: 'verExamenes' },
     { id: 'signos', label: 'Signos Vitales', icon: <Heart size={18} />, key: 'verSignos' },
     { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={18} />, key: 'verMedicamentos' }
@@ -793,20 +825,86 @@ export default function PacienteDetalle() {
                         </div>
                       </div>
                       <p className={`leading-relaxed whitespace-pre-wrap ${diag.estado === 'activo' ? 'text-blue-800' : 'text-slate-500'}`}>
-                        {diag.planTratamiento}
+                        {diag.plan_tratamiento || diag.planTratamiento}
                       </p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 text-center text-slate-500">
                   <Activity size={48} className="mx-auto text-slate-300 mb-4" />
-                  <p className="text-lg font-semibold text-slate-500">Sin diagnósticos activos</p>
-                  <p className="text-sm text-slate-400 mt-2">Agregue una patología y su plan de tratamiento correspondiente.</p>
+                  <p className="text-lg font-semibold">No hay diagnósticos</p>
+                  <p className="text-sm mt-1">Registra el primer diagnóstico clínico para este paciente.</p>
                 </div>
               )}
             </div>
           )}
+
+          {/* Pestaña: Tareas */}
+          {activeTab === 'tareas' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-slate-800">Tareas Entre-Sesiones</h3>
+                <button 
+                  onClick={() => setIsTareaModalOpen(true)}
+                  className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer flex items-center"
+                >
+                  <ClipboardList size={16} className="mr-2" />
+                  Asignar Tarea
+                </button>
+              </div>
+              
+              {tareas && tareas.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tareas.map(tarea => (
+                    <div key={tarea.id} className={`p-5 border rounded-2xl transition-all duration-300 ${tarea.estado === 'pendiente' ? 'border-amber-100 bg-amber-50/30 hover:shadow-md hover:border-amber-200' : 'border-emerald-100 bg-emerald-50/50 opacity-90'}`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center">
+                          <ClipboardList size={20} className={`${tarea.estado === 'pendiente' ? 'text-amber-500' : 'text-emerald-500'} mr-2`} />
+                          <h4 className={`font-bold ${tarea.estado === 'pendiente' ? 'text-slate-800' : 'text-emerald-900'}`}>{tarea.titulo}</h4>
+                        </div>
+                        <span className={`px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded-md ${
+                          tarea.estado === 'pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          {tarea.estado}
+                        </span>
+                      </div>
+                      
+                      {tarea.descripcion && (
+                        <p className={`text-sm mb-4 leading-relaxed whitespace-pre-wrap ${tarea.estado === 'pendiente' ? 'text-slate-600' : 'text-emerald-700/80'}`}>
+                          {tarea.descripcion}
+                        </p>
+                      )}
+                      
+                      <div className="text-xs font-medium text-slate-400 mb-4">
+                        Asignada: {new Date(tarea.fecha_asignacion).toLocaleDateString()}
+                        {tarea.fecha_completada && ` • Completada: ${new Date(tarea.fecha_completada).toLocaleDateString()}`}
+                      </div>
+                      
+                      {tarea.estado === 'pendiente' && (
+                        <div className="mt-auto pt-2 border-t border-amber-100">
+                          <button 
+                            onClick={() => cambiarEstadoTarea(tarea.id, 'completada')}
+                            className="w-full py-2 bg-white hover:bg-emerald-50 text-emerald-600 border border-emerald-100 hover:border-emerald-200 rounded-xl text-sm font-bold transition-colors cursor-pointer flex items-center justify-center"
+                          >
+                            <CheckCircle2 size={16} className="mr-2" />
+                            Marcar como Completada
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 text-center text-slate-500">
+                  <ClipboardList size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-lg font-semibold">No hay tareas asignadas</p>
+                  <p className="text-sm mt-1">Asigna lecturas, diarios o ejercicios para que el paciente los complete en casa.</p>
+                </div>
+              )}
+            </div>
+          )}
+
 
           {/* Pestaña: Signos Vitales */}
           {activeTab === 'signos' && (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, User, Eye, Edit2, RefreshCw, X, Save } from 'lucide-react';
+import { Search, Plus, User, Eye, Edit2, UserCog, X, Save } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
@@ -180,7 +180,7 @@ export default function Pacientes() {
                         className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
                         title="Cambiar Estado"
                       >
-                        <RefreshCw size={18} />
+                        <UserCog size={18} />
                       </button>
                       <Link 
                         to={`/pacientes/${paciente.id}/editar`}
@@ -232,15 +232,38 @@ export default function Pacientes() {
                 Selecciona el nuevo estado para el paciente <strong className="text-slate-800">{pacienteParaEstado.nombre}</strong>:
               </p>
               
-              <select 
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none text-slate-700 font-medium"
-                value={nuevoEstado}
-                onChange={(e) => setNuevoEstado(e.target.value as any)}
-              >
-                <option value="activo">Activo</option>
-                <option value="baja">De Baja</option>
-                <option value="alta">De Alta</option>
-              </select>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => setNuevoEstado('activo')}
+                  className={`py-3 px-2 rounded-xl transition-all border-2 ${
+                    nuevoEstado === 'activo' 
+                      ? 'border-violet-500 bg-violet-50 text-violet-700' 
+                      : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="font-bold text-sm block">Activo</span>
+                </button>
+                <button
+                  onClick={() => setNuevoEstado('baja')}
+                  className={`py-3 px-2 rounded-xl transition-all border-2 ${
+                    nuevoEstado === 'baja' 
+                      ? 'border-red-500 bg-red-50 text-red-700' 
+                      : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="font-bold text-sm block">De Baja</span>
+                </button>
+                <button
+                  onClick={() => setNuevoEstado('alta')}
+                  className={`py-3 px-2 rounded-xl transition-all border-2 ${
+                    nuevoEstado === 'alta' 
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                      : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="font-bold text-sm block">De Alta</span>
+                </button>
+              </div>
               
               <div className="mt-8 flex justify-end space-x-3">
                 <button 

@@ -1,4 +1,4 @@
-﻿-- ==========================================
+-- ==========================================
 -- SCRIPT DE CONFIGURACIÃ“N DE BASE DE DATOS MAESTRO
 -- SUPABASE - CLÃNICA PSICOLÃ“GICA (MULTI-TENANT)
 -- ==========================================
@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS public.clinicas (
     telefono_contacto VARCHAR(50),
     no_patente VARCHAR(100),
     abreviatura VARCHAR(50),
+    resend_api_key TEXT,
+    email_remitente TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 ALTER TABLE public.clinicas ENABLE ROW LEVEL SECURITY;

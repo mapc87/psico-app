@@ -23,6 +23,17 @@ export interface RecetaMedicaEmailParams {
   doctorNombre?: string;
 }
 
+export interface RecordatorioCitaEmailParams {
+  pacienteNombre: string;
+  clinicaNombre?: string;
+  fechaStr: string;
+  horaStr: string;
+  motivo: string;
+  doctorNombre?: string;
+  modalidad?: 'presencial' | 'virtual';
+  enlaceVideo?: string;
+}
+
 export function getFirmaRemotaTemplate({
   pacienteNombre,
   clinicaNombre = 'PsicoApp',
@@ -282,6 +293,95 @@ export function getInvitacionTemplate({
         </div>
         <div class="footer">
           Esta es una invitación automática de ${clinicaNombre}.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  return { subject, html };
+}
+
+export function getRecordatorioCitaTemplate({
+  pacienteNombre,
+  clinicaNombre = 'PsicoApp',
+  fechaStr,
+  horaStr,
+  motivo,
+  doctorNombre,
+  modalidad,
+  enlaceVideo,
+}: RecordatorioCitaEmailParams): { subject: string; html: string } {
+  const isVirtual = modalidad === 'virtual' && enlaceVideo;
+  const subject = `🔔 Recordatorio de Cita: Mañana a las ${horaStr} - ${clinicaNombre}`;
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Recordatorio de Cita</title>
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #334155; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .header { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: #ffffff; padding: 32px 24px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 800; }
+        .content { padding: 32px 24px; }
+        .greeting { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px; }
+        .details-card { background: #fef3c7; border: 1px solid #fde68a; border-radius: 12px; padding: 20px; margin: 24px 0; }
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+        .detail-label { font-weight: 700; color: #b45309; }
+        .detail-val { font-weight: 600; color: #78350f; text-align: right; }
+        .footer { background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>${clinicaNombre}</h1>
+          <p>Recordatorio de Cita Médica</p>
+        </div>
+        <div class="content">
+          <div class="greeting">Hola, ${pacienteNombre}</div>
+          <p>Este es un recordatorio amigable de que tienes una cita programada para <strong>mañana</strong>.</p>
+          
+          <div class="details-card">
+            <div class="detail-row">
+              <span class="detail-label">Fecha:</span>
+              <span class="detail-val">${fechaStr}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Hora:</span>
+              <span class="detail-val">${horaStr} hrs</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Motivo:</span>
+              <span class="detail-val">${motivo}</span>
+            </div>
+            ${doctorNombre ? `
+            <div class="detail-row" style="margin-bottom: 0;">
+              <span class="detail-label">Especialista:</span>
+              <span class="detail-val">${doctorNombre}</span>
+            </div>` : ''}
+            
+            ${isVirtual ? `
+            <div class="detail-row" style="margin-top: 12px; margin-bottom: 0; border-top: 1px solid #fde68a; padding-top: 12px;">
+              <span class="detail-label" style="color: #4f46e5;">Modalidad:</span>
+              <span class="detail-val" style="color: #4f46e5;">🌐 Videollamada</span>
+            </div>
+            ` : ''}
+          </div>
+
+          ${isVirtual ? `
+          <div style="background-color: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 24px;">
+            <p style="margin-top: 0; color: #4c1d95; font-weight: 600;">Haz clic en el siguiente enlace a la hora acordada para ingresar a la consulta:</p>
+            <a href="${enlaceVideo}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff !important; font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 15px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); margin-top: 10px; margin-bottom: 10px;">Entrar a Videoconsulta</a>
+          </div>
+          ` : `
+          <p>Por favor preséntate 10 minutos antes de tu horario programado. Si no puedes asistir, te pedimos que te comuniques con la clínica para reprogramar.</p>
+          `}
+        </div>
+        <div class="footer">
+          ${clinicaNombre} - Notificación de Citas
         </div>
       </div>
     </body>

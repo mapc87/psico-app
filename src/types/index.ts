@@ -102,6 +102,7 @@ export interface Cita {
   estado: 'programada' | 'completada' | 'cancelada';
   modalidad?: 'presencial' | 'virtual';
   enlace_video?: string;
+  recordatorio_enviado?: boolean;
   created_at: string;
 }
 

@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS public.citas (
     estado TEXT NOT NULL CHECK (estado IN ('programada', 'completada', 'cancelada')),
     modalidad TEXT DEFAULT 'presencial' CHECK (modalidad IN ('presencial', 'virtual')),
     enlace_video TEXT,
+    recordatorio_enviado BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 ALTER TABLE public.citas ENABLE ROW LEVEL SECURITY;

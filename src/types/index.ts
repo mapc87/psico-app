@@ -1,4 +1,4 @@
-﻿export interface Clinica {
+export interface Clinica {
   id: string;
   nombre: string;
   direccion?: string;
@@ -34,18 +34,7 @@ export interface Usuario {
   created_at: string;
 }
 
-export interface Permisos {
-  verAgenda: boolean;
-  verPacientes: boolean;
-  verResumen: boolean;
-  verCitas: boolean;
-  verExamenes: boolean;
-  verSignos: boolean;
-  verHistorial: boolean;
-  verDiagnosticos: boolean;
-  verMedicamentos: boolean;
-  verFinanzas: boolean;
-}
+export type Permisos = Record<string, boolean>;
 
 export interface Rol {
   id: string;

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip, Package } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
+import { APP_MODULES } from '../config/modules';
 import { useEffect } from 'react';
 import { emailService } from '../services/email/emailService';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
@@ -533,25 +534,22 @@ export default function PacienteDetalle() {
     else setPaqueteActivo(null);
   };
 
-  const allTabs = [
-    { id: 'resumen', label: 'Resumen', icon: <User size={16} />, key: 'verResumen' },
-    { id: 'archivos', label: 'Archivos', icon: <Paperclip size={16} />, key: 'verResumen' },
-    { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={16} />, key: 'verDiagnosticos' },
-    { id: 'evaluaciones', label: 'Evaluaciones', icon: <BrainCircuit size={16} />, key: 'verHistorial' }, // Evaluaciones como 4ta opción
-    { id: 'tareas', label: 'Tareas', icon: <ClipboardList size={16} />, key: 'verHistorial' },
-    { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={16} />, key: 'verExamenes' },
-    { id: 'signos', label: 'S. Vitales', icon: <Heart size={16} />, key: 'verSignos' },
-    { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={16} />, key: 'verMedicamentos' }
-  ];
-
-  // Filtrar tabs según permisos
-  const tabs = allTabs.filter(tab => {
-    if (usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'admin') return true;
-    if (usuarioActual?.rol === 'personal' && permisos) {
-      return permisos[tab.key as keyof typeof permisos] === true;
-    }
-    return false;
-  });
+  // Filtrar tabs según permisos y configuración dinámica
+  const tabs = APP_MODULES
+    .filter(mod => mod.isExpedienteTab)
+    .filter(mod => {
+      if (usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin') return true;
+      if (permisos) return permisos[mod.id] === true;
+      return false;
+    })
+    .map(mod => {
+      const IconComp = mod.icon as any;
+      return {
+        id: mod.id.replace('ver', '').toLowerCase(),
+        label: mod.label,
+        icon: IconComp ? <IconComp size={16} /> : null
+      };
+    });
 
   if (paciente === undefined) {
     return <div className="p-12 text-center text-slate-500">Cargando expediente...</div>;

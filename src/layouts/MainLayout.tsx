@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
 import { LayoutDashboard, Users, Calendar, LogOut, FileSignature, Shield, Activity, UsersRound, Wallet, Settings, Building2, HelpCircle, ClipboardList, Menu, X, ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { APP_MODULES } from '../config/modules';
 import type { Permisos } from '../types';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import CentroAyuda from '../components/help/CentroAyuda';
@@ -36,28 +37,25 @@ export default function MainLayout() {
   };
 
   // Filtrado de navegación
-  const mainNavItems = [];
-  const contabilidadNavItems = [];
+  const mainNavItems: any[] = [];
+  const contabilidadNavItems: any[] = [];
   
   if (usuarioActual?.rol === 'superadmin') {
     mainNavItems.push({ icon: <LayoutDashboard size={18} />, label: 'Dashboard', path: '/dashboard' });
     mainNavItems.push({ icon: <Building2 size={18} />, label: 'Clínicas', path: '/admin/clinicas' });
-  } else if (usuarioActual?.rol === 'admin') {
-    mainNavItems.push({ icon: <LayoutDashboard size={18} />, label: 'Dashboard', path: '/dashboard' });
-    mainNavItems.push({ icon: <Users size={18} />, label: 'Pacientes', path: '/pacientes' });
-    mainNavItems.push({ icon: <Calendar size={18} />, label: 'Agenda', path: '/agenda' });
-    mainNavItems.push({ icon: <FileSignature size={18} />, label: 'Documentos', path: '/consentimientos' });
-    mainNavItems.push({ icon: <ClipboardList size={18} />, label: 'Gestor de Pruebas', path: '/pruebas' });
-    
-    contabilidadNavItems.push({ icon: <Wallet size={18} />, label: 'Facturación', path: '/finanzas' });
-    contabilidadNavItems.push({ icon: <Package size={18} />, label: 'Paquetes', path: '/paquetes' });
-  } else if (usuarioActual?.rol === 'personal' && permisos) {
-    if (permisos.verAgenda) mainNavItems.push({ icon: <Calendar size={18} />, label: 'Agenda', path: '/agenda' });
-    if (permisos.verPacientes) mainNavItems.push({ icon: <Users size={18} />, label: 'Pacientes', path: '/pacientes' });
-    if (permisos.verFinanzas) {
-      contabilidadNavItems.push({ icon: <Wallet size={18} />, label: 'Facturación', path: '/finanzas' });
-      contabilidadNavItems.push({ icon: <Package size={18} />, label: 'Paquetes', path: '/paquetes' });
-    }
+  } else {
+    APP_MODULES.forEach(mod => {
+      const tieneAcceso = usuarioActual?.rol === 'admin' || (permisos && permisos[mod.id]);
+      if (tieneAcceso && mod.path && mod.icon) {
+        const IconComponent = mod.icon;
+        const item = { icon: <IconComponent size={18} />, label: mod.label, path: mod.path };
+        if (mod.category === 'main') {
+          mainNavItems.push(item);
+        } else if (mod.category === 'contabilidad') {
+          contabilidadNavItems.push(item);
+        }
+      }
+    });
   }
 
   return (

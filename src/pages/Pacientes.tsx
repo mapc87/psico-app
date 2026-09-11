@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, User, Eye, Edit2 } from 'lucide-react';
+import { Search, Plus, User, Eye, Edit2, RefreshCw, X, Save } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,9 @@ export default function Pacientes() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroEstado, setFiltroEstado] = useState<'activo' | 'baja' | 'alta' | 'todos'>('activo');
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [pacienteParaEstado, setPacienteParaEstado] = useState<Paciente | null>(null);
+  const [nuevoEstado, setNuevoEstado] = useState<'activo' | 'baja' | 'alta'>('activo');
+  const [actualizandoEstado, setActualizandoEstado] = useState(false);
   const location = useLocation();
   const mensajeExito = location.state?.mensaje;
 
@@ -41,6 +44,30 @@ export default function Pacientes() {
       edad--;
     }
     return Math.max(0, edad);
+  };
+
+  const handleActualizarEstado = async () => {
+    if (!pacienteParaEstado) return;
+    setActualizandoEstado(true);
+    try {
+      const { error } = await supabase
+        .from('pacientes')
+        .update({ estado: nuevoEstado })
+        .eq('id', pacienteParaEstado.id);
+        
+      if (error) throw error;
+      
+      setPacientes(prev => prev.map(p => 
+        p.id === pacienteParaEstado.id ? { ...p, estado: nuevoEstado } : p
+      ));
+      
+      setPacienteParaEstado(null);
+    } catch (err) {
+      console.error(err);
+      alert('Error al actualizar el estado del paciente');
+    } finally {
+      setActualizandoEstado(false);
+    }
   };
 
   const pacientesFiltrados = pacientes.filter(p => {
@@ -145,6 +172,16 @@ export default function Pacientes() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                     <div className="flex justify-end space-x-2">
+                      <button 
+                        onClick={() => {
+                          setPacienteParaEstado(paciente);
+                          setNuevoEstado(paciente.estado || 'activo');
+                        }}
+                        className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                        title="Cambiar Estado"
+                      >
+                        <RefreshCw size={18} />
+                      </button>
                       <Link 
                         to={`/pacientes/${paciente.id}/editar`}
                         className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
@@ -176,6 +213,60 @@ export default function Pacientes() {
           </table>
         </div>
       </div>
+
+      {/* Modal para cambiar estado */}
+      {pacienteParaEstado && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="text-lg font-bold text-slate-800">Cambiar Estado</h3>
+              <button 
+                onClick={() => setPacienteParaEstado(null)}
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-slate-600 mb-4">
+                Selecciona el nuevo estado para el paciente <strong className="text-slate-800">{pacienteParaEstado.nombre}</strong>:
+              </p>
+              
+              <select 
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none text-slate-700 font-medium"
+                value={nuevoEstado}
+                onChange={(e) => setNuevoEstado(e.target.value as any)}
+              >
+                <option value="activo">Activo</option>
+                <option value="baja">De Baja</option>
+                <option value="alta">De Alta</option>
+              </select>
+              
+              <div className="mt-8 flex justify-end space-x-3">
+                <button 
+                  onClick={() => setPacienteParaEstado(null)}
+                  className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
+                  disabled={actualizandoEstado}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleActualizarEstado}
+                  disabled={actualizandoEstado}
+                  className="flex items-center px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-medium rounded-xl transition-all shadow-md shadow-violet-500/20 hover:shadow-violet-500/40 disabled:opacity-50"
+                >
+                  {actualizandoEstado ? 'Guardando...' : (
+                    <>
+                      <Save size={18} className="mr-2" />
+                      Guardar Estado
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

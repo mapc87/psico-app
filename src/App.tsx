@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Pacientes from './pages/Pacientes';
 import Agenda from './pages/Agenda';
 import NuevoPaciente from './pages/NuevoPaciente';
+import EditarPaciente from './pages/EditarPaciente';
 import PacienteDetalle from './pages/PacienteDetalle';
 import Consentimientos from './pages/Consentimientos';
 import FirmaRemota from './pages/FirmaRemota';
@@ -47,6 +48,7 @@ function AppRoutes() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/pacientes" element={<Pacientes />} />
           <Route path="/pacientes/nuevo" element={<NuevoPaciente />} />
+          <Route path="/pacientes/:id/editar" element={<EditarPaciente />} />
           <Route path="/pacientes/:id" element={<PacienteDetalle />} />
           <Route path="/agenda" element={<Agenda />} />
           <Route path="/consentimientos" element={<Consentimientos />} />

@@ -598,7 +598,16 @@ export default function PacienteDetalle() {
             {paciente.nombre.charAt(0)}
           </div>
           <div>
-            <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{paciente.nombre}</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{paciente.nombre}</h2>
+              <Link 
+                to={`/pacientes/${paciente.id}/editar`}
+                className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                title="Editar Paciente"
+              >
+                <Edit2 size={18} />
+              </Link>
+            </div>
             <p className="text-slate-500 flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start mt-2 font-medium gap-2 sm:gap-0">
               <span className="sm:mr-6 flex items-center"><User size={16} className="mr-2 opacity-70"/> Edad: {paciente.fecha_nacimiento ? `${calcularEdad(paciente.fecha_nacimiento)} años` : 'No registrada'}</span>
               <span className="flex items-center"><Phone size={16} className="mr-2 opacity-70"/> Teléfono: {paciente.telefono}</span>

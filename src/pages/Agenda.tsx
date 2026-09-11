@@ -126,23 +126,26 @@ export default function Agenda() {
     let countEnviados = 0;
     
     try {
-      const hoy = new Date();
-      const en48Horas = new Date(hoy.getTime() + 48 * 60 * 60 * 1000); // Próximas 48 hrs
+      const ahora = new Date();
+      const en48Horas = new Date(ahora.getTime() + 48 * 60 * 60 * 1000);
       
-      const citasARecordar = citasProximas.filter(c => {
-        const fecha = new Date(c.fecha_hora);
-        // Filtramos que estén en las próximas 48h, que no se haya enviado, que tengan email y estén programadas
-        return (
-          fecha > hoy && 
-          fecha <= en48Horas && 
-          c.estado === 'programada' && 
-          !c.recordatorio_enviado &&
-          c.paciente?.email
-        );
-      });
+      // Buscar en TODAS las citas (hoy + próximas), no solo en citasProximas
+      const todasLasCitas = [...citasHoy, ...citasProximas];
+      
+      const citasProgramadas = todasLasCitas.filter(c => c.estado === 'programada' && new Date(c.fecha_hora) > ahora && new Date(c.fecha_hora) <= en48Horas);
+      const citasSinEmail = citasProgramadas.filter(c => !c.paciente?.email);
+      const citasYaEnviadas = citasProgramadas.filter(c => c.recordatorio_enviado);
+      
+      const citasARecordar = citasProgramadas.filter(c => 
+        !c.recordatorio_enviado && c.paciente?.email
+      );
 
       if (citasARecordar.length === 0) {
-        setRemindersMessage({ type: 'success', text: 'No hay recordatorios pendientes para enviar en las próximas 48h.' });
+        let detalle = `No hay recordatorios pendientes (${citasProgramadas.length} citas en 48h`;
+        if (citasYaEnviadas.length > 0) detalle += `, ${citasYaEnviadas.length} ya notificadas`;
+        if (citasSinEmail.length > 0) detalle += `, ${citasSinEmail.length} sin email`;
+        detalle += ').';
+        setRemindersMessage({ type: 'success', text: detalle });
         setIsSendingReminders(false);
         setTimeout(() => setRemindersMessage(null), 5000);
         return;

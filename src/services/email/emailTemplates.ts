@@ -32,6 +32,7 @@ export interface RecordatorioCitaEmailParams {
   doctorNombre?: string;
   modalidad?: 'presencial' | 'virtual';
   enlaceVideo?: string;
+  esHoy?: boolean;
 }
 
 export function getFirmaRemotaTemplate({
@@ -310,9 +311,12 @@ export function getRecordatorioCitaTemplate({
   doctorNombre,
   modalidad,
   enlaceVideo,
+  esHoy = false,
 }: RecordatorioCitaEmailParams): { subject: string; html: string } {
   const isVirtual = modalidad === 'virtual' && enlaceVideo;
-  const subject = `🔔 Recordatorio de Cita: Mañana a las ${horaStr} - ${clinicaNombre}`;
+  const diaTexto = esHoy ? 'Hoy' : 'Mañana';
+  const diaTextoMinus = esHoy ? 'hoy' : 'mañana';
+  const subject = `🔔 Recordatorio de Cita: ${diaTexto} a las ${horaStr} - ${clinicaNombre}`;
   const html = `
     <!DOCTYPE html>
     <html lang="es">
@@ -342,7 +346,7 @@ export function getRecordatorioCitaTemplate({
         </div>
         <div class="content">
           <div class="greeting">Hola, ${pacienteNombre}</div>
-          <p>Este es un recordatorio amigable de que tienes una cita programada para <strong>mañana</strong>.</p>
+          <p>Este es un recordatorio amigable de que tienes una cita programada para <strong>${diaTextoMinus}</strong>.</p>
           
           <div class="details-card">
             <div class="detail-row">

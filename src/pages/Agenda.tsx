@@ -133,11 +133,11 @@ export default function Agenda() {
       const todasLasCitas = [...citasHoy, ...citasProximas];
       
       const citasProgramadas = todasLasCitas.filter(c => c.estado === 'programada' && new Date(c.fecha_hora) > ahora && new Date(c.fecha_hora) <= en48Horas);
-      const citasSinEmail = citasProgramadas.filter(c => !c.paciente?.email);
+      const citasSinEmail = citasProgramadas.filter(c => !c.paciente?.correo);
       const citasYaEnviadas = citasProgramadas.filter(c => c.recordatorio_enviado);
       
       const citasARecordar = citasProgramadas.filter(c => 
-        !c.recordatorio_enviado && c.paciente?.email
+        !c.recordatorio_enviado && c.paciente?.correo
       );
 
       if (citasARecordar.length === 0) {
@@ -151,23 +151,33 @@ export default function Agenda() {
         return;
       }
 
+      let clinicaNombre = 'PsicoApp';
+      if (usuarioActual?.clinica_id) {
+        const { data: clinica } = await supabase.from('clinicas').select('nombre').eq('id', usuarioActual.clinica_id).single();
+        if (clinica?.nombre) clinicaNombre = clinica.nombre;
+      }
+
       for (const cita of citasARecordar) {
-        if (!cita.paciente?.email) continue;
+        if (!cita.paciente?.correo) continue;
         
         const fechaCita = new Date(cita.fecha_hora);
         const fechaStr = fechaCita.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
         const horaStr = fechaCita.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        const esHoy = fechaCita.getDate() === ahora.getDate() && fechaCita.getMonth() === ahora.getMonth() && fechaCita.getFullYear() === ahora.getFullYear();
+
         const result = await emailService.enviarRecordatorioCita(
-          cita.paciente.email, 
+          cita.paciente.correo, 
           {
             pacienteNombre: cita.paciente.nombre,
+            clinicaNombre,
             fechaStr,
             horaStr,
             motivo: cita.motivo || 'Consulta médica',
             modalidad: cita.modalidad,
             enlaceVideo: cita.enlace_video,
             doctorNombre: usuarioActual?.nombre,
+            esHoy
           },
           usuarioActual?.clinica_id
         );

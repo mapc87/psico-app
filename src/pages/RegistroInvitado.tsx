@@ -18,15 +18,23 @@ export default function RegistroInvitado() {
     setError('');
     setLoading(true);
 
+    const codigoLimpio = codigoInvitacion.trim().toUpperCase();
+
+    if (!codigoLimpio) {
+      setError('Por favor ingresa un código de invitación válido.');
+      setLoading(false);
+      return;
+    }
+
     try {
       // Registrar usuario pasando el código al trigger de base de datos
       const { data, error: authError } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
           data: {
-            nombre: nombre,
-            codigo_invitacion: codigoInvitacion
+            nombre: nombre.trim(),
+            codigo_invitacion: codigoLimpio
           }
         }
       });
@@ -40,7 +48,13 @@ export default function RegistroInvitado() {
       
     } catch (error: any) {
       console.error('Error en registro', error);
-      setError(error.message || 'El código de invitación es inválido o hubo un error.');
+      let mensaje = error.message || 'El código de invitación es inválido o hubo un error.';
+      if (mensaje.includes('Database error') || mensaje.includes('Database error saving new user')) {
+        mensaje = 'El código de invitación es inválido, ya expiró o fue utilizado anteriormente.';
+      } else if (mensaje.includes('User already registered')) {
+        mensaje = 'Este correo electrónico ya está registrado en la plataforma.';
+      }
+      setError(mensaje);
       setLoading(false);
     }
   };

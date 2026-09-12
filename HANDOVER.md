@@ -70,12 +70,20 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 - En el expediente del paciente (`PacienteDetalle.tsx`), los doctores pueden usar el botón "Redactar con IA" para escribir un borrador rápido y la IA estructurará la información en una nota clínica bajo el estándar SOAP.
 - Requiere agregar la llave `VITE_GEMINI_API_KEY` en el archivo `.env` para funcionar (Actualmente configurado).
 
+### Correcciones y Estabilización Recientes
+- **Error de Pantalla Blanca (Bucle Infinito):** Se solucionó un problema en `ProtectedRoute.tsx` que provocaba un bucle infinito de redirección al `/dashboard` si el usuario no tenía permisos, lo que crasheaba React.
+- **Manejo Global de Errores:** Se implementó un `ErrorBoundary` en `App.tsx` para evitar futuras pantallas blancas y mostrar el error técnico claramente.
+- **Correcciones de Correos de Recordatorio:**
+  - Se corrigió un error donde la agenda no reconocía el correo electrónico del paciente (la interfaz `Paciente` usa `correo`, no `email`).
+  - Las plantillas de correo ahora diferencian si la cita es "Hoy" o "Mañana".
+  - Los correos de recordatorio ahora inyectan el nombre real de la clínica (`clinicaNombre`) desde la base de datos, en lugar del nombre genérico del sistema.
+
 ## 3. Instrucciones para el Próximo Agente
 ¡El proyecto está completamente funcional, migrado a Supabase y ha sido limpiado de archivos residuales! 
 
 Si requieres reinstalar la base de datos desde cero:
-1. Ejecuta el archivo `database_scripts/init_database_full.sql`.
-2. Luego, ejecuta los scripts dentro de `database_scripts/migrations/` para aplicar los parches y columnas más recientes.
+1. Ejecuta el archivo `database_scripts/00_master_init.sql` (que ya contiene todos los parches y actualizaciones acumuladas).
+2. Luego, ejecuta los scripts dentro de `database_scripts/migrations/` si existiera alguna nueva funcionalidad.
 
 Cuando trabajes en nuevas funcionalidades:
 1. Recuerda siempre enviar el `clinica_id` (que viene de `usuarioActual.clinica_id`) al hacer `insert` en nuevas tablas, ya que las políticas RLS lo requieren.

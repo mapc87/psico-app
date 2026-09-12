@@ -74,12 +74,16 @@ function AppRoutes() {
   );
 }
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

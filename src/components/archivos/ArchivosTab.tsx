@@ -101,7 +101,7 @@ export default function ArchivosTab({ pacienteId }: ArchivosTabProps) {
   };
 
   const handleDelete = async (archivo: ArchivoPaciente) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar "${archivo.nombre_original}"? Esta acción no se puede deshacer.`)) {
+    if (!window.confirm("¿Estás seguro de eliminar este archivo? Esta acción es irreversible.")) {
       return;
     }
 

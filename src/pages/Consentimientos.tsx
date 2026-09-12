@@ -103,7 +103,7 @@ export default function Consentimientos() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("¿Estás seguro de eliminar esta plantilla?")) {
+    if (window.confirm("¿Estás seguro de eliminar esta plantilla? Esta acción es irreversible.")) {
       const { error } = await supabase.from('plantillas_documentos').delete().eq('id', id);
       if (!error) {
         fetchPlantillas();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip, Package } from 'lucide-react';
+import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip, Package, Trash2 } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { APP_MODULES } from '../config/modules';
@@ -543,6 +543,50 @@ export default function PacienteDetalle() {
     else setPaqueteActivo(null);
   };
 
+  const refreshData = async () => {
+    if (!id) return;
+    const { data: nData } = await supabase.from('notas_clinicas').select('*').eq('paciente_id', id).order('fecha', { ascending: false });
+    if (nData) setNotas(nData);
+    const { data: dData } = await supabase.from('diagnosticos').select('*').eq('paciente_id', id).order('fecha', { ascending: false });
+    if (dData) setDiagnosticos(dData);
+    const { data: mData } = await supabase.from('medicamentos').select('*').eq('paciente_id', id).order('fecha_prescripcion', { ascending: false });
+    if (mData) setMedicamentos(mData);
+    const { data: eData } = await supabase.from('examenes').select('*').eq('paciente_id', id).order('fecha_solicitud', { ascending: false });
+    if (eData) setExamenes(eData);
+  };
+
+  const handleDeleteNota = async (notaId: string) => {
+    if (window.confirm("¿Estás seguro de eliminar esta nota clínica? Esta acción es irreversible.")) {
+      const { error } = await supabase.from('notas_clinicas').delete().eq('id', notaId);
+      if (!error) refreshData();
+      else alert('Error al eliminar nota.');
+    }
+  };
+
+  const handleDeleteDiagnostico = async (diagId: string) => {
+    if (window.confirm("¿Estás seguro de eliminar este diagnóstico? Esta acción es irreversible.")) {
+      const { error } = await supabase.from('diagnosticos').delete().eq('id', diagId);
+      if (!error) refreshData();
+      else alert('Error al eliminar diagnóstico.');
+    }
+  };
+
+  const handleDeleteMedicamento = async (medId: string) => {
+    if (window.confirm("¿Estás seguro de eliminar esta receta/medicamento? Esta acción es irreversible.")) {
+      const { error } = await supabase.from('medicamentos').delete().eq('id', medId);
+      if (!error) refreshData();
+      else alert('Error al eliminar medicamento.');
+    }
+  };
+
+  const handleDeleteExamen = async (examenId: string) => {
+    if (window.confirm("¿Estás seguro de eliminar esta orden de examen? Esta acción es irreversible.")) {
+      const { error } = await supabase.from('examenes').delete().eq('id', examenId);
+      if (!error) refreshData();
+      else alert('Error al eliminar examen.');
+    }
+  };
+
   // Filtrar tabs según permisos y configuración dinámica
   const tabs = APP_MODULES
     .filter(mod => mod.isExpedienteTab)
@@ -759,9 +803,18 @@ export default function PacienteDetalle() {
                             {nota.titulo.toLowerCase().includes('ia') || nota.titulo.toLowerCase().includes('soap') ? <BrainCircuit size={14} className="mr-1.5" /> : <FileText size={14} className="mr-1.5" />}
                             {nota.titulo}
                           </span>
-                          <span className="text-sm font-medium text-slate-400">
-                            {new Date(nota.fecha).toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
-                          </span>
+                          <div className="flex items-center space-x-3">
+                            <span className="text-sm font-medium text-slate-400">
+                              {new Date(nota.fecha).toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
+                            </span>
+                            <button 
+                              onClick={() => handleDeleteNota(nota.id)}
+                              className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                              title="Eliminar Nota"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                         <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{nota.contenido}</p>
                       </div>
@@ -837,6 +890,13 @@ export default function PacienteDetalle() {
                             Marcar como Recibido/Completado
                           </button>
                         )}
+                        <button 
+                          onClick={() => handleDeleteExamen(examen.id)}
+                          className="w-full py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 rounded-xl text-sm font-bold transition-colors cursor-pointer flex items-center justify-center mt-2"
+                        >
+                          <Trash2 size={16} className="mr-2" />
+                          Eliminar Orden
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -885,14 +945,23 @@ export default function PacienteDetalle() {
                           }`}>
                             {diag.estado}
                           </span>
-                          {diag.estado === 'activo' && diag.id && (
+                          <div className="flex items-center space-x-3">
+                            {diag.estado === 'activo' && diag.id && (
+                              <button 
+                                onClick={() => cambiarEstadoDiagnostico(diag.id!, 'resuelto')}
+                                className="text-xs text-slate-400 hover:text-blue-600 underline font-semibold transition-colors cursor-pointer"
+                              >
+                                Marcar como Resuelto
+                              </button>
+                            )}
                             <button 
-                              onClick={() => cambiarEstadoDiagnostico(diag.id!, 'resuelto')}
-                              className="text-xs text-slate-400 hover:text-blue-600 underline font-semibold transition-colors cursor-pointer"
+                              onClick={() => handleDeleteDiagnostico(diag.id)}
+                              className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                              title="Eliminar Diagnóstico"
                             >
-                              Marcar como Resuelto
+                              <Trash2 size={16} />
                             </button>
-                          )}
+                          </div>
                         </div>
                       </div>
                       <p className={`leading-relaxed whitespace-pre-wrap ${diag.estado === 'activo' ? 'text-blue-800' : 'text-slate-500'}`}>
@@ -1169,15 +1238,24 @@ export default function PacienteDetalle() {
                         }`}>
                           {med.estado}
                         </span>
-                        {med.estado === 'activo' && med.id && (
+                        <div className="flex items-center space-x-3">
+                          {med.estado === 'activo' && med.id && (
+                            <button 
+                              onClick={() => suspenderMedicamento(med.id!)}
+                              className="text-xs text-slate-400 hover:text-rose-600 underline font-semibold transition-colors flex items-center cursor-pointer"
+                            >
+                              <AlertCircle size={12} className="mr-1" />
+                              Suspender
+                            </button>
+                          )}
                           <button 
-                            onClick={() => suspenderMedicamento(med.id!)}
-                            className="text-xs text-slate-400 hover:text-rose-600 underline font-semibold transition-colors flex items-center cursor-pointer"
+                            onClick={() => handleDeleteMedicamento(med.id)}
+                            className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                            title="Eliminar Medicamento"
                           >
-                            <AlertCircle size={12} className="mr-1" />
-                            Suspender
+                            <Trash2 size={16} />
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
                   ))}

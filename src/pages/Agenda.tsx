@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, CheckCircle, XCircle, Plus, Video, Bell, BellRing } from 'lucide-react';
+import { Calendar, Clock, Plus, User, CheckCircle, XCircle, Video, BellRing, Trash2 } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { emailService } from '../services/email/emailService';
@@ -96,6 +96,17 @@ export default function Agenda() {
       fetchDatos(); // Refrescar datos
     } catch (error) {
       console.error('Error al actualizar estado:', error);
+    }
+  };
+
+  const handleDeleteCita = async (id: string) => {
+    if (window.confirm("¿Estás seguro de eliminar esta cita? Esta acción es irreversible.")) {
+      const { error } = await supabase.from('citas').delete().eq('id', id);
+      if (!error) {
+        fetchDatos();
+      } else {
+        alert('Error al eliminar la cita.');
+      }
     }
   };
 
@@ -283,6 +294,25 @@ export default function Agenda() {
               title="Cancelar Cita"
             >
               <XCircle size={18} />
+            </button>
+            <button 
+              onClick={() => cita.id && handleDeleteCita(cita.id)}
+              className="flex items-center justify-center p-2.5 bg-red-50 text-red-600 hover:bg-red-100 font-bold rounded-xl transition-colors cursor-pointer"
+              title="Eliminar Cita (Definitivo)"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        )}
+        
+        {cita.estado !== 'programada' && (
+          <div className="flex space-x-3 pt-4 border-t border-slate-50 justify-end">
+            <button 
+              onClick={() => cita.id && handleDeleteCita(cita.id)}
+              className="flex items-center justify-center p-2.5 bg-red-50 text-red-600 hover:bg-red-100 font-bold rounded-xl transition-colors cursor-pointer"
+              title="Eliminar Cita (Definitivo)"
+            >
+              <Trash2 size={18} />
             </button>
           </div>
         )}

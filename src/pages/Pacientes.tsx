@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, User, Users, FolderOpen, Edit2, UserCog, X, Save } from 'lucide-react';
+import { Search, Plus, User, Users, FolderOpen, Edit2, UserCog, X, Save, Trash2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
@@ -73,6 +73,19 @@ export default function Pacientes() {
     }
     
     setActualizandoEstado(false);
+  };
+
+  const handleDeletePaciente = async (id: string, nombre: string) => {
+    const confirmMessage = `⚠️ ADVERTENCIA CRÍTICA ⚠️\n\nEstás a punto de eliminar al paciente "${nombre}".\n\nEliminar un Paciente borrará permanentemente TODO su expediente (citas, documentos, notas clínicas, recetas, etc.) debido a las relaciones en la base de datos.\n\nEste proceso es totalmente IRREVERSIBLE.\n\n¿Estás absolutamente seguro de continuar?`;
+    
+    if (window.confirm(confirmMessage)) {
+      const { error } = await supabase.from('pacientes').delete().eq('id', id);
+      if (!error) {
+        setPacientes(pacientes.filter(p => p.id !== id));
+      } else {
+        alert('Error al eliminar el paciente. ' + error.message);
+      }
+    }
   };
 
   const pacientesFiltrados = pacientes.filter(p => {
@@ -222,6 +235,15 @@ export default function Pacientes() {
                         >
                           <FolderOpen size={18} />
                         </Link>
+                      )}
+                      {(usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin') && (
+                        <button 
+                          onClick={() => handleDeletePaciente(paciente.id, paciente.nombre)}
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Eliminar Paciente"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       )}
                     </div>
                   </td>

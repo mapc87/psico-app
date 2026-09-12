@@ -58,7 +58,7 @@ export default function GestorPruebas() {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta prueba? Esta acción no se puede deshacer.')) {
+    if (window.confirm("¿Estás seguro de eliminar esta prueba? Esta acción es irreversible.")) {
       try {
         const { error } = await supabase.from('evaluaciones_plantillas').delete().eq('id', id);
         if (error) throw error;

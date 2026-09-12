@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip } from 'lucide-react';
+import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip, Package } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
+import { APP_MODULES } from '../config/modules';
 import { useEffect } from 'react';
 import { emailService } from '../services/email/emailService';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
@@ -21,10 +22,11 @@ import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEva
 import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones';
 import EvaluacionPrint from '../components/evaluaciones/EvaluacionPrint';
 import ModalAnalisisIA from '../components/evaluaciones/ModalAnalisisIA';
+import ModalNuevaTarea from '../components/tareas/ModalNuevaTarea';
 import Toast from '../components/common/Toast';
 import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
-import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla } from '../types';
+import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla, TareaPaciente } from '../types';
 import type { SendEmailResult } from '../services/email/emailService';
 
 export default function PacienteDetalle() {
@@ -37,6 +39,7 @@ export default function PacienteDetalle() {
   const [isNotaModalOpen, setIsNotaModalOpen] = useState(false);
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
   const [isAnalisisIAModalOpen, setIsAnalisisIAModalOpen] = useState(false);
+  const [isTareaModalOpen, setIsTareaModalOpen] = useState(false);
   const [evaluacionParaAnalisis, setEvaluacionParaAnalisis] = useState<EvaluacionPaciente | null>(null);
   
   const [isDiagnosticoModalOpen, setIsDiagnosticoModalOpen] = useState(false);
@@ -57,6 +60,7 @@ export default function PacienteDetalle() {
   });
 
   const [paciente, setPaciente] = useState<any>(undefined);
+  const [paqueteActivo, setPaqueteActivo] = useState<any>(null);
   const [permisos, setPermisos] = useState<any>(null);
   const [citas, setCitas] = useState<any[]>([]);
   const [isHistorialCitasOpen, setIsHistorialCitasOpen] = useState(false);
@@ -65,6 +69,7 @@ export default function PacienteDetalle() {
   const [notas, setNotas] = useState<any[]>([]);
   const [diagnosticos, setDiagnosticos] = useState<any[]>([]);
   const [medicamentos, setMedicamentos] = useState<any[]>([]);
+  const [tareas, setTareas] = useState<TareaPaciente[]>([]);
   const [consentimientos, setConsentimientos] = useState<ConsentimientoFirmado[]>([]);
   const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
   const [clinicaData, setClinicaData] = useState<any>(null);;
@@ -134,6 +139,8 @@ export default function PacienteDetalle() {
       const { data: mData } = await supabase.from('medicamentos').select('*').eq('paciente_id', pId).order('fecha_prescripcion', { ascending: false });
       if (mData) setMedicamentos(mData);
 
+      const { data: tData } = await supabase.from('tareas_paciente').select('*').eq('paciente_id', pId).order('fecha_asignacion', { ascending: false });
+      if (tData) setTareas(tData);
       
       const { data: consentimientosData } = await supabase.from('consentimientos_firmados').select('*').eq('paciente_id', pId).order('fecha_firma', { ascending: false });
       if (consentimientosData) setConsentimientos(consentimientosData);
@@ -156,6 +163,14 @@ export default function PacienteDetalle() {
         const { data: clinicaRes } = await supabase.from('clinicas').select('*').eq('id', usuarioActual.clinica_id).single();
         if (clinicaRes) setClinicaData(clinicaRes);
       }
+
+      // Obtener paquete activo
+      const { data: paqueteData } = await supabase.from('paciente_paquetes')
+        .select(`*, paquete:paquetes_sesiones(*)`)
+        .eq('paciente_id', pId)
+        .eq('estado', 'activo')
+        .single();
+      if (paqueteData) setPaqueteActivo(paqueteData);
     };
     
     fetchData();
@@ -268,6 +283,32 @@ export default function PacienteDetalle() {
       throw new Error(error.message);
     }
     if (data) setDiagnosticos([data, ...diagnosticos].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()));
+  };
+
+  const handleSaveTarea = async (titulo: string, descripcion: string) => {
+    if (!usuarioActual) return;
+    const nuevaTarea = {
+      clinica_id: usuarioActual.clinica_id,
+      paciente_id: id,
+      medico_id: usuarioActual.id,
+      titulo,
+      descripcion,
+      estado: 'pendiente'
+    };
+    const { data, error } = await supabase.from('tareas_paciente').insert([nuevaTarea]).select().single();
+    if (error) {
+      console.error("Error exacto de Supabase:", error);
+      throw new Error(error.message);
+    }
+    if (data) setTareas([data, ...tareas].sort((a, b) => new Date(b.fecha_asignacion).getTime() - new Date(a.fecha_asignacion).getTime()));
+  };
+
+  const cambiarEstadoTarea = async (tareaId: string, nuevoEstado: 'pendiente' | 'completada') => {
+    const { data } = await supabase.from('tareas_paciente').update({ 
+      estado: nuevoEstado,
+      fecha_completada: nuevoEstado === 'completada' ? new Date().toISOString() : null
+    }).eq('id', tareaId).select().single();
+    if (data) setTareas(tareas.map(t => t.id === tareaId ? data : t));
   };
 
   const cambiarEstadoDiagnostico = async (diagnosticoId: string, nuevoEstado: 'activo' | 'resuelto') => {
@@ -483,24 +524,32 @@ export default function PacienteDetalle() {
     setConsentimientoActivo(null);
   };
 
-    const allTabs = [
-    { id: 'resumen', label: 'Resumen', icon: <User size={18} />, key: 'verResumen' },
-    { id: 'archivos', label: 'Archivos', icon: <Paperclip size={18} />, key: 'verResumen' },
-    { id: 'diagnosticos', label: 'Diagnósticos', icon: <Activity size={18} />, key: 'verDiagnosticos' },
-    { id: 'evaluaciones', label: 'Evaluaciones', icon: <BrainCircuit size={18} />, key: 'verHistorial' }, // Evaluaciones como 4ta opción
-    { id: 'examenes', label: 'Exámenes', icon: <ClipboardList size={18} />, key: 'verExamenes' },
-    { id: 'signos', label: 'Signos Vitales', icon: <Heart size={18} />, key: 'verSignos' },
-    { id: 'medicamentos', label: 'Medicamentos', icon: <Pill size={18} />, key: 'verMedicamentos' }
-  ];
+  const recargarPaqueteActivo = async () => {
+    const { data: paqueteData } = await supabase.from('paciente_paquetes')
+      .select(`*, paquete:paquetes_sesiones(*)`)
+      .eq('paciente_id', id)
+      .eq('estado', 'activo')
+      .single();
+    if (paqueteData) setPaqueteActivo(paqueteData);
+    else setPaqueteActivo(null);
+  };
 
-  // Filtrar tabs según permisos
-  const tabs = allTabs.filter(tab => {
-    if (usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || usuarioActual?.rol === 'admin') return true;
-    if (usuarioActual?.rol === 'personal' && permisos) {
-      return permisos[tab.key as keyof typeof permisos] === true;
-    }
-    return false;
-  });
+  // Filtrar tabs según permisos y configuración dinámica
+  const tabs = APP_MODULES
+    .filter(mod => mod.isExpedienteTab)
+    .filter(mod => {
+      if (usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin') return true;
+      if (permisos) return permisos[mod.id] === true;
+      return false;
+    })
+    .map(mod => {
+      const IconComp = mod.icon as any;
+      return {
+        id: mod.id.replace('ver', '').toLowerCase(),
+        label: mod.label,
+        icon: IconComp ? <IconComp size={16} /> : null
+      };
+    });
 
   if (paciente === undefined) {
     return <div className="p-12 text-center text-slate-500">Cargando expediente...</div>;
@@ -538,34 +587,104 @@ export default function PacienteDetalle() {
       </div>
 
       {/* Header del Expediente */}
-      <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white flex flex-col sm:flex-row items-center sm:items-center relative overflow-hidden text-center sm:text-left">
+      <div className="bg-white/80 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white flex flex-col lg:flex-row items-center lg:items-start justify-between relative overflow-hidden gap-6">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-violet-200/40 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-        <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-fuchsia-50 rounded-2xl flex items-center justify-center text-violet-600 text-3xl font-extrabold sm:mr-6 mb-4 sm:mb-0 shadow-inner border border-violet-100/50 z-10 shrink-0">
-          {paciente.nombre.charAt(0)}
+        
+        {/* Izquierda: Info principal */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left z-10 w-full lg:w-auto shrink-0">
+          <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-fuchsia-50 rounded-2xl flex items-center justify-center text-violet-600 text-3xl font-extrabold sm:mr-6 mb-4 sm:mb-0 shadow-inner border border-violet-100/50 shrink-0">
+            {paciente.nombre.charAt(0)}
+          </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{paciente.nombre}</h2>
+              <Link 
+                to={`/pacientes/${paciente.id}/editar`}
+                className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                title="Editar Paciente"
+              >
+                <Edit2 size={18} />
+              </Link>
+            </div>
+            <p className="text-slate-500 flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start mt-2 font-medium gap-2 sm:gap-0">
+              <span className="sm:mr-6 flex items-center"><User size={16} className="mr-2 opacity-70"/> Edad: {paciente.fecha_nacimiento ? `${calcularEdad(paciente.fecha_nacimiento)} años` : 'No registrada'}</span>
+              <span className="flex items-center"><Phone size={16} className="mr-2 opacity-70"/> Teléfono: {paciente.telefono}</span>
+            </p>
+            {paciente.nombre_responsable && (
+              <p className="text-slate-500 flex items-center justify-center sm:justify-start mt-1 text-sm">
+                <Shield size={14} className="mr-1.5 opacity-70" />
+                Resp: <span className="font-semibold text-slate-700 ml-1">{paciente.nombre_responsable}</span> 
+                {paciente.parentesco && <span className="ml-1 text-slate-400">({paciente.parentesco})</span>}
+                {paciente.telefono_responsable && <span className="ml-2 px-2 py-0.5 bg-slate-100 rounded-md text-xs">{paciente.telefono_responsable}</span>}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="z-10 w-full">
-          <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{paciente.nombre}</h2>
-          <p className="text-slate-500 flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start mt-2 font-medium gap-2 sm:gap-0">
-            <span className="sm:mr-6 flex items-center"><User size={16} className="mr-2 opacity-70"/> Edad: {paciente.fecha_nacimiento ? `${calcularEdad(paciente.fecha_nacimiento)} años` : 'No registrada'}</span>
-            <span className="flex items-center"><Phone size={16} className="mr-2 opacity-70"/> Teléfono: {paciente.telefono}</span>
-          </p>
+
+        {/* Derecha: Tarjetas de resumen */}
+        <div className="z-10 flex flex-wrap lg:flex-nowrap gap-3 w-full lg:w-auto lg:justify-end mt-4 lg:mt-0">
+          {/* Paquete Activo */}
+          {paqueteActivo && (
+            <div className="p-3 bg-fuchsia-50/80 backdrop-blur-sm rounded-xl border border-fuchsia-200 flex-1 min-w-[140px] max-w-[220px] flex items-center shadow-sm">
+              <div className="p-1.5 bg-fuchsia-100 rounded-lg mr-2 text-fuchsia-600 shrink-0">
+                <Package size={16} />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-[10px] font-bold text-fuchsia-500 uppercase tracking-wider mb-0.5 truncate" title={paqueteActivo.paquete.nombre}>{paqueteActivo.paquete.nombre}</h4>
+                <p className="text-fuchsia-700 font-bold text-xs truncate">{paqueteActivo.sesiones_restantes} sesiones</p>
+              </div>
+            </div>
+          )}
+
+          {/* Próxima Cita */}
+          <div className="p-3 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200 flex-1 min-w-[160px] max-w-[240px] flex items-center shadow-sm">
+            <div className="p-1.5 bg-violet-100 rounded-lg mr-2 text-violet-600 shrink-0">
+              <Calendar size={16} />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Próxima Cita</h4>
+              {(() => {
+                const proxima = citas?.find(c => c.estado === 'programada');
+                if (!proxima) return <p className="text-slate-600 font-semibold text-xs truncate">Sin citas</p>;
+                const raw = proxima.fecha_hora || proxima.fechaHora;
+                const dateObj = raw ? new Date(raw) : null;
+                const fechaStr = dateObj && !isNaN(dateObj.getTime())
+                  ? dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  : 'Pendiente';
+                return <p className="text-violet-700 font-bold text-xs truncate capitalize" title={fechaStr}>{fechaStr}</p>;
+              })()}
+            </div>
+          </div>
+          
+          {/* Ingreso */}
+          <div className="p-3 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200 flex-1 min-w-[160px] max-w-[240px] flex items-center shadow-sm">
+            <div className="p-1.5 bg-emerald-100 rounded-lg mr-2 text-emerald-600 shrink-0">
+              <FileText size={16} />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Ingreso</h4>
+              <p className="text-emerald-700 font-bold text-xs truncate">
+                {paciente.fecha_ingreso ? new Date(paciente.fecha_ingreso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Sistema de Pestañas */}
       <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white overflow-hidden">
-        <div className="border-b border-slate-100 flex overflow-x-auto px-2 pt-2">
-          {tabs.map(tab => (
+        <div className="border-b border-slate-100 flex overflow-x-auto pl-2 pr-6 pt-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center px-6 py-4 text-sm font-bold transition-all duration-300 border-b-2 cursor-pointer rounded-t-xl mx-1 ${
+              className={`flex items-center px-3 md:px-2 lg:px-3 py-3.5 text-[13px] font-bold transition-all duration-300 border-b-2 cursor-pointer rounded-t-xl mx-0.5 whitespace-nowrap shrink-0 ${
                 activeTab === tab.id 
                   ? 'border-violet-600 text-violet-700 bg-violet-50/50 shadow-[inset_0_-2px_10px_rgba(139,92,246,0.05)]' 
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/50'
               }`}
             >
-              <span className={`mr-2.5 transition-transform ${activeTab === tab.id ? 'scale-110' : ''}`}>{tab.icon}</span>
+              <span className={`mr-1.5 transition-transform ${activeTab === tab.id ? 'scale-110' : ''}`}>{tab.icon}</span>
               {tab.label}
             </button>
           ))}
@@ -577,51 +696,11 @@ export default function PacienteDetalle() {
           {/* Pestaña: Resumen */}
           {activeTab === 'resumen' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-100 flex flex-col justify-center">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Responsable</h4>
-                  {paciente.nombreResponsable ? (
-                    <div className="text-sm">
-                      <p className="text-slate-700 font-semibold">{paciente.nombreResponsable} <span className="font-normal text-slate-500">({paciente.parentesco})</span></p>
-                      <p className="text-slate-500">{paciente.telefonoResponsable}</p>
-                    </div>
-                  ) : (
-                    <p className="text-slate-500 text-sm italic">Sin responsable</p>
-                  )}
-                </div>
-                
-                <div className="p-4 bg-violet-50/50 rounded-xl border border-violet-100 flex items-center">
-                  <div className="p-2 bg-white rounded-lg shadow-sm mr-3 text-violet-500">
-                    <Calendar size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-violet-400 uppercase tracking-wider mb-0.5">Próxima Cita</h4>
-                    {(() => {
-                      const proxima = citas?.find(c => c.estado === 'programada');
-                      if (!proxima) return <p className="text-violet-900/60 font-semibold text-sm">Sin citas programadas</p>;
-                      const raw = proxima.fecha_hora || proxima.fechaHora;
-                      const dateObj = raw ? new Date(raw) : null;
-                      const fechaStr = dateObj && !isNaN(dateObj.getTime())
-                        ? dateObj.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }) + ' - ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' hrs'
-                        : 'Fecha pendiente';
-                      return <p className="text-violet-900 font-semibold text-sm capitalize">{fechaStr}</p>;
-                    })()}
-                  </div>
-                </div>
-                
-                <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100 flex items-center">
-                  <div className="p-2 bg-white rounded-lg shadow-sm mr-3 text-emerald-500">
-                    <FileText size={20} />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-0.5">Ingreso al Consultorio</h4>
-                    <p className="text-emerald-900 font-semibold text-sm">{paciente.fechaIngreso}</p>
-                  </div>
-                </div>
-              </div>
-            
+              
+
+
               {/* --- Inicio Historial integrado en Resumen --- */}
-              <div className="mt-12 border-t border-slate-100 pt-8">
+              <div className="mt-4">
 
               <div className="flex justify-between items-center mb-6">
                 <div>
@@ -793,20 +872,86 @@ export default function PacienteDetalle() {
                         </div>
                       </div>
                       <p className={`leading-relaxed whitespace-pre-wrap ${diag.estado === 'activo' ? 'text-blue-800' : 'text-slate-500'}`}>
-                        {diag.planTratamiento}
+                        {diag.plan_tratamiento || diag.planTratamiento}
                       </p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="p-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50">
+                <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 text-center text-slate-500">
                   <Activity size={48} className="mx-auto text-slate-300 mb-4" />
-                  <p className="text-lg font-semibold text-slate-500">Sin diagnósticos activos</p>
-                  <p className="text-sm text-slate-400 mt-2">Agregue una patología y su plan de tratamiento correspondiente.</p>
+                  <p className="text-lg font-semibold">No hay diagnósticos</p>
+                  <p className="text-sm mt-1">Registra el primer diagnóstico clínico para este paciente.</p>
                 </div>
               )}
             </div>
           )}
+
+          {/* Pestaña: Tareas */}
+          {activeTab === 'tareas' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-slate-800">Tareas Entre-Sesiones</h3>
+                <button 
+                  onClick={() => setIsTareaModalOpen(true)}
+                  className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer flex items-center"
+                >
+                  <ClipboardList size={16} className="mr-2" />
+                  Asignar Tarea
+                </button>
+              </div>
+              
+              {tareas && tareas.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {tareas.map(tarea => (
+                    <div key={tarea.id} className={`p-5 border rounded-2xl transition-all duration-300 ${tarea.estado === 'pendiente' ? 'border-amber-100 bg-amber-50/30 hover:shadow-md hover:border-amber-200' : 'border-emerald-100 bg-emerald-50/50 opacity-90'}`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center">
+                          <ClipboardList size={20} className={`${tarea.estado === 'pendiente' ? 'text-amber-500' : 'text-emerald-500'} mr-2`} />
+                          <h4 className={`font-bold ${tarea.estado === 'pendiente' ? 'text-slate-800' : 'text-emerald-900'}`}>{tarea.titulo}</h4>
+                        </div>
+                        <span className={`px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded-md ${
+                          tarea.estado === 'pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          {tarea.estado}
+                        </span>
+                      </div>
+                      
+                      {tarea.descripcion && (
+                        <p className={`text-sm mb-4 leading-relaxed whitespace-pre-wrap ${tarea.estado === 'pendiente' ? 'text-slate-600' : 'text-emerald-700/80'}`}>
+                          {tarea.descripcion}
+                        </p>
+                      )}
+                      
+                      <div className="text-xs font-medium text-slate-400 mb-4">
+                        Asignada: {new Date(tarea.fecha_asignacion).toLocaleDateString()}
+                        {tarea.fecha_completada && ` • Completada: ${new Date(tarea.fecha_completada).toLocaleDateString()}`}
+                      </div>
+                      
+                      {tarea.estado === 'pendiente' && (
+                        <div className="mt-auto pt-2 border-t border-amber-100">
+                          <button 
+                            onClick={() => cambiarEstadoTarea(tarea.id, 'completada')}
+                            className="w-full py-2 bg-white hover:bg-emerald-50 text-emerald-600 border border-emerald-100 hover:border-emerald-200 rounded-xl text-sm font-bold transition-colors cursor-pointer flex items-center justify-center"
+                          >
+                            <CheckCircle2 size={16} className="mr-2" />
+                            Marcar como Completada
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 text-center text-slate-500">
+                  <ClipboardList size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-lg font-semibold">No hay tareas asignadas</p>
+                  <p className="text-sm mt-1">Asigna lecturas, diarios o ejercicios para que el paciente los complete en casa.</p>
+                </div>
+              )}
+            </div>
+          )}
+
 
           {/* Pestaña: Signos Vitales */}
           {activeTab === 'signos' && (
@@ -1656,6 +1801,12 @@ export default function PacienteDetalle() {
         subtitulo={modalCorreoState.subtitulo}
         emailDefault={modalCorreoState.emailDefault}
         onSend={modalCorreoState.onSend}
+      />
+
+      <ModalNuevaTarea
+        isOpen={isTareaModalOpen}
+        onClose={() => setIsTareaModalOpen(false)}
+        onSave={handleSaveTarea}
       />
 
       {/* Toast Flotante Elegante */}

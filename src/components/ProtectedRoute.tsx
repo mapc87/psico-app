@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase/client';
+import { APP_MODULES } from '../config/modules';
 import type { Rol } from '../types';
 
 export default function ProtectedRoute({ requireAdmin = false, children }: { requireAdmin?: boolean, children?: React.ReactNode }) {
@@ -47,16 +48,14 @@ export default function ProtectedRoute({ requireAdmin = false, children }: { req
     if (permisos) {
       const path = location.pathname;
       
-      // Proteger rutas principales
-      if (path.startsWith('/agenda') && !permisos.verAgenda) {
-        return <Navigate to="/dashboard" replace />;
-      }
-      if (path.startsWith('/pacientes') && !permisos.verPacientes) {
+      // Proteger rutas principales dinámicamente
+      const matchingModule = APP_MODULES.find(mod => mod.path && path.startsWith(mod.path));
+      if (matchingModule && !permisos[matchingModule.id as keyof typeof permisos]) {
         return <Navigate to="/dashboard" replace />;
       }
       
       // Proteger rutas de administración que intenten acceder por URL
-      if (path.startsWith('/roles') || path.startsWith('/personal') || path.startsWith('/admin')) {
+      if (path.startsWith('/roles') || path.startsWith('/personal') || path.startsWith('/admin') || path.startsWith('/configuracion')) {
         return <Navigate to="/dashboard" replace />;
       }
     }

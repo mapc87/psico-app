@@ -3,12 +3,14 @@ import {
   getConfirmacionCitaTemplate,
   getRecetaMedicaTemplate,
   getInvitacionTemplate,
+  getRecordatorioCitaTemplate,
 } from './emailTemplates';
 import type {
   FirmaRemotaEmailParams,
   ConfirmacionCitaEmailParams,
   RecetaMedicaEmailParams,
   InvitacionEmailParams,
+  RecordatorioCitaEmailParams,
 } from './emailTemplates';
 import { supabase } from '../supabase/client';
 
@@ -105,6 +107,11 @@ export const emailService = {
 
   async enviarInvitacionClinica(to: string, params: InvitacionEmailParams, clinicaId?: string): Promise<SendEmailResult> {
     const { subject, html } = getInvitacionTemplate(params);
+    return sendEmailViaResend(to, subject, html, clinicaId);
+  },
+
+  async enviarRecordatorioCita(to: string, params: RecordatorioCitaEmailParams, clinicaId?: string): Promise<SendEmailResult> {
+    const { subject, html } = getRecordatorioCitaTemplate(params);
     return sendEmailViaResend(to, subject, html, clinicaId);
   },
 };

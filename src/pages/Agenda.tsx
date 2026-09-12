@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, CheckCircle, XCircle, Plus, Video } from 'lucide-react';
+import { Calendar, Clock, User, CheckCircle, XCircle, Plus, Video, Bell, BellRing } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
+import { emailService } from '../services/email/emailService';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
 import type { Cita, Paciente } from '../types';
 
@@ -18,6 +19,8 @@ export default function Agenda() {
   const [citasHoy, setCitasHoy] = useState<CitaConPaciente[]>([]);
   const [citasProximas, setCitasProximas] = useState<CitaConPaciente[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSendingReminders, setIsSendingReminders] = useState(false);
+  const [remindersMessage, setRemindersMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const fetchDatos = async () => {
     if (!usuarioActual?.clinica_id) return;
@@ -66,8 +69,30 @@ export default function Agenda() {
 
   const cambiarEstadoCita = async (citaId: string, nuevoEstado: 'completada' | 'cancelada') => {
     try {
+      const cita = citasDb.find(c => c.id === citaId);
+      if (!cita) return;
+
       const { error } = await supabase.from('citas').update({ estado: nuevoEstado }).eq('id', citaId);
       if (error) throw error;
+
+      // Descontar del paquete si se completó
+      if (nuevoEstado === 'completada' && cita.paciente_id) {
+        const { data: paquete } = await supabase.from('paciente_paquetes')
+          .select('*')
+          .eq('paciente_id', cita.paciente_id)
+          .eq('estado', 'activo')
+          .single();
+        
+        if (paquete && paquete.sesiones_restantes > 0) {
+          const nuevasSesiones = paquete.sesiones_restantes - 1;
+          const nuevoEstadoPaquete = nuevasSesiones <= 0 ? 'agotado' : 'activo';
+          
+          await supabase.from('paciente_paquetes')
+            .update({ sesiones_restantes: nuevasSesiones, estado: nuevoEstadoPaquete })
+            .eq('id', paquete.id);
+        }
+      }
+
       fetchDatos(); // Refrescar datos
     } catch (error) {
       console.error('Error al actualizar estado:', error);
@@ -92,6 +117,76 @@ export default function Agenda() {
     } catch (error) {
       console.error('Error al guardar nueva cita:', error);
       throw error;
+    }
+  };
+
+  const enviarRecordatorios = async () => {
+    setIsSendingReminders(true);
+    setRemindersMessage(null);
+    let countEnviados = 0;
+    
+    try {
+      const ahora = new Date();
+      const en48Horas = new Date(ahora.getTime() + 48 * 60 * 60 * 1000);
+      
+      // Buscar en TODAS las citas (hoy + próximas), no solo en citasProximas
+      const todasLasCitas = [...citasHoy, ...citasProximas];
+      
+      const citasProgramadas = todasLasCitas.filter(c => c.estado === 'programada' && new Date(c.fecha_hora) > ahora && new Date(c.fecha_hora) <= en48Horas);
+      const citasSinEmail = citasProgramadas.filter(c => !c.paciente?.email);
+      const citasYaEnviadas = citasProgramadas.filter(c => c.recordatorio_enviado);
+      
+      const citasARecordar = citasProgramadas.filter(c => 
+        !c.recordatorio_enviado && c.paciente?.email
+      );
+
+      if (citasARecordar.length === 0) {
+        let detalle = `No hay recordatorios pendientes (${citasProgramadas.length} citas en 48h`;
+        if (citasYaEnviadas.length > 0) detalle += `, ${citasYaEnviadas.length} ya notificadas`;
+        if (citasSinEmail.length > 0) detalle += `, ${citasSinEmail.length} sin email`;
+        detalle += ').';
+        setRemindersMessage({ type: 'success', text: detalle });
+        setIsSendingReminders(false);
+        setTimeout(() => setRemindersMessage(null), 5000);
+        return;
+      }
+
+      for (const cita of citasARecordar) {
+        if (!cita.paciente?.email) continue;
+        
+        const fechaCita = new Date(cita.fecha_hora);
+        const fechaStr = fechaCita.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+        const horaStr = fechaCita.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const result = await emailService.enviarRecordatorioCita(
+          cita.paciente.email, 
+          {
+            pacienteNombre: cita.paciente.nombre,
+            fechaStr,
+            horaStr,
+            motivo: cita.motivo || 'Consulta médica',
+            modalidad: cita.modalidad,
+            enlaceVideo: cita.enlace_video,
+            doctorNombre: usuarioActual?.nombre,
+          },
+          usuarioActual?.clinica_id
+        );
+
+        if (result.success) {
+          // Marcar en DB como enviado
+          await supabase.from('citas').update({ recordatorio_enviado: true }).eq('id', cita.id);
+          countEnviados++;
+        }
+      }
+
+      setRemindersMessage({ type: 'success', text: `Se enviaron exitosamente ${countEnviados} recordatorios.` });
+      fetchDatos(); // Refrescar para que desaparezcan de los pendientes de enviar
+    } catch (error) {
+      console.error('Error enviando recordatorios:', error);
+      setRemindersMessage({ type: 'error', text: 'Ocurrió un error al enviar los recordatorios.' });
+    } finally {
+      setIsSendingReminders(false);
+      setTimeout(() => setRemindersMessage(null), 5000);
     }
   };
 
@@ -123,6 +218,20 @@ export default function Agenda() {
             {isPasada && cita.estado === 'programada' ? 'Atrasada' : cita.estado}
           </span>
         </div>
+        
+        {cita.estado === 'programada' && !isPasada && (
+          <div className="flex justify-end mb-2">
+             {cita.recordatorio_enviado ? (
+               <span className="text-[10px] bg-emerald-50 text-emerald-600 font-bold px-2 py-0.5 rounded-full flex items-center border border-emerald-200">
+                 <CheckCircle size={10} className="mr-1" /> Recordatorio Enviado
+               </span>
+             ) : (
+               <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded-full flex items-center border border-slate-200">
+                 Pendiente Notificar
+               </span>
+             )}
+          </div>
+        )}
         
         <div className="flex items-center gap-2 mb-1">
           <h4 className={`font-extrabold text-slate-800 flex items-center ${destacada ? 'text-xl' : 'text-lg'}`}>
@@ -182,14 +291,37 @@ export default function Agenda() {
           </h2>
           <p className="text-slate-500 mt-1 ml-11">Control de tus citas programadas</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold rounded-xl transition-all duration-300 shadow-md shadow-violet-500/20 cursor-pointer"
-        >
-          <Plus size={20} className="mr-2" />
-          Nueva Cita
-        </button>
+        <div className="flex space-x-3">
+          <button 
+            onClick={enviarRecordatorios}
+            disabled={isSendingReminders}
+            className="flex items-center px-4 py-3 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-bold rounded-xl transition-all duration-300 shadow-sm disabled:opacity-50"
+            title="Envía un email a todas las citas de las próximas 48 horas"
+          >
+            {isSendingReminders ? (
+               <div className="w-5 h-5 mr-2 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
+            ) : (
+               <BellRing size={20} className="mr-2 text-amber-500" />
+            )}
+            {isSendingReminders ? 'Enviando...' : 'Notificar Citas'}
+          </button>
+
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold rounded-xl transition-all duration-300 shadow-md shadow-violet-500/20 cursor-pointer"
+          >
+            <Plus size={20} className="mr-2" />
+            Nueva Cita
+          </button>
+        </div>
       </div>
+
+      {remindersMessage && (
+        <div className={`p-4 rounded-xl border font-medium flex items-center shadow-sm animate-in fade-in slide-in-from-top-2 ${remindersMessage.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>
+           {remindersMessage.type === 'success' ? <CheckCircle className="mr-2" size={20} /> : <XCircle className="mr-2" size={20} />}
+           {remindersMessage.text}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         

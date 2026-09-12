@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, User, Phone, MapPin, Mail, CreditCard, FileText, Save, X } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 
-export default function NuevoPaciente() {
+export default function EditarPaciente() {
+  const { id } = useParams();
   const { usuarioActual } = useAuth();
   const navigate = useNavigate();
+  const [cargando, setCargando] = useState(true);
   const [formData, setFormData] = useState({
     nombre: '',
     fecha_nacimiento: '',
@@ -15,9 +17,8 @@ export default function NuevoPaciente() {
     correo: '',
     direccion: '',
     nit: 'CF',
-    fecha_ingreso: new Date().toISOString().split('T')[0], // Por defecto hoy
+    fecha_ingreso: new Date().toISOString().split('T')[0],
     
-    // Datos del responsable (menores)
     nombre_responsable: '',
     parentesco: '',
     telefono_responsable: '',
@@ -27,32 +28,64 @@ export default function NuevoPaciente() {
     estado: 'activo'
   });
 
+  useEffect(() => {
+    const fetchPaciente = async () => {
+      if (!id) return;
+      try {
+        const { data, error } = await supabase.from('pacientes').select('*').eq('id', id).single();
+        if (error) throw error;
+        if (data) {
+          // Fill form data with existing data, handling nulls
+          setFormData({
+            nombre: data.nombre || '',
+            fecha_nacimiento: data.fecha_nacimiento || '',
+            dpi: data.dpi || '',
+            telefono: data.telefono || '',
+            correo: data.correo || '',
+            direccion: data.direccion || '',
+            nit: data.nit || 'CF',
+            fecha_ingreso: data.fecha_ingreso || new Date().toISOString().split('T')[0],
+            nombre_responsable: data.nombre_responsable || '',
+            parentesco: data.parentesco || '',
+            telefono_responsable: data.telefono_responsable || '',
+            ocupacion_responsable: data.ocupacion_responsable || '',
+            estado_civil_padres: data.estado_civil_padres || '',
+            notas_dinamica: data.notas_dinamica || '',
+            estado: data.estado || 'activo'
+          });
+        }
+      } catch (error) {
+        console.error('Error al cargar el paciente:', error);
+      } finally {
+        setCargando(false);
+      }
+    };
+    fetchPaciente();
+  }, [id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!usuarioActual) {
-      alert('Error: Sesión no válida.');
+    if (!usuarioActual || !id) {
+      alert('Error: Sesión no válida o paciente no encontrado.');
       return;
     }
     
     try {
-      const nuevoPaciente = {
-        ...formData,
-        clinica_id: usuarioActual.clinica_id
-      };
-      
-      const { error } = await supabase.from('pacientes').insert([nuevoPaciente]);
+      const { error } = await supabase
+        .from('pacientes')
+        .update(formData)
+        .eq('id', id);
       
       if (error) throw error;
       
-      // Mostrar feedback y redirigir
-      navigate('/pacientes', { state: { mensaje: 'Paciente guardado exitosamente.' } });
+      navigate(`/pacientes`, { state: { mensaje: 'Paciente actualizado exitosamente.' } });
     } catch (error) {
-      console.error('Error al guardar el paciente', error);
-      alert('Hubo un error al guardar el paciente. Por favor intenta de nuevo.');
+      console.error('Error al actualizar el paciente', error);
+      alert('Hubo un error al actualizar el paciente. Por favor intenta de nuevo.');
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -71,13 +104,16 @@ export default function NuevoPaciente() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header y Botón de Regresar */}
       <div className="flex items-center justify-between">
-        <Link to="/pacientes" className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-violet-600 transition-colors group">
+        <Link to={`/pacientes`} className="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-violet-600 transition-colors group">
           <ArrowLeft size={16} className="mr-1.5 group-hover:-translate-x-1 transition-transform" />
           Volver a Pacientes
         </Link>
-        <h2 className="text-2xl font-bold text-slate-800">Agregar Nuevo Paciente</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Editar Paciente</h2>
       </div>
 
+      {cargando ? (
+        <div className="p-12 text-center text-slate-500">Cargando expediente...</div>
+      ) : (
       <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         {/* SECCIÓN 1: Datos Personales */}
@@ -362,7 +398,7 @@ export default function NuevoPaciente() {
         <div className="flex justify-end space-x-4 pt-4 pb-12">
           <button 
             type="button"
-            onClick={() => navigate('/pacientes')}
+            onClick={() => navigate(`/pacientes`)}
             className="flex items-center px-6 py-3 text-slate-600 font-bold hover:bg-white rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200"
           >
             <X size={18} className="mr-2" />
@@ -373,11 +409,12 @@ export default function NuevoPaciente() {
             className="flex items-center px-8 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:-translate-y-0.5 cursor-pointer"
           >
             <Save size={18} className="mr-2" />
-            Guardar Paciente
+            Actualizar Paciente
           </button>
         </div>
         
       </form>
+      )}
     </div>
   );
 }

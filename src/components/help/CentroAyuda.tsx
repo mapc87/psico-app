@@ -29,9 +29,10 @@ const GUIAS: GuiaSeccion[] = [
     descripcion: 'Cómo crear, buscar y gestionar expedientes.',
     roles: ['admin', 'personal'],
     pasos: [
-      { titulo: 'Crear un nuevo paciente', detalle: 'Ve a "Pacientes" → haz clic en el botón "+ Nuevo Paciente". Rellena el formulario con nombre, fecha de nacimiento, contacto y datos clínicos. Haz clic en "Guardar".' },
-      { titulo: 'Buscar un paciente', detalle: 'En la lista de Pacientes, usa la barra de búsqueda en la parte superior para filtrar por nombre, número de expediente o diagnóstico.' },
-      { titulo: 'Abrir el expediente', detalle: 'Haz clic sobre el nombre o tarjeta del paciente en la lista. Esto abrirá el expediente completo con todas sus pestañas.' },
+      { titulo: 'Crear un nuevo paciente', detalle: 'Ve a "Pacientes" → haz clic en el botón "+ Nuevo Paciente". Rellena el formulario con nombre, fecha de nacimiento, contacto y datos clínicos. Selecciona el estado inicial y haz clic en "Guardar".' },
+      { titulo: 'Buscar y filtrar pacientes', detalle: 'En la lista de Pacientes, usa la barra de búsqueda para filtrar por nombre. Utiliza el selector de estado junto al botón de búsqueda para ver pacientes Activos, De Baja o De Alta.' },
+      { titulo: 'Cambiar estado del paciente', detalle: 'En la lista de pacientes, haz clic en el ícono de cambiar estado (⚙️👤) junto al botón de editar para abrir el modal rápido. Selecciona el nuevo estado y haz clic en Guardar.' },
+      { titulo: 'Abrir el expediente', detalle: 'Haz clic sobre el botón con ícono de carpeta abierta (📂) en la lista de pacientes. Esto abrirá el expediente médico completo.' },
       { titulo: 'Navegar por el expediente', detalle: 'El expediente tiene pestañas: Resumen, Notas, Exámenes, Signos Vitales, Diagnósticos, Medicamentos, Evaluaciones, Archivos y Finanzas. Haz clic en cada pestaña para acceder a esa sección.' },
     ]
   },

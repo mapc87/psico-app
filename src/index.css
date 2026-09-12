@@ -23,10 +23,8 @@
 }
 
 /* =====================================================
-   ESTILOS DE IMPRESIÓN DE FACTURA (80mm - ticket)
+   ESTILOS DE IMPRESIÓN DE FACTURA (Media Carta)
    Solo se activan cuando el body tiene la clase .print-invoice
-   react-to-print usa un iframe aislado y NO necesita estos estilos.
-   window.print() directo (facturas) SÍ los necesita.
    ===================================================== */
 @media print {
   body.print-invoice * {
@@ -39,18 +37,18 @@
   }
 
   body.print-invoice #printable-invoice {
-    position: fixed !important;
+    position: absolute !important;
     left: 0 !important;
     top: 0 !important;
-    width: 80mm !important;
+    width: 100% !important;
     margin: 0 !important;
-    padding: 2mm 2mm 20mm 2mm !important;
+    padding: 1cm !important;
     background: white !important;
     color: black !important;
   }
 
   body.print-invoice {
-    size: 80mm 297mm;
+    size: 5.5in 8.5in portrait; /* Media Carta */
     margin: 0;
   }
 }

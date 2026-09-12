@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Plus, Save, X, Edit2, Trash2 } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
+import { APP_MODULES } from '../config/modules';
 import type { Permisos, Rol } from '../types';
 
 export default function Roles() {
@@ -9,19 +10,10 @@ export default function Roles() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRolId, setEditingRolId] = useState<string | null>(null);
   
+  const initPermisos = () => APP_MODULES.reduce((acc, mod) => ({ ...acc, [mod.id]: false }), {} as Permisos);
+  
   const [nombre, setNombre] = useState('');
-  const [permisos, setPermisos] = useState<Permisos>({
-    verAgenda: false,
-    verPacientes: false,
-    verResumen: false,
-    verCitas: false,
-    verExamenes: false,
-    verSignos: false,
-    verHistorial: false,
-    verDiagnosticos: false,
-    verMedicamentos: false,
-    verFinanzas: false
-  });
+  const [permisos, setPermisos] = useState<Permisos>(initPermisos());
 
   const [roles, setRoles] = useState<Rol[]>([]);
 
@@ -37,18 +29,7 @@ export default function Roles() {
 
   const resetForm = () => {
     setNombre('');
-    setPermisos({
-      verAgenda: false,
-      verPacientes: false,
-      verResumen: false,
-      verCitas: false,
-      verExamenes: false,
-      verSignos: false,
-      verHistorial: false,
-      verDiagnosticos: false,
-      verMedicamentos: false,
-      verFinanzas: false
-    });
+    setPermisos(initPermisos());
     setEditingRolId(null);
   };
 
@@ -63,7 +44,7 @@ export default function Roles() {
     setIsModalOpen(true);
   };
 
-  const handleTogglePermiso = (key: keyof Permisos) => {
+  const handleTogglePermiso = (key: string) => {
     setPermisos(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -92,22 +73,6 @@ export default function Roles() {
       fetchRoles();
     }
   };
-
-  const modulosPrincipales = [
-    { key: 'verAgenda', label: 'Agenda y Calendario' },
-    { key: 'verPacientes', label: 'Lista de Pacientes' },
-    { key: 'verFinanzas', label: 'Facturación y Finanzas' }
-  ];
-
-  const modulosExpediente = [
-    { key: 'verResumen', label: 'Resumen del Paciente' },
-    { key: 'verCitas', label: 'Citas del Paciente' },
-    { key: 'verExamenes', label: 'Exámenes y Órdenes' },
-    { key: 'verSignos', label: 'Signos Vitales y Triage' },
-    { key: 'verHistorial', label: 'Historial / Notas Clínicas' },
-    { key: 'verDiagnosticos', label: 'Diagnósticos / Tratamiento' },
-    { key: 'verMedicamentos', label: 'Recetas / Medicamentos' }
-  ];
 
   if (usuarioActual?.rol !== 'admin' && usuarioActual?.rol !== 'doctor') {
     return <div className="p-8 text-center text-red-500 font-bold">No tienes acceso a esta sección.</div>;
@@ -145,10 +110,12 @@ export default function Roles() {
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Accesos Activos:</h4>
               <div className="flex flex-wrap gap-2">
-                {Object.entries(rol.permisos).map(([key, value]) => {
+                {Object.entries(rol.permisos || {}).map(([key, value]) => {
                   if (value) {
+                    const modInfo = APP_MODULES.find(m => m.id === key);
+                    const label = modInfo ? modInfo.label : key.replace('ver', '');
                     return <span key={key} className="px-2 py-1 bg-violet-100 text-violet-700 text-xs font-semibold rounded-md border border-violet-200">
-                      {key.replace('ver', '')}
+                      {label}
                     </span>
                   }
                   return null;
@@ -199,13 +166,13 @@ export default function Roles() {
                 <div>
                   <h4 className="text-sm font-bold text-slate-600 mb-4 pb-2 border-b border-slate-100">Permisos de Módulos Principales</h4>
                   <div className="space-y-3">
-                    {modulosPrincipales.map(mod => (
-                      <label key={mod.key} className="flex items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                    {APP_MODULES.filter(m => m.category === 'main' || m.category === 'contabilidad').map(mod => (
+                      <label key={mod.id} className="flex items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
                         <input 
                           type="checkbox" 
                           className="w-5 h-5 text-violet-600 rounded border-slate-300 focus:ring-violet-500 cursor-pointer"
-                          checked={permisos[mod.key as keyof Permisos]}
-                          onChange={() => handleTogglePermiso(mod.key as keyof Permisos)}
+                          checked={permisos[mod.id] || false}
+                          onChange={() => handleTogglePermiso(mod.id)}
                         />
                         <span className="ml-3 font-semibold text-slate-700">{mod.label}</span>
                       </label>
@@ -216,13 +183,13 @@ export default function Roles() {
                 <div>
                   <h4 className="text-sm font-bold text-slate-600 mb-4 pb-2 border-b border-slate-100">Permisos dentro del Expediente Clínico</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {modulosExpediente.map(mod => (
-                      <label key={mod.key} className="flex items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                    {APP_MODULES.filter(m => m.category === 'expediente').map(mod => (
+                      <label key={mod.id} className="flex items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
                         <input 
                           type="checkbox" 
                           className="w-5 h-5 text-violet-600 rounded border-slate-300 focus:ring-violet-500 cursor-pointer"
-                          checked={permisos[mod.key as keyof Permisos]}
-                          onChange={() => handleTogglePermiso(mod.key as keyof Permisos)}
+                          checked={permisos[mod.id] || false}
+                          onChange={() => handleTogglePermiso(mod.id)}
                         />
                         <span className="ml-3 font-semibold text-slate-700 text-sm">{mod.label}</span>
                       </label>

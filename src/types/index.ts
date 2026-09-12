@@ -34,18 +34,7 @@ export interface Usuario {
   created_at: string;
 }
 
-export interface Permisos {
-  verAgenda: boolean;
-  verPacientes: boolean;
-  verResumen: boolean;
-  verCitas: boolean;
-  verExamenes: boolean;
-  verSignos: boolean;
-  verHistorial: boolean;
-  verDiagnosticos: boolean;
-  verMedicamentos: boolean;
-  verFinanzas: boolean;
-}
+export type Permisos = Record<string, boolean>;
 
 export interface Rol {
   id: string;
@@ -73,6 +62,7 @@ export interface Paciente {
   telefono_responsable?: string;
   ocupacion_responsable?: string;
   estado_civil_padres?: string;
+  estado: 'activo' | 'baja' | 'alta';
   notas_dinamica?: string;
   created_at: string;
 }
@@ -102,6 +92,7 @@ export interface Cita {
   estado: 'programada' | 'completada' | 'cancelada';
   modalidad?: 'presencial' | 'virtual';
   enlace_video?: string;
+  recordatorio_enviado?: boolean;
   created_at: string;
 }
 
@@ -295,3 +286,39 @@ export interface MovimientoCaja {
     nombre: string;
   };
 }
+
+// === Paquetes de Sesiones y Tareas ===
+
+export interface PaqueteSesion {
+  id: string;
+  clinica_id: string;
+  nombre: string;
+  num_sesiones: number;
+  precio: number;
+  activo: boolean;
+  created_at: string;
+}
+
+export interface PacientePaquete {
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  paquete_id: string;
+  paquete?: PaqueteSesion; // Relación frontend
+  sesiones_restantes: number;
+  estado: 'activo' | 'agotado';
+  fecha_compra: string;
+}
+
+export interface TareaPaciente {
+  id: string;
+  clinica_id: string;
+  paciente_id: string;
+  medico_id: string;
+  titulo: string;
+  descripcion?: string;
+  estado: 'pendiente' | 'completada';
+  fecha_asignacion: string;
+  fecha_completada?: string;
+}
+

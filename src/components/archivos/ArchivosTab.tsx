@@ -7,9 +7,10 @@ import type { ArchivoPaciente } from '../../types';
 
 interface ArchivosTabProps {
   pacienteId: string;
+  isActivo?: boolean;
 }
 
-export default function ArchivosTab({ pacienteId }: ArchivosTabProps) {
+export default function ArchivosTab({ pacienteId, isActivo = true }: ArchivosTabProps) {
   const { usuarioActual } = useAuth();
   const [archivos, setArchivos] = useState<ArchivoPaciente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,25 +153,29 @@ export default function ArchivosTab({ pacienteId }: ArchivosTabProps) {
           <p className="text-slate-500 mt-1">Sube resultados médicos, audios o documentos PDF del paciente.</p>
         </div>
         <div>
-          <input 
-            type="file" 
-            className="hidden" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload}
-            accept=".pdf,.jpg,.jpeg,.png,.mp3,.wav"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50"
-          >
-            {uploading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <UploadCloud className="w-5 h-5" />
-            )}
-            {uploading ? 'Subiendo...' : 'Subir Archivo'}
-          </button>
+          {isActivo && (
+            <>
+              <input 
+                type="file" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload}
+                accept=".pdf,.jpg,.jpeg,.png,.mp3,.wav"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50"
+              >
+                {uploading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <UploadCloud className="w-5 h-5" />
+                )}
+                {uploading ? 'Subiendo...' : 'Subir Archivo'}
+              </button>
+            </>
+          )}
         </div>
       </div>
 

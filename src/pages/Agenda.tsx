@@ -415,7 +415,7 @@ export default function Agenda() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveCita}
-        pacientes={pacientesDb}
+        pacientes={pacientesDb.filter(p => p.estado === 'activo')}
       />
     </div>
   );

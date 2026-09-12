@@ -625,6 +625,8 @@ export default function PacienteDetalle() {
     return <div className="p-12 text-center text-red-500">Paciente no encontrado.</div>;
   }
 
+  const isActivo = paciente.estado === 'activo';
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       
@@ -635,13 +637,15 @@ export default function PacienteDetalle() {
           Volver a Pacientes
         </Link>
         <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
-          <button 
-            onClick={() => setIsHistorialCitasOpen(true)}
-            className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-violet-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
-          >
-            <Calendar size={16} className="mr-2" />
-            Citas
-          </button>
+          {isActivo && (
+            <button 
+              onClick={() => setIsHistorialCitasOpen(true)}
+              className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-violet-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
+            >
+              <Calendar size={16} className="mr-2" />
+              Citas
+            </button>
+          )}
           <button 
             onClick={() => setIsGestorDocumentosOpen(true)}
             className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
@@ -776,19 +780,23 @@ export default function PacienteDetalle() {
                   <p className="text-sm text-slate-500">Historial médico del paciente.</p>
                 </div>
                 <div className="flex gap-3">
-                  <button 
-                    onClick={() => setIsNotaModalOpen(true)}
-                    className="px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm rounded-xl text-sm font-bold transition-all cursor-pointer"
-                  >
-                    + Nota Manual
-                  </button>
-                  <button 
-                    onClick={() => setIsNotaIAModalOpen(true)}
-                    className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-600/20 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center"
-                  >
-                    <Sparkles size={16} className="mr-2" />
-                    Redactar con IA
-                  </button>
+                  {isActivo && (
+                    <>
+                      <button 
+                        onClick={() => setIsNotaModalOpen(true)}
+                        className="px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm rounded-xl text-sm font-bold transition-all cursor-pointer"
+                      >
+                        + Nota Manual
+                      </button>
+                      <button 
+                        onClick={() => setIsNotaIAModalOpen(true)}
+                        className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-600/20 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center"
+                      >
+                        <Sparkles size={16} className="mr-2" />
+                        Redactar con IA
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               
@@ -835,7 +843,7 @@ export default function PacienteDetalle() {
           {/* Pestaña: Archivos */}
           {activeTab === 'archivos' && (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <ArchivosTab pacienteId={id!} />
+              <ArchivosTab pacienteId={id!} isActivo={isActivo} />
             </div>
           )}
 
@@ -845,12 +853,14 @@ export default function PacienteDetalle() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-slate-800">Exámenes Solicitados</h3>
-                <button 
-                  onClick={() => setIsExamenModalOpen(true)}
-                  className="px-5 py-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                >
-                  + Nueva Orden
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsExamenModalOpen(true)}
+                    className="px-5 py-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                  >
+                    + Nueva Orden
+                  </button>
+                )}
               </div>
               
               {examenes && examenes.length > 0 ? (
@@ -917,12 +927,14 @@ export default function PacienteDetalle() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-slate-800">Plan de Tratamiento</h3>
-                <button 
-                  onClick={() => setIsDiagnosticoModalOpen(true)}
-                  className="px-5 py-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                >
-                  + Agregar Diagnóstico
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsDiagnosticoModalOpen(true)}
+                    className="px-5 py-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                  >
+                    + Agregar Diagnóstico
+                  </button>
+                )}
               </div>
               
               {diagnosticos && diagnosticos.length > 0 ? (
@@ -985,13 +997,15 @@ export default function PacienteDetalle() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-slate-800">Tareas Entre-Sesiones</h3>
-                <button 
-                  onClick={() => setIsTareaModalOpen(true)}
-                  className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer flex items-center"
-                >
-                  <ClipboardList size={16} className="mr-2" />
-                  Asignar Tarea
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsTareaModalOpen(true)}
+                    className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer flex items-center"
+                  >
+                    <ClipboardList size={16} className="mr-2" />
+                    Asignar Tarea
+                  </button>
+                )}
               </div>
               
               {tareas && tareas.length > 0 ? (
@@ -1058,12 +1072,14 @@ export default function PacienteDetalle() {
                     <p className="text-sm text-slate-500">Aún no hay registros de signos vitales.</p>
                   )}
                 </div>
-                <button 
-                  onClick={() => setIsSignoModalOpen(true)}
-                  className="px-5 py-2.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                >
-                  + Nueva Toma
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsSignoModalOpen(true)}
+                    className="px-5 py-2.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                  >
+                    + Nueva Toma
+                  </button>
+                )}
               </div>
 
               {/* Dashboard de Signos Vitales */}
@@ -1186,12 +1202,14 @@ export default function PacienteDetalle() {
                     <Printer size={16} className="mr-2" />
                     Imprimir Receta
                   </button>
-                  <button 
-                    onClick={() => setIsMedicamentoModalOpen(true)}
-                    className="flex items-center px-5 py-2.5 bg-rose-100 text-rose-700 hover:bg-rose-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                  >
-                    + Prescribir Fármaco
-                  </button>
+                  {isActivo && (
+                    <button 
+                      onClick={() => setIsMedicamentoModalOpen(true)}
+                      className="flex items-center px-5 py-2.5 bg-rose-100 text-rose-700 hover:bg-rose-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                    >
+                      + Prescribir Fármaco
+                    </button>
+                  )}
                 </div>
               </div>
               
@@ -1278,12 +1296,14 @@ export default function PacienteDetalle() {
                   <h3 className="text-xl font-bold text-slate-800">Evaluaciones Psicométricas</h3>
                   <p className="text-sm text-slate-500">Cuestionarios y tests aplicados al paciente.</p>
                 </div>
-                <button 
-                  onClick={() => setIsAsignarEvaluacionModalOpen(true)}
-                  className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                >
-                  + Aplicar Test
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsAsignarEvaluacionModalOpen(true)}
+                    className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                  >
+                    + Aplicar Test
+                  </button>
+                )}
               </div>
               
               {evaluaciones && evaluaciones.length > 0 ? (
@@ -1363,13 +1383,15 @@ export default function PacienteDetalle() {
                   <h3 className="text-xl font-bold text-slate-800">Estado de Cuenta</h3>
                   <p className="text-slate-500">Gestión de facturación y pagos del paciente</p>
                 </div>
-                <button 
-                  onClick={() => setIsFacturaModalOpen(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-emerald-600/20 flex items-center hover:scale-105"
-                >
-                  <Receipt size={18} className="mr-2" />
-                  Emitir Factura
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsFacturaModalOpen(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-emerald-600/20 flex items-center hover:scale-105"
+                  >
+                    <Receipt size={18} className="mr-2" />
+                    Emitir Factura
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

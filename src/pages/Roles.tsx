@@ -181,6 +181,23 @@ export default function Roles() {
                 </div>
 
                 <div>
+                  <h4 className="text-sm font-bold text-slate-600 mb-4 pb-2 border-b border-slate-100">Permisos de Gestión de Pacientes</h4>
+                  <div className="space-y-3">
+                    {APP_MODULES.filter(m => m.category === 'pacientes_acciones').map(mod => (
+                      <label key={mod.id} className="flex items-center p-3 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                        <input 
+                          type="checkbox" 
+                          className="w-5 h-5 text-violet-600 rounded border-slate-300 focus:ring-violet-500 cursor-pointer"
+                          checked={permisos[mod.id] || false}
+                          onChange={() => handleTogglePermiso(mod.id)}
+                        />
+                        <span className="ml-3 font-semibold text-slate-700">{mod.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
                   <h4 className="text-sm font-bold text-slate-600 mb-4 pb-2 border-b border-slate-100">Permisos dentro del Expediente Clínico</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {APP_MODULES.filter(m => m.category === 'expediente').map(mod => (

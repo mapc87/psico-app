@@ -1,10 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip, Package } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { APP_MODULES } from '../config/modules';
-import { useEffect } from 'react';
 import { emailService } from '../services/email/emailService';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
 import ModalNuevoExamen from '../components/examenes/ModalNuevoExamen';
@@ -106,6 +105,16 @@ export default function PacienteDetalle() {
       setToast(prev => ({ ...prev, isVisible: false }));
     }, 4000);
   };
+
+  const hasAccess = usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || (permisos && permisos.verExpediente);
+  const canEdit = usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || (permisos && permisos.editarPaciente);
+
+  useEffect(() => {
+    if (permisos !== null && !hasAccess) {
+      // Si ya cargaron los permisos y no tiene acceso, se podría redirigir.
+      // Pero como estamos dentro del componente, podemos renderizar un mensaje de error.
+    }
+  }, [hasAccess, permisos]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -551,6 +560,19 @@ export default function PacienteDetalle() {
       };
     });
 
+  if (permisos !== null && !hasAccess) {
+    return (
+      <div className="p-12 text-center text-red-500">
+        <Shield size={48} className="mx-auto text-red-300 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Acceso Denegado</h2>
+        <p>No tienes permiso para ver el expediente clínico de este paciente.</p>
+        <Link to="/pacientes" className="mt-4 inline-block px-4 py-2 bg-violet-100 text-violet-700 rounded-lg font-bold">
+          Volver a Pacientes
+        </Link>
+      </div>
+    );
+  }
+
   if (paciente === undefined) {
     return <div className="p-12 text-center text-slate-500">Cargando expediente...</div>;
   }
@@ -598,13 +620,15 @@ export default function PacienteDetalle() {
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{paciente.nombre}</h2>
-              <Link 
-                to={`/pacientes/${paciente.id}/editar`}
-                className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
-                title="Editar Paciente"
-              >
-                <Edit2 size={18} />
-              </Link>
+              {canEdit && (
+                <Link 
+                  to={`/pacientes/${paciente.id}/editar`}
+                  className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                  title="Editar Paciente"
+                >
+                  <Edit2 size={18} />
+                </Link>
+              )}
             </div>
             <p className="text-slate-500 flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start mt-2 font-medium gap-2 sm:gap-0">
               <span className="sm:mr-6 flex items-center"><User size={16} className="mr-2 opacity-70"/> Edad: {paciente.fecha_nacimiento ? `${calcularEdad(paciente.fecha_nacimiento)} años` : 'No registrada'}</span>

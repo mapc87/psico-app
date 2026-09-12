@@ -28,6 +28,18 @@ export default function EditarPaciente() {
     estado: 'activo'
   });
 
+  const [permisos, setPermisos] = useState<Record<string, boolean> | null>(null);
+
+  useEffect(() => {
+    const fetchPermisos = async () => {
+      if (usuarioActual?.rol_id) {
+        const { data: rData } = await supabase.from('roles').select('permisos').eq('id', usuarioActual.rol_id).single();
+        if (rData) setPermisos(rData.permisos);
+      }
+    };
+    fetchPermisos();
+  }, [usuarioActual?.rol_id]);
+
   useEffect(() => {
     const fetchPaciente = async () => {
       if (!id) return;
@@ -62,6 +74,24 @@ export default function EditarPaciente() {
     };
     fetchPaciente();
   }, [id]);
+
+  const canEdit = usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || (permisos && permisos.editarPaciente);
+
+  if (permisos !== null && !canEdit) {
+    return (
+      <div className="p-12 text-center text-red-500">
+        <h2 className="text-2xl font-bold mb-2">Acceso Denegado</h2>
+        <p>No tienes permiso para editar los datos de pacientes.</p>
+        <Link to="/pacientes" className="mt-4 inline-block px-4 py-2 bg-violet-100 text-violet-700 rounded-lg font-bold">
+          Volver a Pacientes
+        </Link>
+      </div>
+    );
+  }
+
+  if (cargando) {
+    return <div className="p-12 text-center text-slate-500">Cargando datos del paciente...</div>;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

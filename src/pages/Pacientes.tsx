@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, User, FolderOpen, Edit2, UserCog, X, Save } from 'lucide-react';
+import { Search, Plus, User, Users, FolderOpen, Edit2, UserCog, X, Save } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
@@ -15,12 +15,19 @@ export default function Pacientes() {
   const location = useLocation();
   const mensajeExito = location.state?.mensaje;
 
+  const [permisos, setPermisos] = useState<Record<string, boolean> | null>(null);
+
   const { usuarioActual } = useAuth();
 
   useEffect(() => {
     const fetchPacientes = async () => {
       if (!usuarioActual?.clinica_id) return;
       
+      if (usuarioActual.rol_id) {
+        const { data: rData } = await supabase.from('roles').select('permisos').eq('id', usuarioActual.rol_id).single();
+        if (rData) setPermisos(rData.permisos);
+      }
+
       const { data, error } = await supabase
         .from('pacientes')
         .select('*')
@@ -32,7 +39,7 @@ export default function Pacientes() {
     };
     
     fetchPacientes();
-  }, [usuarioActual?.clinica_id]);
+  }, [usuarioActual?.clinica_id, usuarioActual?.rol_id]);
 
   const calcularEdad = (fechaNacimiento: string | undefined | null) => {
     if (!fechaNacimiento) return null;
@@ -48,104 +55,118 @@ export default function Pacientes() {
 
   const handleActualizarEstado = async () => {
     if (!pacienteParaEstado) return;
+    
     setActualizandoEstado(true);
-    try {
-      const { error } = await supabase
-        .from('pacientes')
-        .update({ estado: nuevoEstado })
-        .eq('id', pacienteParaEstado.id);
-        
-      if (error) throw error;
+    
+    const { error } = await supabase
+      .from('pacientes')
+      .update({ estado: nuevoEstado })
+      .eq('id', pacienteParaEstado.id);
       
-      setPacientes(prev => prev.map(p => 
+    if (!error) {
+      setPacientes(pacientes.map(p => 
         p.id === pacienteParaEstado.id ? { ...p, estado: nuevoEstado } : p
       ));
-      
       setPacienteParaEstado(null);
-    } catch (err) {
-      console.error(err);
-      alert('Error al actualizar el estado del paciente');
-    } finally {
-      setActualizandoEstado(false);
+    } else {
+      alert('Error al actualizar el estado del paciente.');
     }
+    
+    setActualizandoEstado(false);
   };
 
   const pacientesFiltrados = pacientes.filter(p => {
-    const coincideTexto = p.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-    const coincideEstado = filtroEstado === 'todos' || (p.estado || 'activo') === filtroEstado;
-    return coincideTexto && coincideEstado;
+    const matchesSearch = p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         (p.dpi && p.dpi.includes(searchTerm));
+                         
+    if (filtroEstado === 'todos') return matchesSearch;
+    return matchesSearch && p.estado === filtroEstado;
   });
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Directorio de Pacientes</h2>
-          <p className="text-slate-500 mt-1">Gestiona y accede al expediente clínico de tus pacientes</p>
-        </div>
-        <Link 
-          to="/pacientes/nuevo"
-          className="flex justify-center items-center w-full md:w-auto px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50 hover:-translate-y-0.5 cursor-pointer"
-        >
-          <Plus size={20} className="mr-2" />
-          Nuevo Paciente
-        </Link>
-      </div>
+  const canEdit = usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || permisos?.editarPaciente;
+  const canChangeState = usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || permisos?.cambiarEstadoPaciente;
+  const canViewExpediente = usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || permisos?.verExpediente;
 
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      
       {mensajeExito && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center animate-in fade-in slide-in-from-top-2">
-          <User size={18} className="mr-2" />
-          <span className="font-semibold">{mensajeExito}</span>
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-6 py-4 rounded-2xl shadow-sm flex items-center mb-6 animate-in fade-in slide-in-from-top-2">
+          <div className="bg-emerald-100 p-2 rounded-full mr-3">
+            <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+          </div>
+          <span className="font-medium">{mensajeExito}</span>
         </div>
       )}
 
-      <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white overflow-hidden relative z-0">
-        
-        {/* Filtros de estado (Tabs) */}
-        <div className="px-6 pt-6 flex overflow-x-auto hide-scrollbar border-b border-slate-100 gap-6">
-          {[{ id: 'activo', label: 'Activos' }, { id: 'baja', label: 'De Baja' }, { id: 'alta', label: 'De Alta' }, { id: 'todos', label: 'Todos' }].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setFiltroEstado(tab.id as any)}
-              className={"pb-4 text-sm font-medium whitespace-nowrap transition-all duration-300 relative " + (filtroEstado === tab.id ? 'text-violet-700' : 'text-slate-500 hover:text-slate-700')}
-            >
-              {tab.label}
-              {filtroEstado === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600 rounded-t-full" />
-              )}
-            </button>
-          ))}
+      <div className="bg-white/80 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
+            <Users className="text-violet-600" size={32} />
+            Directorio de Pacientes
+          </h2>
+          <p className="text-slate-500 mt-2 font-medium">Gestiona tu base de pacientes y expedientes clínicos.</p>
         </div>
-
-        {/* Header de la tabla (Buscador) */}
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-          <div className="relative w-full sm:w-80">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search size={18} className="text-slate-400" />
-            </div>
+        
+        {/* Controles: Buscador + Agregar */}
+        <div className="flex flex-col sm:flex-row w-full md:w-auto gap-3">
+          <div className="relative group flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={20} />
             <input
               type="text"
               placeholder="Buscar paciente..."
-              className="block w-full pl-11 pr-4 py-2.5 border border-slate-200 rounded-full leading-5 bg-slate-50/50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 focus:bg-white sm:text-sm transition-all duration-300 shadow-inner"
+              className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <Link 
+            to="/pacientes/nuevo" 
+            className="flex justify-center items-center px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-md shadow-violet-500/20 transition-all cursor-pointer whitespace-nowrap"
+          >
+            <Plus size={20} className="mr-2" />
+            Nuevo Paciente
+          </Link>
         </div>
+      </div>
+      
+      {/* Filtros de Estado */}
+      <div className="flex flex-wrap gap-2 px-1">
+        <button
+          onClick={() => setFiltroEstado('activo')}
+          className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+            filtroEstado === 'activo' 
+              ? 'bg-violet-600 text-white shadow-md shadow-violet-500/20' 
+              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+          }`}
+        >
+          Activos
+        </button>
+        <button
+          onClick={() => setFiltroEstado('todos')}
+          className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+            filtroEstado === 'todos' 
+              ? 'bg-slate-800 text-white shadow-md shadow-slate-800/20' 
+              : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
+          }`}
+        >
+          Todos (Histórico)
+        </button>
+      </div>
 
-        {/* Tabla */}
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-100">
-            <thead className="bg-slate-50/50">
+          <table className="w-full">
+            <thead className="bg-slate-50 border-b border-slate-100">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nombre</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Paciente</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Edad</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Teléfono</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Ingreso</th>
                 <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
-            <tbody className="bg-white/30 divide-y divide-slate-100 backdrop-blur-sm">
+            <tbody className="divide-y divide-slate-100 bg-white">
               {pacientesFiltrados.map((paciente) => (
                 <tr key={paciente.id} className="hover:bg-violet-50/30 transition-colors group">
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -172,30 +193,36 @@ export default function Pacientes() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
                     <div className="flex justify-end space-x-2">
-                      <button 
-                        onClick={() => {
-                          setPacienteParaEstado(paciente);
-                          setNuevoEstado(paciente.estado || 'activo');
-                        }}
-                        className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
-                        title="Cambiar Estado"
-                      >
-                        <UserCog size={18} />
-                      </button>
-                      <Link 
-                        to={`/pacientes/${paciente.id}/editar`}
-                        className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
-                        title="Editar Paciente"
-                      >
-                        <Edit2 size={18} />
-                      </Link>
-                      <Link 
-                        to={`/pacientes/${paciente.id}`}
-                        className="p-2 text-slate-400 hover:text-fuchsia-600 hover:bg-fuchsia-50 rounded-lg transition-colors"
-                        title="Ver Expediente"
-                      >
-                        <FolderOpen size={18} />
-                      </Link>
+                      {canChangeState && (
+                        <button 
+                          onClick={() => {
+                            setPacienteParaEstado(paciente);
+                            setNuevoEstado(paciente.estado || 'activo');
+                          }}
+                          className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                          title="Cambiar Estado"
+                        >
+                          <UserCog size={18} />
+                        </button>
+                      )}
+                      {canEdit && (
+                        <Link 
+                          to={`/pacientes/${paciente.id}/editar`}
+                          className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer"
+                          title="Editar Paciente"
+                        >
+                          <Edit2 size={18} />
+                        </Link>
+                      )}
+                      {canViewExpediente && (
+                        <Link 
+                          to={`/pacientes/${paciente.id}`}
+                          className="p-2 text-slate-400 hover:text-fuchsia-600 hover:bg-fuchsia-50 rounded-lg transition-colors cursor-pointer"
+                          title="Ver Expediente"
+                        >
+                          <FolderOpen size={18} />
+                        </Link>
+                      )}
                     </div>
                   </td>
                 </tr>

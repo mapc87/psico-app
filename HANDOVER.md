@@ -77,6 +77,10 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
   - Se corrigió un error donde la agenda no reconocía el correo electrónico del paciente (la interfaz `Paciente` usa `correo`, no `email`).
   - Las plantillas de correo ahora diferencian si la cita es "Hoy" o "Mañana".
   - Los correos de recordatorio ahora inyectan el nombre real de la clínica (`clinicaNombre`) desde la base de datos, en lugar del nombre genérico del sistema.
+- **Permisos Granulares para Gestión de Pacientes:**
+  - Se agregó seguridad específica para restringir las acciones dentro del módulo de Pacientes de forma dinámica mediante la tabla `roles`.
+  - El apartado de Roles ahora incluye checkboxes para habilitar/deshabilitar: Editar Datos Demográficos (`editarPaciente`), Cambiar Estado (`cambiarEstadoPaciente`) y Ver Expediente Clínico (`verExpediente`).
+  - Las vistas `/pacientes/:id` y `/pacientes/:id/editar` están protegidas y bloquean el acceso directo mediante URL a usuarios sin permisos.
 
 ## 3. Instrucciones para el Próximo Agente
 ¡El proyecto está completamente funcional, migrado a Supabase y ha sido limpiado de archivos residuales! 

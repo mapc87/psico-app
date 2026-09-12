@@ -60,6 +60,12 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
   - Se rediseñaron los formularios de "Nuevo Paciente" y "Editar Paciente" para incluir la selección de estado.
   - Se reemplazó el botón de "Ver Expediente" por un ícono más intuitivo (`FolderOpen`).
 
+### Portal del Paciente y Accesos
+- **Autenticación con PIN**: Los pacientes pueden ingresar a su portal remoto mediante su correo o DPI y un PIN único de 6 dígitos (`pin_acceso`).
+- **Seguridad (RPC)**: Para cumplir con las políticas RLS y evitar exponer la tabla de pacientes, el login del portal utiliza una función segura de PostgreSQL (`login_portal_paciente`) configurada como `SECURITY DEFINER`.
+- **Generación Automática**: El sistema ahora genera, guarda y envía automáticamente los PIN de acceso sin interrupciones ni recargas. Se reemplazaron todas las notificaciones nativas (`alert()`) por un componente `Toast` moderno y flotante en toda la gestión de accesos.
+- **Correcciones Recientes**: Se arregló un bucle infinito (ERR_INSUFFICIENT_RESOURCES) en `PortalDashboard.tsx` causado por la re-creación de objetos del `localStorage` en los hooks de React.
+
 ### Consentimientos Informados y Firmas Digitales
 - Se creó la tabla `plantillas_documentos` para gestionar plantillas predeterminadas de clínica (con un trigger para crear la plantilla estándar automáticamente al registrar una clínica).
 - Se implementó la firma presencial (lienzo táctil en `ModalFirma.tsx`) desde el expediente del paciente.
@@ -70,12 +76,24 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 - En el expediente del paciente (`PacienteDetalle.tsx`), los doctores pueden usar el botón "Redactar con IA" para escribir un borrador rápido y la IA estructurará la información en una nota clínica bajo el estándar SOAP.
 - Requiere agregar la llave `VITE_GEMINI_API_KEY` en el archivo `.env` para funcionar (Actualmente configurado).
 
+### Correcciones y Estabilización Recientes
+- **Error de Pantalla Blanca (Bucle Infinito):** Se solucionó un problema en `ProtectedRoute.tsx` que provocaba un bucle infinito de redirección al `/dashboard` si el usuario no tenía permisos, lo que crasheaba React.
+- **Manejo Global de Errores:** Se implementó un `ErrorBoundary` en `App.tsx` para evitar futuras pantallas blancas y mostrar el error técnico claramente.
+- **Correcciones de Correos de Recordatorio:**
+  - Se corrigió un error donde la agenda no reconocía el correo electrónico del paciente (la interfaz `Paciente` usa `correo`, no `email`).
+  - Las plantillas de correo ahora diferencian si la cita es "Hoy" o "Mañana".
+  - Los correos de recordatorio ahora inyectan el nombre real de la clínica (`clinicaNombre`) desde la base de datos, en lugar del nombre genérico del sistema.
+- **Permisos Granulares para Gestión de Pacientes:**
+  - Se agregó seguridad específica para restringir las acciones dentro del módulo de Pacientes de forma dinámica mediante la tabla `roles`.
+  - El apartado de Roles ahora incluye checkboxes para habilitar/deshabilitar: Editar Datos Demográficos (`editarPaciente`), Cambiar Estado (`cambiarEstadoPaciente`) y Ver Expediente Clínico (`verExpediente`).
+  - Las vistas `/pacientes/:id` y `/pacientes/:id/editar` están protegidas y bloquean el acceso directo mediante URL a usuarios sin permisos.
+
 ## 3. Instrucciones para el Próximo Agente
 ¡El proyecto está completamente funcional, migrado a Supabase y ha sido limpiado de archivos residuales! 
 
 Si requieres reinstalar la base de datos desde cero:
-1. Ejecuta el archivo `database_scripts/init_database_full.sql`.
-2. Luego, ejecuta los scripts dentro de `database_scripts/migrations/` para aplicar los parches y columnas más recientes.
+1. Ejecuta el archivo `database_scripts/00_master_init.sql` (que ya contiene todos los parches y actualizaciones acumuladas).
+2. Luego, ejecuta los scripts dentro de `database_scripts/migrations/` si existiera alguna nueva funcionalidad.
 
 Cuando trabajes en nuevas funcionalidades:
 1. Recuerda siempre enviar el `clinica_id` (que viene de `usuarioActual.clinica_id`) al hacer `insert` en nuevas tablas, ya que las políticas RLS lo requieren.

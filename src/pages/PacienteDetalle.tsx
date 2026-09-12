@@ -1,10 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip, Package } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip, Package, Trash2 } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { APP_MODULES } from '../config/modules';
-import { useEffect } from 'react';
 import { emailService } from '../services/email/emailService';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
 import ModalNuevoExamen from '../components/examenes/ModalNuevoExamen';
@@ -26,7 +25,9 @@ import ModalNuevaTarea from '../components/tareas/ModalNuevaTarea';
 import Toast from '../components/common/Toast';
 import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
-import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla, TareaPaciente } from '../types';
+import { ExportadorExpediente } from '../components/pacientes/ExportadorExpediente';
+import ModalConfirmacion from '../components/common/ModalConfirmacion';
+import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla, TareaPaciente, PaqueteSesion, PacientePaquete } from '../types';
 import type { SendEmailResult } from '../services/email/emailService';
 
 export default function PacienteDetalle() {
@@ -36,6 +37,7 @@ export default function PacienteDetalle() {
   const [isCitaModalOpen, setIsCitaModalOpen] = useState(false);
   const [isExamenModalOpen, setIsExamenModalOpen] = useState(false);
   const [isSignoModalOpen, setIsSignoModalOpen] = useState(false);
+  const navigate = useNavigate();
   const [isNotaModalOpen, setIsNotaModalOpen] = useState(false);
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
   const [isAnalisisIAModalOpen, setIsAnalisisIAModalOpen] = useState(false);
@@ -46,18 +48,6 @@ export default function PacienteDetalle() {
   const [isMedicamentoModalOpen, setIsMedicamentoModalOpen] = useState(false);
   const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
   const [evaluacionParaImprimir, setEvaluacionParaImprimir] = useState<EvaluacionPaciente | null>(null);
-  
-  const printRef = useRef<HTMLDivElement>(null);
-  const recetaPrintRef = useRef<HTMLDivElement>(null);
-  const evaluacionPrintRef = useRef<HTMLDivElement>(null);
-
-  const handlePrintExamen = useReactToPrint({
-    contentRef: printRef,
-  });
-
-  const handlePrintEvaluacion = useReactToPrint({
-    contentRef: evaluacionPrintRef,
-  });
 
   const [paciente, setPaciente] = useState<any>(undefined);
   const [paqueteActivo, setPaqueteActivo] = useState<any>(null);
@@ -77,6 +67,24 @@ export default function PacienteDetalle() {
   const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
 
+  const printRef = useRef<HTMLDivElement>(null);
+  const recetaPrintRef = useRef<HTMLDivElement>(null);
+  const evaluacionPrintRef = useRef<HTMLDivElement>(null);
+  const exportadorRef = useRef<HTMLDivElement>(null);
+
+  const handlePrintExamen = useReactToPrint({
+    contentRef: printRef,
+  });
+
+  const handlePrintEvaluacion = useReactToPrint({
+    contentRef: evaluacionPrintRef,
+  });
+
+  const handlePrintExpediente = useReactToPrint({
+    contentRef: exportadorRef,
+    documentTitle: `Historia_Clinica_${paciente?.nombre?.replace(/\s+/g, '_') || 'Paciente'}`
+  });
+
   // Evaluaciones Psicométricas
   const [evaluaciones, setEvaluaciones] = useState<EvaluacionPaciente[]>([]);
   const [isAsignarEvaluacionModalOpen, setIsAsignarEvaluacionModalOpen] = useState(false);
@@ -95,6 +103,26 @@ export default function PacienteDetalle() {
     onSend: async () => ({ success: false, mode: 'demo' }),
   });
 
+  const [modalConfirmacion, setModalConfirmacion] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const abrirConfirmacion = (title: string, message: string, onConfirm: () => void) => {
+    setModalConfirmacion({ isOpen: true, title, message, onConfirm });
+  };
+
+  const cerrarConfirmacion = () => {
+    setModalConfirmacion(prev => ({ ...prev, isOpen: false }));
+  };
+
   const [toast, setToast] = useState<{ isVisible: boolean; message: string; type?: 'success' | 'error' | 'info' }>({
     isVisible: false,
     message: '',
@@ -106,6 +134,16 @@ export default function PacienteDetalle() {
       setToast(prev => ({ ...prev, isVisible: false }));
     }, 4000);
   };
+
+  const hasAccess = usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || (permisos && permisos.verExpediente);
+  const canEdit = usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin' || (permisos && permisos.editarPaciente);
+
+  useEffect(() => {
+    if (permisos !== null && !hasAccess) {
+      // Si ya cargaron los permisos y no tiene acceso, se podría redirigir.
+      // Pero como estamos dentro del componente, podemos renderizar un mensaje de error.
+    }
+  }, [hasAccess, permisos]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -534,6 +572,99 @@ export default function PacienteDetalle() {
     else setPaqueteActivo(null);
   };
 
+  const refreshData = async () => {
+    if (!id) return;
+    const { data: nData } = await supabase.from('notas_clinicas').select('*').eq('paciente_id', id).order('fecha', { ascending: false });
+    if (nData) setNotas(nData);
+    const { data: dData } = await supabase.from('diagnosticos').select('*').eq('paciente_id', id).order('fecha', { ascending: false });
+    if (dData) setDiagnosticos(dData);
+    const { data: mData } = await supabase.from('medicamentos').select('*').eq('paciente_id', id).order('fecha_prescripcion', { ascending: false });
+    if (mData) setMedicamentos(mData);
+    const { data: eData } = await supabase.from('examenes').select('*').eq('paciente_id', id).order('fecha_solicitud', { ascending: false });
+    if (eData) setExamenes(eData);
+  };
+
+  const handleDeleteNota = (notaId: string) => {
+    abrirConfirmacion(
+      "Eliminar Nota Clínica",
+      "¿Estás seguro de eliminar esta nota clínica? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('notas_clinicas').delete().eq('id', notaId);
+        if (!error) refreshData();
+        else alert('Error al eliminar nota.');
+        cerrarConfirmacion();
+      }
+    );
+  };
+
+  const handleDeleteDiagnostico = (diagId: string) => {
+    abrirConfirmacion(
+      "Eliminar Diagnóstico",
+      "¿Estás seguro de eliminar este diagnóstico? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('diagnosticos').delete().eq('id', diagId);
+        if (!error) refreshData();
+        else alert('Error al eliminar diagnóstico.');
+        cerrarConfirmacion();
+      }
+    );
+  };
+
+  const handleDeleteMedicamento = (medId: string) => {
+    abrirConfirmacion(
+      "Eliminar Receta/Medicamento",
+      "¿Estás seguro de eliminar esta receta o medicamento? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('medicamentos').delete().eq('id', medId);
+        if (!error) refreshData();
+        else alert('Error al eliminar medicamento.');
+        cerrarConfirmacion();
+      }
+    );
+  };
+
+  const handleDeleteExamen = (examenId: string) => {
+    abrirConfirmacion(
+      "Eliminar Orden de Examen",
+      "¿Estás seguro de eliminar esta orden de examen? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('examenes').delete().eq('id', examenId);
+        if (!error) refreshData();
+        else alert('Error al eliminar examen.');
+        cerrarConfirmacion();
+      }
+    );
+  };
+
+  const handleDeleteSignos = (signoId: string) => {
+    abrirConfirmacion(
+      "Eliminar Signos Vitales",
+      "¿Estás seguro de eliminar estos signos vitales? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('signos_vitales').delete().eq('id', signoId);
+        if (!error) setSignos(signos.filter(s => s.id !== signoId));
+        else alert('Error al eliminar signos vitales.');
+        cerrarConfirmacion();
+      }
+    );
+  };
+
+  const handleDeletePaciente = () => {
+    abrirConfirmacion(
+      "⚠️ ADVERTENCIA CRÍTICA ⚠️",
+      "¿Estás completamente seguro de eliminar a este paciente? Esta acción borrará TODO su expediente clínico, recetas, diagnósticos y citas. ES COMPLETAMENTE IRREVERSIBLE.",
+      async () => {
+        const { error } = await supabase.from('pacientes').delete().eq('id', id);
+        if (!error) {
+          navigate('/pacientes');
+        } else {
+          alert('Error al eliminar paciente. Asegúrate de tener permisos de administrador.');
+        }
+        cerrarConfirmacion();
+      }
+    );
+  };
+
   // Filtrar tabs según permisos y configuración dinámica
   const tabs = APP_MODULES
     .filter(mod => mod.isExpedienteTab)
@@ -551,6 +682,19 @@ export default function PacienteDetalle() {
       };
     });
 
+  if (permisos !== null && !hasAccess) {
+    return (
+      <div className="p-12 text-center text-red-500">
+        <Shield size={48} className="mx-auto text-red-300 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Acceso Denegado</h2>
+        <p>No tienes permiso para ver el expediente clínico de este paciente.</p>
+        <Link to="/pacientes" className="mt-4 inline-block px-4 py-2 bg-violet-100 text-violet-700 rounded-lg font-bold">
+          Volver a Pacientes
+        </Link>
+      </div>
+    );
+  }
+
   if (paciente === undefined) {
     return <div className="p-12 text-center text-slate-500">Cargando expediente...</div>;
   }
@@ -558,6 +702,8 @@ export default function PacienteDetalle() {
   if (paciente === null) {
     return <div className="p-12 text-center text-red-500">Paciente no encontrado.</div>;
   }
+
+  const isActivo = paciente.estado === 'activo';
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -569,12 +715,28 @@ export default function PacienteDetalle() {
           Volver a Pacientes
         </Link>
         <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
-          <button 
-            onClick={() => setIsHistorialCitasOpen(true)}
+          {isActivo && (
+            <button 
+              onClick={() => setIsHistorialCitasOpen(true)}
+              className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-violet-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
+            >
+              <Calendar size={16} className="mr-2" />
+              Citas
+            </button>
+          )}
+          <Link 
+            to={`/pacientes/${paciente.id}/editar`}
             className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-violet-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
           >
-            <Calendar size={16} className="mr-2" />
-            Citas
+            <Edit2 size={16} className="mr-2" />
+            Editar Paciente
+          </Link>
+          <button 
+            onClick={handleDeletePaciente}
+            className="flex items-center px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 rounded-xl border border-rose-100 shadow-sm text-sm font-bold transition-all cursor-pointer"
+          >
+            <Trash2 size={16} className="mr-2" />
+            Eliminar Paciente
           </button>
           <button 
             onClick={() => setIsGestorDocumentosOpen(true)}
@@ -583,8 +745,26 @@ export default function PacienteDetalle() {
             <FileSignature size={16} className="mr-2" />
             Documentos Legales
           </button>
+          <button 
+            onClick={handlePrintExpediente}
+            className="flex items-center px-4 py-2 bg-slate-800 text-white hover:bg-slate-900 rounded-xl border border-slate-700 shadow-sm text-sm font-bold transition-all cursor-pointer"
+          >
+            <FileText size={16} className="mr-2" />
+            Exportar Expediente
+          </button>
         </div>
       </div>
+
+      {/* COMPONENTES OCULTOS DE IMPRESIÓN */}
+      <ExportadorExpediente 
+        ref={exportadorRef}
+        paciente={paciente}
+        notas={notas}
+        diagnosticos={diagnosticos}
+        medicamentos={medicamentos}
+        examenes={examenes}
+        signos={signos}
+      />
 
       {/* Header del Expediente */}
       <div className="bg-white/80 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white flex flex-col lg:flex-row items-center lg:items-start justify-between relative overflow-hidden gap-6">
@@ -598,13 +778,15 @@ export default function PacienteDetalle() {
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-3xl font-bold text-slate-800 tracking-tight">{paciente.nombre}</h2>
-              <Link 
-                to={`/pacientes/${paciente.id}/editar`}
-                className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
-                title="Editar Paciente"
-              >
-                <Edit2 size={18} />
-              </Link>
+              {canEdit && (
+                <Link 
+                  to={`/pacientes/${paciente.id}/editar`}
+                  className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                  title="Editar Paciente"
+                >
+                  <Edit2 size={18} />
+                </Link>
+              )}
             </div>
             <p className="text-slate-500 flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start mt-2 font-medium gap-2 sm:gap-0">
               <span className="sm:mr-6 flex items-center"><User size={16} className="mr-2 opacity-70"/> Edad: {paciente.fecha_nacimiento ? `${calcularEdad(paciente.fecha_nacimiento)} años` : 'No registrada'}</span>
@@ -708,19 +890,23 @@ export default function PacienteDetalle() {
                   <p className="text-sm text-slate-500">Historial médico del paciente.</p>
                 </div>
                 <div className="flex gap-3">
-                  <button 
-                    onClick={() => setIsNotaModalOpen(true)}
-                    className="px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm rounded-xl text-sm font-bold transition-all cursor-pointer"
-                  >
-                    + Nota Manual
-                  </button>
-                  <button 
-                    onClick={() => setIsNotaIAModalOpen(true)}
-                    className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-600/20 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center"
-                  >
-                    <Sparkles size={16} className="mr-2" />
-                    Redactar con IA
-                  </button>
+                  {isActivo && (
+                    <>
+                      <button 
+                        onClick={() => setIsNotaModalOpen(true)}
+                        className="px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm rounded-xl text-sm font-bold transition-all cursor-pointer"
+                      >
+                        + Nota Manual
+                      </button>
+                      <button 
+                        onClick={() => setIsNotaIAModalOpen(true)}
+                        className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-600/20 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center"
+                      >
+                        <Sparkles size={16} className="mr-2" />
+                        Redactar con IA
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               
@@ -735,9 +921,18 @@ export default function PacienteDetalle() {
                             {nota.titulo.toLowerCase().includes('ia') || nota.titulo.toLowerCase().includes('soap') ? <BrainCircuit size={14} className="mr-1.5" /> : <FileText size={14} className="mr-1.5" />}
                             {nota.titulo}
                           </span>
-                          <span className="text-sm font-medium text-slate-400">
-                            {new Date(nota.fecha).toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
-                          </span>
+                          <div className="flex items-center space-x-3">
+                            <span className="text-sm font-medium text-slate-400">
+                              {new Date(nota.fecha).toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' })}
+                            </span>
+                            <button 
+                              onClick={() => handleDeleteNota(nota.id)}
+                              className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                              title="Eliminar Nota"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                         <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{nota.contenido}</p>
                       </div>
@@ -758,7 +953,7 @@ export default function PacienteDetalle() {
           {/* Pestaña: Archivos */}
           {activeTab === 'archivos' && (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <ArchivosTab pacienteId={id!} />
+              <ArchivosTab pacienteId={id!} isActivo={isActivo} />
             </div>
           )}
 
@@ -768,12 +963,14 @@ export default function PacienteDetalle() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-slate-800">Exámenes Solicitados</h3>
-                <button 
-                  onClick={() => setIsExamenModalOpen(true)}
-                  className="px-5 py-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                >
-                  + Nueva Orden
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsExamenModalOpen(true)}
+                    className="px-5 py-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                  >
+                    + Nueva Orden
+                  </button>
+                )}
               </div>
               
               {examenes && examenes.length > 0 ? (
@@ -813,6 +1010,13 @@ export default function PacienteDetalle() {
                             Marcar como Recibido/Completado
                           </button>
                         )}
+                        <button 
+                          onClick={() => handleDeleteExamen(examen.id)}
+                          className="w-full py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 rounded-xl text-sm font-bold transition-colors cursor-pointer flex items-center justify-center mt-2"
+                        >
+                          <Trash2 size={16} className="mr-2" />
+                          Eliminar Orden
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -833,12 +1037,14 @@ export default function PacienteDetalle() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-slate-800">Plan de Tratamiento</h3>
-                <button 
-                  onClick={() => setIsDiagnosticoModalOpen(true)}
-                  className="px-5 py-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                >
-                  + Agregar Diagnóstico
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsDiagnosticoModalOpen(true)}
+                    className="px-5 py-2.5 bg-blue-100 text-blue-700 hover:bg-blue-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                  >
+                    + Agregar Diagnóstico
+                  </button>
+                )}
               </div>
               
               {diagnosticos && diagnosticos.length > 0 ? (
@@ -861,14 +1067,23 @@ export default function PacienteDetalle() {
                           }`}>
                             {diag.estado}
                           </span>
-                          {diag.estado === 'activo' && diag.id && (
+                          <div className="flex items-center space-x-3">
+                            {diag.estado === 'activo' && diag.id && (
+                              <button 
+                                onClick={() => cambiarEstadoDiagnostico(diag.id!, 'resuelto')}
+                                className="text-xs text-slate-400 hover:text-blue-600 underline font-semibold transition-colors cursor-pointer"
+                              >
+                                Marcar como Resuelto
+                              </button>
+                            )}
                             <button 
-                              onClick={() => cambiarEstadoDiagnostico(diag.id!, 'resuelto')}
-                              className="text-xs text-slate-400 hover:text-blue-600 underline font-semibold transition-colors cursor-pointer"
+                              onClick={() => handleDeleteDiagnostico(diag.id)}
+                              className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                              title="Eliminar Diagnóstico"
                             >
-                              Marcar como Resuelto
+                              <Trash2 size={16} />
                             </button>
-                          )}
+                          </div>
                         </div>
                       </div>
                       <p className={`leading-relaxed whitespace-pre-wrap ${diag.estado === 'activo' ? 'text-blue-800' : 'text-slate-500'}`}>
@@ -892,13 +1107,15 @@ export default function PacienteDetalle() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-slate-800">Tareas Entre-Sesiones</h3>
-                <button 
-                  onClick={() => setIsTareaModalOpen(true)}
-                  className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer flex items-center"
-                >
-                  <ClipboardList size={16} className="mr-2" />
-                  Asignar Tarea
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsTareaModalOpen(true)}
+                    className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer flex items-center"
+                  >
+                    <ClipboardList size={16} className="mr-2" />
+                    Asignar Tarea
+                  </button>
+                )}
               </div>
               
               {tareas && tareas.length > 0 ? (
@@ -965,12 +1182,14 @@ export default function PacienteDetalle() {
                     <p className="text-sm text-slate-500">Aún no hay registros de signos vitales.</p>
                   )}
                 </div>
-                <button 
-                  onClick={() => setIsSignoModalOpen(true)}
-                  className="px-5 py-2.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                >
-                  + Nueva Toma
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsSignoModalOpen(true)}
+                    className="px-5 py-2.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                  >
+                    + Nueva Toma
+                  </button>
+                )}
               </div>
 
               {/* Dashboard de Signos Vitales */}
@@ -1093,12 +1312,14 @@ export default function PacienteDetalle() {
                     <Printer size={16} className="mr-2" />
                     Imprimir Receta
                   </button>
-                  <button 
-                    onClick={() => setIsMedicamentoModalOpen(true)}
-                    className="flex items-center px-5 py-2.5 bg-rose-100 text-rose-700 hover:bg-rose-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                  >
-                    + Prescribir Fármaco
-                  </button>
+                  {isActivo && (
+                    <button 
+                      onClick={() => setIsMedicamentoModalOpen(true)}
+                      className="flex items-center px-5 py-2.5 bg-rose-100 text-rose-700 hover:bg-rose-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                    >
+                      + Prescribir Fármaco
+                    </button>
+                  )}
                 </div>
               </div>
               
@@ -1145,15 +1366,24 @@ export default function PacienteDetalle() {
                         }`}>
                           {med.estado}
                         </span>
-                        {med.estado === 'activo' && med.id && (
+                        <div className="flex items-center space-x-3">
+                          {med.estado === 'activo' && med.id && (
+                            <button 
+                              onClick={() => suspenderMedicamento(med.id!)}
+                              className="text-xs text-slate-400 hover:text-rose-600 underline font-semibold transition-colors flex items-center cursor-pointer"
+                            >
+                              <AlertCircle size={12} className="mr-1" />
+                              Suspender
+                            </button>
+                          )}
                           <button 
-                            onClick={() => suspenderMedicamento(med.id!)}
-                            className="text-xs text-slate-400 hover:text-rose-600 underline font-semibold transition-colors flex items-center cursor-pointer"
+                            onClick={() => handleDeleteMedicamento(med.id)}
+                            className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                            title="Eliminar Medicamento"
                           >
-                            <AlertCircle size={12} className="mr-1" />
-                            Suspender
+                            <Trash2 size={16} />
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1176,12 +1406,14 @@ export default function PacienteDetalle() {
                   <h3 className="text-xl font-bold text-slate-800">Evaluaciones Psicométricas</h3>
                   <p className="text-sm text-slate-500">Cuestionarios y tests aplicados al paciente.</p>
                 </div>
-                <button 
-                  onClick={() => setIsAsignarEvaluacionModalOpen(true)}
-                  className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
-                >
-                  + Aplicar Test
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsAsignarEvaluacionModalOpen(true)}
+                    className="px-5 py-2.5 bg-violet-100 text-violet-700 hover:bg-violet-200 hover:shadow-sm rounded-full text-sm font-bold transition-all cursor-pointer"
+                  >
+                    + Aplicar Test
+                  </button>
+                )}
               </div>
               
               {evaluaciones && evaluaciones.length > 0 ? (
@@ -1261,13 +1493,15 @@ export default function PacienteDetalle() {
                   <h3 className="text-xl font-bold text-slate-800">Estado de Cuenta</h3>
                   <p className="text-slate-500">Gestión de facturación y pagos del paciente</p>
                 </div>
-                <button 
-                  onClick={() => setIsFacturaModalOpen(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-emerald-600/20 flex items-center hover:scale-105"
-                >
-                  <Receipt size={18} className="mr-2" />
-                  Emitir Factura
-                </button>
+                {isActivo && (
+                  <button 
+                    onClick={() => setIsFacturaModalOpen(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-emerald-600/20 flex items-center hover:scale-105"
+                  >
+                    <Receipt size={18} className="mr-2" />
+                    Emitir Factura
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -1807,6 +2041,15 @@ export default function PacienteDetalle() {
         isOpen={isTareaModalOpen}
         onClose={() => setIsTareaModalOpen(false)}
         onSave={handleSaveTarea}
+      />
+
+      <ModalConfirmacion 
+        isOpen={modalConfirmacion.isOpen}
+        title={modalConfirmacion.title}
+        message={modalConfirmacion.message}
+        onConfirm={modalConfirmacion.onConfirm}
+        onCancel={cerrarConfirmacion}
+        confirmText="Sí, eliminar"
       />
 
       {/* Toast Flotante Elegante */}

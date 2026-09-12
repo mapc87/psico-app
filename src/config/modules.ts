@@ -1,7 +1,7 @@
 import { LayoutDashboard, Users, Calendar, Wallet, Package, FileSignature, ClipboardList, User, Paperclip, Activity, BrainCircuit, Heart, Pill } from 'lucide-react';
 import React from 'react';
 
-export type CategoriaModulo = 'main' | 'contabilidad' | 'expediente';
+export type CategoriaModulo = 'main' | 'contabilidad' | 'expediente' | 'pacientes_acciones';
 
 export interface AppModule {
   id: string;
@@ -20,6 +20,11 @@ export const APP_MODULES: AppModule[] = [
   { id: 'verDocumentos', label: 'Documentos', path: '/consentimientos', icon: FileSignature, category: 'main' },
   { id: 'verGestorPruebas', label: 'Gestor de Pruebas', path: '/pruebas', icon: ClipboardList, category: 'main' },
   
+  // Acciones Específicas de Pacientes
+  { id: 'editarPaciente', label: 'Editar Datos Demográficos', icon: Users, category: 'pacientes_acciones' },
+  { id: 'cambiarEstadoPaciente', label: 'Cambiar Estado (Alta/Baja)', icon: Users, category: 'pacientes_acciones' },
+  { id: 'verExpediente', label: 'Acceso a Expediente Clínico', icon: Users, category: 'pacientes_acciones' },
+
   // Contabilidad y Finanzas
   { id: 'verFinanzas', label: 'Facturación', path: '/finanzas', icon: Wallet, category: 'contabilidad' },
   { id: 'verPaquetes', label: 'Paquetes', path: '/paquetes', icon: Package, category: 'contabilidad' },

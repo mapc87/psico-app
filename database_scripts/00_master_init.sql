@@ -1,4 +1,4 @@
-﻿-- ==========================================
+-- ==========================================
 -- SCRIPT DE CONFIGURACIÃƒâ€œN DE BASE DE DATOS MAESTRO
 -- SUPABASE - CLÃƒÂNICA PSICOLÃƒâ€œGICA (MULTI-TENANT)
 -- ==========================================
@@ -29,12 +29,22 @@ CREATE TABLE IF NOT EXISTS public.clinicas (
 );
 ALTER TABLE public.clinicas ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE IF NOT EXISTS public.roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clinica_id UUID NOT NULL REFERENCES public.clinicas(id) ON DELETE CASCADE,
+    nombre TEXT NOT NULL,
+    permisos JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
+
 CREATE TABLE IF NOT EXISTS public.usuarios (
     id UUID PRIMARY KEY, -- Viene de auth.users
     clinica_id UUID REFERENCES public.clinicas(id) ON DELETE CASCADE,
     nombre TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     rol TEXT NOT NULL CHECK (rol IN ('superadmin', 'admin', 'personal', 'doctor')),
+    rol_id UUID REFERENCES public.roles(id) ON DELETE SET NULL,
     activo BOOLEAN DEFAULT true,
     telefono TEXT,
     dpi TEXT,
@@ -60,33 +70,60 @@ CREATE TABLE IF NOT EXISTS public.invitaciones (
 );
 ALTER TABLE public.invitaciones ENABLE ROW LEVEL SECURITY;
 
--- TRIGGER DE REGISTRO AUTOMÃƒÂTICO DE USUARIOS
+-- TRIGGER DE REGISTRO AUTOMÁTICO DE USUARIOS
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 DECLARE
   _clinica_id UUID := NULL;
-  _rol TEXT := 'admin';
+  _rol_asignado TEXT := 'admin';
   _invitacion_id UUID;
+  _final_rol TEXT := 'admin';
+  _final_rol_id UUID := NULL;
 BEGIN
-  IF new.raw_user_meta_data->>'codigo_invitacion' IS NOT NULL THEN
-     SELECT id, clinica_id, rol_asignado INTO _invitacion_id, _clinica_id, _rol 
+  IF new.raw_user_meta_data->>'codigo_invitacion' IS NOT NULL AND TRIM(new.raw_user_meta_data->>'codigo_invitacion') <> '' THEN
+     SELECT id, clinica_id, rol_asignado INTO _invitacion_id, _clinica_id, _rol_asignado 
      FROM public.invitaciones 
-     WHERE codigo = (new.raw_user_meta_data->>'codigo_invitacion') AND usado = false
+     WHERE UPPER(codigo) = UPPER(TRIM(new.raw_user_meta_data->>'codigo_invitacion')) AND usado = false
      LIMIT 1;
      
-     IF _invitacion_id IS NOT NULL THEN
-       UPDATE public.invitaciones SET usado = true WHERE id = _invitacion_id;
+     IF _invitacion_id IS NULL THEN
+       RAISE EXCEPTION 'El código de invitación es inválido o ya ha sido utilizado.';
      END IF;
+
+     UPDATE public.invitaciones SET usado = true WHERE id = _invitacion_id;
+
+     IF _rol_asignado IN ('superadmin', 'admin', 'personal', 'doctor') THEN
+       _final_rol := _rol_asignado;
+     ELSE
+       _final_rol := 'personal';
+       BEGIN
+         _final_rol_id := _rol_asignado::UUID;
+       EXCEPTION WHEN OTHERS THEN
+         _final_rol_id := NULL;
+       END;
+     END IF;
+  ELSE
+    IF (SELECT count(*) FROM public.usuarios) = 0 THEN
+      _final_rol := 'superadmin';
+    END IF;
   END IF;
 
-  INSERT INTO public.usuarios (id, email, nombre, rol, clinica_id)
+  INSERT INTO public.usuarios (id, email, nombre, rol, clinica_id, rol_id)
   VALUES (
     new.id, 
     new.email, 
-    COALESCE(new.raw_user_meta_data->>'nombre', 'Doctor'), 
-    _rol, 
-    _clinica_id
-  );
+    COALESCE(new.raw_user_meta_data->>'nombre', 'Usuario'), 
+    _final_rol, 
+    _clinica_id,
+    _final_rol_id
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    nombre = EXCLUDED.nombre,
+    rol = EXCLUDED.rol,
+    clinica_id = EXCLUDED.clinica_id,
+    rol_id = EXCLUDED.rol_id;
+
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -118,6 +155,7 @@ CREATE TABLE IF NOT EXISTS public.pacientes (
     ocupacion_responsable TEXT,
     estado_civil_padres TEXT,
     estado TEXT NOT NULL DEFAULT 'activo',
+    pin_acceso TEXT,
     notas_dinamica TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -413,6 +451,16 @@ ALTER TABLE public.movimientos_caja ENABLE ROW LEVEL SECURITY;
 -- PolÃƒÂ­ticas globales (Las tablas individuales ya tienen RLS Habilitado)
 -- Para uso en producciÃƒÂ³n, se deben habilitar de forma infalible aquÃƒÂ­.
 
+-- Función RPC segura para verificar si existen usuarios en el sistema (usada por AuthContext)
+CREATE OR REPLACE FUNCTION public.check_has_users()
+RETURNS boolean AS $$
+BEGIN
+  RETURN EXISTS (SELECT 1 FROM public.usuarios);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+GRANT EXECUTE ON FUNCTION public.check_has_users() TO anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.aplicar_politicas_clinica()
 RETURNS void AS $$
 DECLARE
@@ -421,7 +469,7 @@ BEGIN
     FOR t_name IN 
         SELECT table_name 
         FROM information_schema.columns 
-        WHERE column_name = 'clinica_id' AND table_schema = 'public'
+        WHERE column_name = 'clinica_id' AND table_schema = 'public' AND table_name != 'usuarios'
     LOOP
         EXECUTE format('DROP POLICY IF EXISTS "user_select_%I" ON public.%I', t_name, t_name);
         EXECUTE format('CREATE POLICY "user_select_%I" ON public.%I FOR SELECT USING (clinica_id = (SELECT clinica_id FROM public.usuarios WHERE id = auth.uid()))', t_name, t_name);
@@ -438,8 +486,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Ejecutar la asignaciÃƒÂ³n de polÃƒÂ­ticas genÃƒÂ©ricas
+-- Ejecutar la asignación de políticas genéricas
 SELECT public.aplicar_politicas_clinica();
+
+-- Políticas específicas para evitar bloqueos de inicio de sesión:
+DROP POLICY IF EXISTS "usuarios_select_policy" ON public.usuarios;
+CREATE POLICY "usuarios_select_policy" ON public.usuarios FOR SELECT USING (id = auth.uid() OR auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "clinicas_select_policy" ON public.clinicas;
+CREATE POLICY "clinicas_select_policy" ON public.clinicas FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "roles_select_policy" ON public.roles;
+CREATE POLICY "roles_select_policy" ON public.roles FOR SELECT USING (auth.role() = 'authenticated');
 
 
 
@@ -717,6 +775,40 @@ CREATE POLICY "Permitir eliminar archivos a usuarios autenticados" ON storage.ob
 
 -- ==========================================
 -- FIN DEL SCRIPT MAESTRO
+-- ==========================================
+
+-- ==========================================
+-- FUNCIONES ADICIONALES Y RPC
+-- ==========================================
+
+-- Función segura para iniciar sesión en el portal de pacientes
+CREATE OR REPLACE FUNCTION public.login_portal_paciente(p_pin_acceso text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_paciente record;
+BEGIN
+  -- Buscar al paciente por su PIN único
+  SELECT id, nombre, clinica_id, estado 
+  INTO v_paciente
+  FROM pacientes
+  WHERE pin_acceso = p_pin_acceso
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  RETURN row_to_json(v_paciente)::jsonb;
+END;
+$$;
+
+-- Otorgar permisos al rol anon y authenticated para ejecutarla
+GRANT EXECUTE ON FUNCTION public.login_portal_paciente(text) TO anon, authenticated;
+
 -- ==========================================
 
 

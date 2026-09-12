@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, CheckCircle, XCircle, Plus, Video, Bell, BellRing } from 'lucide-react';
+import { Calendar, Clock, Plus, User, CheckCircle, XCircle, Video, BellRing, Trash2 } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { emailService } from '../services/email/emailService';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
+import ModalConfirmacion from '../components/common/ModalConfirmacion';
 import type { Cita, Paciente } from '../types';
 
 interface CitaConPaciente extends Cita {
@@ -21,6 +22,23 @@ export default function Agenda() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSendingReminders, setIsSendingReminders] = useState(false);
   const [remindersMessage, setRemindersMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const [modalConfirmacion, setModalConfirmacion] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const abrirConfirmacion = (title: string, message: string, onConfirm: () => void) => {
+    setModalConfirmacion({ isOpen: true, title, message, onConfirm });
+  };
+  const cerrarConfirmacion = () => setModalConfirmacion(prev => ({ ...prev, isOpen: false }));
 
   const fetchDatos = async () => {
     if (!usuarioActual?.clinica_id) return;
@@ -99,6 +117,22 @@ export default function Agenda() {
     }
   };
 
+  const handleDeleteCita = (id: string) => {
+    abrirConfirmacion(
+      "Eliminar Cita",
+      "¿Estás seguro de eliminar esta cita? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('citas').delete().eq('id', id);
+        if (!error) {
+          fetchDatos();
+        } else {
+          alert('Error al eliminar la cita.');
+        }
+        cerrarConfirmacion();
+      }
+    );
+  };
+
   const handleSaveCita = async (fecha_hora: string, motivo: string, paciente_id?: string, modalidad?: 'presencial' | 'virtual', enlace_video?: string) => {
     if (!usuarioActual || !paciente_id) return;
     try {
@@ -133,11 +167,11 @@ export default function Agenda() {
       const todasLasCitas = [...citasHoy, ...citasProximas];
       
       const citasProgramadas = todasLasCitas.filter(c => c.estado === 'programada' && new Date(c.fecha_hora) > ahora && new Date(c.fecha_hora) <= en48Horas);
-      const citasSinEmail = citasProgramadas.filter(c => !c.paciente?.email);
+      const citasSinEmail = citasProgramadas.filter(c => !c.paciente?.correo);
       const citasYaEnviadas = citasProgramadas.filter(c => c.recordatorio_enviado);
       
       const citasARecordar = citasProgramadas.filter(c => 
-        !c.recordatorio_enviado && c.paciente?.email
+        !c.recordatorio_enviado && c.paciente?.correo
       );
 
       if (citasARecordar.length === 0) {
@@ -151,23 +185,33 @@ export default function Agenda() {
         return;
       }
 
+      let clinicaNombre = 'PsicoApp';
+      if (usuarioActual?.clinica_id) {
+        const { data: clinica } = await supabase.from('clinicas').select('nombre').eq('id', usuarioActual.clinica_id).single();
+        if (clinica?.nombre) clinicaNombre = clinica.nombre;
+      }
+
       for (const cita of citasARecordar) {
-        if (!cita.paciente?.email) continue;
+        if (!cita.paciente?.correo) continue;
         
         const fechaCita = new Date(cita.fecha_hora);
         const fechaStr = fechaCita.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
         const horaStr = fechaCita.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        const esHoy = fechaCita.getDate() === ahora.getDate() && fechaCita.getMonth() === ahora.getMonth() && fechaCita.getFullYear() === ahora.getFullYear();
+
         const result = await emailService.enviarRecordatorioCita(
-          cita.paciente.email, 
+          cita.paciente.correo, 
           {
             pacienteNombre: cita.paciente.nombre,
+            clinicaNombre,
             fechaStr,
             horaStr,
             motivo: cita.motivo || 'Consulta médica',
             modalidad: cita.modalidad,
             enlaceVideo: cita.enlace_video,
             doctorNombre: usuarioActual?.nombre,
+            esHoy
           },
           usuarioActual?.clinica_id
         );
@@ -274,6 +318,25 @@ export default function Agenda() {
             >
               <XCircle size={18} />
             </button>
+            <button 
+              onClick={() => cita.id && handleDeleteCita(cita.id)}
+              className="flex items-center justify-center p-2.5 bg-red-50 text-red-600 hover:bg-red-100 font-bold rounded-xl transition-colors cursor-pointer"
+              title="Eliminar Cita (Definitivo)"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        )}
+        
+        {cita.estado !== 'programada' && (
+          <div className="flex space-x-3 pt-4 border-t border-slate-50 justify-end">
+            <button 
+              onClick={() => cita.id && handleDeleteCita(cita.id)}
+              className="flex items-center justify-center p-2.5 bg-red-50 text-red-600 hover:bg-red-100 font-bold rounded-xl transition-colors cursor-pointer"
+              title="Eliminar Cita (Definitivo)"
+            >
+              <Trash2 size={18} />
+            </button>
           </div>
         )}
       </div>
@@ -375,7 +438,16 @@ export default function Agenda() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveCita}
-        pacientes={pacientesDb}
+        pacientes={pacientesDb.filter(p => p.estado === 'activo')}
+      />
+
+      <ModalConfirmacion 
+        isOpen={modalConfirmacion.isOpen}
+        title={modalConfirmacion.title}
+        message={modalConfirmacion.message}
+        onConfirm={modalConfirmacion.onConfirm}
+        onCancel={cerrarConfirmacion}
+        confirmText="Sí, eliminar"
       />
     </div>
   );

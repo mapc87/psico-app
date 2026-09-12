@@ -16,98 +16,175 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [needsFirstAdmin, setNeedsFirstAdmin] = useState(false);
 
-  useEffect(() => {
-    // Escuchar cambios de autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        // Mecanismo de reintento (Retry Logic) para prevenir flicker si el trigger tarda en crear el perfil
-        let perfil = null;
-        for (let i = 0; i < 4; i++) {
-          const { data, error } = await supabase
-            .from('usuarios')
+  const cargarPerfil = async (sessionUser: any) => {
+    try {
+      const userId = sessionUser.id;
+      let perfil: Usuario | null = null;
+      
+      // 1. Intentar consultar perfil en public.usuarios
+      const { data } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (data) {
+        perfil = data as Usuario;
+      } else {
+        console.warn("Perfil no encontrado en public.usuarios. Creando/reparando automáticamente...");
+        
+        let clinicaId = null;
+        let rolAsignado = 'admin';
+        let rolId = null;
+
+        const codigoInv = sessionUser.user_metadata?.codigo_invitacion;
+        if (codigoInv) {
+          const { data: inv } = await supabase
+            .from('invitaciones')
             .select('*')
-            .eq('id', session.user.id)
-            .single();
+            .eq('codigo', codigoInv.trim().toUpperCase())
+            .maybeSingle();
 
-          if (data) {
-            perfil = data;
-            break;
-          }
-          
-          // Esperar 500ms antes del próximo reintento
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-
-        if (perfil) {
-          if (perfil.activo === false) {
-            console.error("Usuario inactivo, denegando acceso");
-            alert("Tu cuenta ha sido desactivada. Por favor contacta al administrador de tu clínica.");
-            setUsuarioActual(null);
-            await supabase.auth.signOut();
-          } else if (perfil.rol === 'superadmin') {
-            setUsuarioActual(perfil as Usuario);
-          } else {
-            // Check si la clinica está activa
-            const { data: clinica } = await supabase
-              .from('clinicas')
-              .select('estado')
-              .eq('id', perfil.clinica_id)
-              .single();
-              
-            if (clinica && clinica.estado === 'inactiva') {
-              console.error("Clínica inactiva, denegando acceso");
-              alert("Tu clínica ha sido desactivada. Por favor contacta al administrador del sistema.");
-              setUsuarioActual(null);
-              await supabase.auth.signOut();
+          if (inv) {
+            clinicaId = inv.clinica_id;
+            if (['superadmin', 'admin', 'personal', 'doctor'].includes(inv.rol_asignado)) {
+              rolAsignado = inv.rol_asignado;
             } else {
-              setUsuarioActual(perfil as Usuario);
+              rolAsignado = 'personal';
+              rolId = inv.rol_asignado;
             }
           }
-        } else {
-          console.error("No se encontró el perfil de usuario tras varios intentos");
-          setUsuarioActual(null);
-          await supabase.auth.signOut();
         }
-      } else {
-        setUsuarioActual(null);
-        // Reevaluar si no hay usuarios
-        const { data: hasUsers, error } = await supabase.rpc('check_has_users');
-        if (error) {
-          console.error("Error chequeando usuarios (AuthChange):", error);
-          setNeedsFirstAdmin(false);
+
+        // Auto-creación/reparación del registro en la tabla de usuarios
+        const { data: nuevoPerfil } = await supabase
+          .from('usuarios')
+          .upsert({
+            id: userId,
+            email: sessionUser.email,
+            nombre: sessionUser.user_metadata?.nombre || sessionUser.email?.split('@')[0] || 'Usuario',
+            rol: rolAsignado,
+            clinica_id: clinicaId,
+            rol_id: rolId
+          }, { onConflict: 'id' })
+          .select('*')
+          .maybeSingle();
+
+        if (nuevoPerfil) {
+          perfil = nuevoPerfil as Usuario;
         } else {
-          setNeedsFirstAdmin(hasUsers === false);
+          // Objeto en memoria como respaldo para garantizar que el usuario ingrese
+          perfil = {
+            id: userId,
+            email: sessionUser.email || '',
+            nombre: sessionUser.user_metadata?.nombre || 'Usuario',
+            rol: rolAsignado as any,
+            clinica_id: clinicaId,
+            rol_id: rolId,
+            created_at: new Date().toISOString()
+          };
         }
       }
-      setIsLoading(false);
-    });
 
-    // Check inicial
-    const checkInitial = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        // Verificar si la tabla de usuarios está vacía usando la función RPC segura
-        const { data: hasUsers, error } = await supabase.rpc('check_has_users');
-        if (error) {
-          console.error("Error chequeando usuarios (Initial):", error);
-          setNeedsFirstAdmin(false);
-        } else {
-          setNeedsFirstAdmin(hasUsers === false);
+      if (perfil.activo === false) {
+        alert("Tu cuenta ha sido desactivada. Por favor contacta al administrador de tu clínica.");
+        setUsuarioActual(null);
+        await supabase.auth.signOut();
+        return;
+      }
+
+      // 2. Si tiene clinica_id, verificar que la clínica esté activa
+      if (perfil.clinica_id && perfil.rol !== 'superadmin') {
+        try {
+          const { data: clinica } = await supabase
+            .from('clinicas')
+            .select('estado')
+            .eq('id', perfil.clinica_id)
+            .maybeSingle();
+
+          if (clinica && clinica.estado === 'inactiva') {
+            alert("Tu clínica ha sido desactivada. Por favor contacta al administrador del sistema.");
+            setUsuarioActual(null);
+            await supabase.auth.signOut();
+            return;
+          }
+        } catch (e) {
+          console.warn("No se pudo verificar el estado de la clínica:", e);
         }
-        setIsLoading(false);
+      }
+
+      setUsuarioActual(perfil);
+    } catch (err) {
+      console.error("Error en cargarPerfil:", err);
+    }
+  };
+
+  const verificarPrimerAdmin = async () => {
+    try {
+      const { data: hasUsers, error } = await supabase.rpc('check_has_users');
+      if (error) {
+        const { count } = await supabase.from('usuarios').select('*', { count: 'exact', head: true });
+        setNeedsFirstAdmin(count === 0);
+      } else {
+        setNeedsFirstAdmin(hasUsers === false);
+      }
+    } catch (e) {
+      console.error("Error verificando usuarios iniciales:", e);
+      setNeedsFirstAdmin(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await cargarPerfil(session.user);
+        } else {
+          setUsuarioActual(null);
+          await verificarPrimerAdmin();
+        }
+      } catch (err) {
+        console.error("Error en inicialización de Auth:", err);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    checkInitial();
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      try {
+        if (session?.user) {
+          await cargarPerfil(session.user);
+        } else {
+          setUsuarioActual(null);
+          await verificarPrimerAdmin();
+        }
+      } catch (err) {
+        console.error("Error en cambio de sesión Auth:", err);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const logout = async () => {
+    setIsLoading(true);
     await supabase.auth.signOut();
     setUsuarioActual(null);
+    setIsLoading(false);
   };
 
   return (

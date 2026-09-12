@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar as CalendarIcon, Clock, FileText, Save, Mail } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Clock, FileText, Save, Mail, ChevronDown } from 'lucide-react';
 import { emailService } from '../../services/email/emailService';
 
 interface ModalNuevaCitaProps {
@@ -20,8 +20,19 @@ export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre
   const [correoPaciente, setCorreoPaciente] = useState(pacienteEmail || '');
   const [modalidad, setModalidad] = useState<'presencial' | 'virtual'>('presencial');
   const [isSaving, setIsSaving] = useState(false);
+  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   
-  const today = new Date().toISOString().split('T')[0];
+  // Calcular la fecha de hoy correctamente basada en la zona horaria local
+  const today = new Date();
+  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+  const todayStr = today.toISOString().slice(0, 10);
+
+  // Generar opciones de hora en intervalos de 30 minutos (De 06:00 a 21:30)
+  const timeOptions = Array.from({ length: 16 * 2 }).map((_, i) => {
+    const h = (Math.floor(i / 2) + 6).toString().padStart(2, '0');
+    const m = i % 2 === 0 ? '00' : '30';
+    return `${h}:${m}`;
+  });
 
   if (!isOpen) return null;
 
@@ -111,7 +122,7 @@ export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre
                 <input 
                   type="date" 
                   required
-                  min={today}
+                  min={todayStr}
                   className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 text-slate-700"
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
@@ -125,13 +136,41 @@ export default function ModalNuevaCita({ isOpen, onClose, onSave, pacienteNombre
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Clock size={18} className="text-slate-400" />
                 </div>
-                <input 
-                  type="time" 
-                  required
-                  className="w-full pl-11 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 text-slate-700"
-                  value={hora}
-                  onChange={(e) => setHora(e.target.value)}
-                />
+                <div 
+                  className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer flex items-center justify-between transition-all duration-300 hover:border-violet-300"
+                  onClick={() => setShowTimeDropdown(!showTimeDropdown)}
+                >
+                  <span className={hora ? "text-slate-700 font-medium" : "text-slate-400"}>
+                    {hora || "Seleccione hora"}
+                  </span>
+                </div>
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                  <ChevronDown size={18} className={`text-slate-400 transition-transform duration-200 ${showTimeDropdown ? 'rotate-180' : ''}`} />
+                </div>
+
+                {showTimeDropdown && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowTimeDropdown(false)}
+                    />
+                    <div className="absolute z-50 mt-2 w-full bg-white border border-slate-100 rounded-2xl shadow-xl p-3 max-h-60 overflow-y-auto grid grid-cols-4 gap-2 animate-in fade-in slide-in-from-top-2">
+                      {timeOptions.map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => {
+                            setHora(t);
+                            setShowTimeDropdown(false);
+                          }}
+                          className={`py-2 px-1 text-sm font-medium rounded-lg transition-colors ${hora === t ? 'bg-violet-600 text-white shadow-md' : 'bg-slate-50 text-slate-600 hover:bg-violet-100 hover:text-violet-700'}`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

@@ -3,13 +3,15 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../services/supabase/client';
 import { useAuth } from '../../context/AuthContext';
 import { FileText, Image as ImageIcon, Music, Trash2, Download, UploadCloud, X, Loader2, ExternalLink } from 'lucide-react';
+import ModalConfirmacion from '../common/ModalConfirmacion';
 import type { ArchivoPaciente } from '../../types';
 
 interface ArchivosTabProps {
   pacienteId: string;
+  isActivo?: boolean;
 }
 
-export default function ArchivosTab({ pacienteId }: ArchivosTabProps) {
+export default function ArchivosTab({ pacienteId, isActivo = true }: ArchivosTabProps) {
   const { usuarioActual } = useAuth();
   const [archivos, setArchivos] = useState<ArchivoPaciente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,23 @@ export default function ArchivosTab({ pacienteId }: ArchivosTabProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewArchivo, setPreviewArchivo] = useState<ArchivoPaciente | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [modalConfirmacion, setModalConfirmacion] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const abrirConfirmacion = (title: string, message: string, onConfirm: () => void) => {
+    setModalConfirmacion({ isOpen: true, title, message, onConfirm });
+  };
+  const cerrarConfirmacion = () => setModalConfirmacion(prev => ({ ...prev, isOpen: false }));
 
   useEffect(() => {
     fetchArchivos();
@@ -100,32 +119,35 @@ export default function ArchivosTab({ pacienteId }: ArchivosTabProps) {
     }
   };
 
-  const handleDelete = async (archivo: ArchivoPaciente) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar "${archivo.nombre_original}"? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+  const handleDelete = (archivo: ArchivoPaciente) => {
+    abrirConfirmacion(
+      "Eliminar Archivo",
+      "¿Estás seguro de eliminar este archivo? Esta acción es irreversible.",
+      async () => {
+        try {
+          // 1. Delete from storage
+          const { error: storageError } = await supabase.storage
+            .from('pacientes_archivos')
+            .remove([archivo.ruta_storage]);
 
-    try {
-      // 1. Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('pacientes_archivos')
-        .remove([archivo.ruta_storage]);
+          if (storageError) throw storageError;
 
-      if (storageError) throw storageError;
+          // 2. Delete from DB
+          const { error: dbError } = await supabase
+            .from('archivos_paciente')
+            .delete()
+            .eq('id', archivo.id);
 
-      // 2. Delete from DB
-      const { error: dbError } = await supabase
-        .from('archivos_paciente')
-        .delete()
-        .eq('id', archivo.id);
+          if (dbError) throw dbError;
 
-      if (dbError) throw dbError;
-
-      setArchivos(archivos.filter(a => a.id !== archivo.id));
-    } catch (error: any) {
-      console.error("Error al eliminar:", error);
-      alert("Error al eliminar el archivo: " + error.message);
-    }
+          setArchivos(archivos.filter(a => a.id !== archivo.id));
+        } catch (error: any) {
+          console.error("Error al eliminar:", error);
+          alert("Error al eliminar el archivo: " + error.message);
+        }
+        cerrarConfirmacion();
+      }
+    );
   };
 
   const handlePreview = async (archivo: ArchivoPaciente) => {
@@ -152,25 +174,29 @@ export default function ArchivosTab({ pacienteId }: ArchivosTabProps) {
           <p className="text-slate-500 mt-1">Sube resultados médicos, audios o documentos PDF del paciente.</p>
         </div>
         <div>
-          <input 
-            type="file" 
-            className="hidden" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload}
-            accept=".pdf,.jpg,.jpeg,.png,.mp3,.wav"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50"
-          >
-            {uploading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <UploadCloud className="w-5 h-5" />
-            )}
-            {uploading ? 'Subiendo...' : 'Subir Archivo'}
-          </button>
+          {isActivo && (
+            <>
+              <input 
+                type="file" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload}
+                accept=".pdf,.jpg,.jpeg,.png,.mp3,.wav"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50"
+              >
+                {uploading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <UploadCloud className="w-5 h-5" />
+                )}
+                {uploading ? 'Subiendo...' : 'Subir Archivo'}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -309,6 +335,14 @@ export default function ArchivosTab({ pacienteId }: ArchivosTabProps) {
         </div>,
         document.body
       )}
+      <ModalConfirmacion 
+        isOpen={modalConfirmacion.isOpen}
+        title={modalConfirmacion.title}
+        message={modalConfirmacion.message}
+        onConfirm={modalConfirmacion.onConfirm}
+        onCancel={cerrarConfirmacion}
+        confirmText="Sí, eliminar"
+      />
     </div>
   );
 }

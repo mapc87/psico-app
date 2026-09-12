@@ -32,6 +32,14 @@ export interface RecordatorioCitaEmailParams {
   doctorNombre?: string;
   modalidad?: 'presencial' | 'virtual';
   enlaceVideo?: string;
+  esHoy?: boolean;
+}
+
+export interface AccesoPortalEmailParams {
+  pacienteNombre: string;
+  clinicaNombre?: string;
+  pinAcceso: string;
+  urlPortal: string;
 }
 
 export function getFirmaRemotaTemplate({
@@ -310,9 +318,12 @@ export function getRecordatorioCitaTemplate({
   doctorNombre,
   modalidad,
   enlaceVideo,
+  esHoy = false,
 }: RecordatorioCitaEmailParams): { subject: string; html: string } {
   const isVirtual = modalidad === 'virtual' && enlaceVideo;
-  const subject = `🔔 Recordatorio de Cita: Mañana a las ${horaStr} - ${clinicaNombre}`;
+  const diaTexto = esHoy ? 'Hoy' : 'Mañana';
+  const diaTextoMinus = esHoy ? 'hoy' : 'mañana';
+  const subject = `🔔 Recordatorio de Cita: ${diaTexto} a las ${horaStr} - ${clinicaNombre}`;
   const html = `
     <!DOCTYPE html>
     <html lang="es">
@@ -342,7 +353,7 @@ export function getRecordatorioCitaTemplate({
         </div>
         <div class="content">
           <div class="greeting">Hola, ${pacienteNombre}</div>
-          <p>Este es un recordatorio amigable de que tienes una cita programada para <strong>mañana</strong>.</p>
+          <p>Este es un recordatorio amigable de que tienes una cita programada para <strong>${diaTextoMinus}</strong>.</p>
           
           <div class="details-card">
             <div class="detail-row">
@@ -382,6 +393,66 @@ export function getRecordatorioCitaTemplate({
         </div>
         <div class="footer">
           ${clinicaNombre} - Notificación de Citas
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  return { subject, html };
+}
+
+export function getAccesoPortalTemplate({
+  pacienteNombre,
+  clinicaNombre = 'PsicoApp',
+  pinAcceso,
+  urlPortal,
+}: AccesoPortalEmailParams): { subject: string; html: string } {
+  const subject = `🔐 Tus credenciales de acceso al Portal del Paciente - ${clinicaNombre}`;
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 0; color: #334155; }
+        .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .header { background: linear-gradient(135deg, #8b5cf6, #d946ef); padding: 40px 20px; text-align: center; color: white; }
+        .content { padding: 40px 30px; }
+        .title { font-size: 24px; font-weight: 700; color: #1e293b; margin-top: 0; margin-bottom: 20px; }
+        .text { font-size: 16px; line-height: 1.6; color: #475569; margin-bottom: 24px; }
+        .pin-box { background-color: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 30px; }
+        .pin-number { font-size: 32px; font-weight: 800; letter-spacing: 4px; color: #8b5cf6; margin: 0; }
+        .button { display: inline-block; padding: 14px 28px; background-color: #8b5cf6; color: white; text-decoration: none; border-radius: 10px; font-weight: 600; text-align: center; width: 100%; box-sizing: border-box; }
+        .footer { text-align: center; padding: 20px; font-size: 14px; color: #94a3b8; background-color: #f8fafc; border-top: 1px solid #e2e8f0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin: 0; font-size: 28px;">Bienvenido a tu Portal</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">${clinicaNombre}</p>
+        </div>
+        
+        <div class="content">
+          <h2 class="title">Hola, ${pacienteNombre}</h2>
+          
+          <p class="text">Hemos habilitado tu Portal del Paciente, un espacio seguro donde podrás ver tus próximas citas, acceder a tus documentos médicos y revisar tu historial con la clínica.</p>
+          
+          <p class="text">Para acceder, no necesitas recordar contraseñas complicadas. Solo ingresa a nuestro portal usando el siguiente <strong>PIN de Acceso Seguro</strong>:</p>
+          
+          <div class="pin-box">
+            <p style="margin: 0 0 10px 0; font-size: 14px; color: #64748b; text-transform: uppercase; font-weight: 600;">Tu PIN Personal</p>
+            <p class="pin-number">${pinAcceso}</p>
+          </div>
+          
+          <a href="${urlPortal}" class="button" style="color: white !important;">Ir al Portal del Paciente</a>
+          
+          <p class="text" style="margin-top: 30px; font-size: 14px;"><em>Nota: Por tu seguridad, no compartas este PIN con nadie. Si lo pierdes o crees que alguien más lo tiene, contáctanos para generar uno nuevo.</em></p>
+        </div>
+        
+        <div class="footer">
+          <p style="margin: 0;">Este es un mensaje automático enviado por el sistema de ${clinicaNombre}.</p>
         </div>
       </div>
     </body>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabase/client';
 import { useAuth } from '../../context/AuthContext';
 import { Wallet, Plus, ArrowDownRight, ArrowUpRight, CheckCircle, Lock, AlertCircle, RefreshCw } from 'lucide-react';
+import ModalConfirmacion from '../common/ModalConfirmacion';
 import type { Caja, MovimientoCaja } from '../../types';
 
 export default function CajaPanel() {
@@ -23,6 +24,23 @@ export default function CajaPanel() {
   const [isCerrandoCaja, setIsCerrandoCaja] = useState(false);
   const [montoCierreReal, setMontoCierreReal] = useState<string>('');
   const [cierreNotas, setCierreNotas] = useState<string>('');
+
+  const [modalConfirmacion, setModalConfirmacion] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const abrirConfirmacion = (title: string, message: string, onConfirm: () => void) => {
+    setModalConfirmacion({ isOpen: true, title, message, onConfirm });
+  };
+  const cerrarConfirmacion = () => setModalConfirmacion(prev => ({ ...prev, isOpen: false }));
 
   const fetchCajaYMovimientos = async () => {
     if (!usuarioActual?.clinica_id) return;
@@ -114,6 +132,27 @@ export default function CajaPanel() {
     }
   };
 
+  const ejecutarCierreCaja = async (real: number, diferencia: number) => {
+    const { error } = await supabase.from('cajas').update({
+      usuario_cierre_id: usuarioActual!.id,
+      monto_cierre_esperado: montoEfectivoEsperado,
+      monto_cierre_real: real,
+      diferencia,
+      fecha_cierre: new Date().toISOString(),
+      estado: 'cerrada',
+      notas: cierreNotas
+    }).eq('id', cajaActiva!.id);
+
+    if (!error) {
+      setIsCerrandoCaja(false);
+      setMontoCierreReal('');
+      setCierreNotas('');
+      await fetchCajaYMovimientos();
+    } else {
+      alert('Error al cerrar la caja');
+    }
+  };
+
   const handleCerrarCaja = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cajaActiva || !usuarioActual?.clinica_id || !usuarioActual.id) return;
@@ -125,28 +164,18 @@ export default function CajaPanel() {
 
     // Advertir si hay descuadre
     if (diferencia !== 0) {
-      const confirm = window.confirm(`Hay un ${diferencia > 0 ? 'sobrante' : 'faltante'} de Q. ${Math.abs(diferencia).toFixed(2)}. ¿Deseas cerrar la caja de todas formas?`);
-      if (!confirm) return;
+      abrirConfirmacion(
+        "Descuadre en Caja",
+        `Hay un ${diferencia > 0 ? 'sobrante' : 'faltante'} de Q. ${Math.abs(diferencia).toFixed(2)}. ¿Deseas cerrar la caja de todas formas?`,
+        () => {
+          ejecutarCierreCaja(real, diferencia);
+          cerrarConfirmacion();
+        }
+      );
+      return;
     }
 
-    const { error } = await supabase.from('cajas').update({
-      usuario_cierre_id: usuarioActual.id,
-      monto_cierre_esperado: montoEfectivoEsperado,
-      monto_cierre_real: real,
-      diferencia,
-      fecha_cierre: new Date().toISOString(),
-      estado: 'cerrada',
-      notas: cierreNotas
-    }).eq('id', cajaActiva.id);
-
-    if (!error) {
-      setIsCerrandoCaja(false);
-      setMontoCierreReal('');
-      setCierreNotas('');
-      await fetchCajaYMovimientos();
-    } else {
-      alert('Error al cerrar la caja');
-    }
+    ejecutarCierreCaja(real, diferencia);
   };
 
   // Cálculos
@@ -367,6 +396,15 @@ export default function CajaPanel() {
           </table>
         </div>
       </div>
+
+      <ModalConfirmacion 
+        isOpen={modalConfirmacion.isOpen}
+        title={modalConfirmacion.title}
+        message={modalConfirmacion.message}
+        onConfirm={modalConfirmacion.onConfirm}
+        onCancel={cerrarConfirmacion}
+        confirmText="Sí, cerrar caja"
+      />
     </div>
   );
 }

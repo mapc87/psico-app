@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Sparkles, BrainCircuit, FileText } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Sparkles, BrainCircuit, FileText, Mic, MicOff } from 'lucide-react';
 import { generarNotaSOAP } from '../../services/ai/gemini';
 
 interface ModalNuevaNotaIAProps {
@@ -16,6 +16,35 @@ export default function ModalNuevaNotaIA({ isOpen, onClose, onSave, pacienteNomb
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorAi, setErrorAi] = useState('');
   const [titulo, setTitulo] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = false; // Solo finales para evitar duplicados complejos
+      recognitionRef.current.lang = 'es-ES';
+
+      recognitionRef.current.onresult = (event: any) => {
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            setBorrador((prev) => prev + event.results[i][0].transcript + ' ');
+          }
+        }
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
 
   // Resetear el estado cuando se abre el modal
   useEffect(() => {
@@ -25,8 +54,13 @@ export default function ModalNuevaNotaIA({ isOpen, onClose, onSave, pacienteNomb
       setNotaGenerada('');
       setErrorAi('');
       setTitulo(`Evolución ${pacienteNombre} - ${new Date().toLocaleDateString()}`);
+      if (isListening && recognitionRef.current) {
+        recognitionRef.current.stop();
+        setIsListening(false);
+      }
     }
   }, [isOpen, pacienteNombre]);
+
   
   if (!isOpen) return null;
 
@@ -61,6 +95,20 @@ export default function ModalNuevaNotaIA({ isOpen, onClose, onSave, pacienteNomb
     onClose();
   };
 
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert('Tu navegador no soporta el dictado por voz. Te recomendamos usar Google Chrome.');
+      return;
+    }
+    
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -87,13 +135,44 @@ export default function ModalNuevaNotaIA({ isOpen, onClose, onSave, pacienteNomb
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Borrador de la Sesión</label>
-                <textarea
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 min-h-[250px] resize-none"
-                  placeholder="Ej: El paciente llegó muy ansioso. Peleó con su jefe. No está durmiendo bien. Trabajamos técnicas de respiración. Le dejé tarea de escribir diario. Próxima cita en 1 semana."
-                  value={borrador}
-                  onChange={(e) => setBorrador(e.target.value)}
-                />
+                <div className="flex justify-between items-end mb-2">
+                  <label className="block text-sm font-medium text-slate-700">Borrador de la Sesión</label>
+                  <button
+                    type="button"
+                    onClick={toggleListening}
+                    className={`flex items-center px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                      isListening 
+                        ? 'bg-rose-100 text-rose-700 animate-pulse' 
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {isListening ? (
+                      <>
+                        <MicOff size={16} className="mr-1.5" /> Detener Grabación
+                      </>
+                    ) : (
+                      <>
+                        <Mic size={16} className="mr-1.5" /> Dictar por Voz
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="relative">
+                  <textarea
+                    className={`w-full p-4 bg-slate-50 border rounded-xl outline-none transition-all duration-300 min-h-[250px] resize-none ${
+                      isListening ? 'border-rose-300 ring-2 ring-rose-100' : 'border-slate-200 focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500'
+                    }`}
+                    placeholder="Ej: El paciente llegó muy ansioso. Peleó con su jefe. No está durmiendo bien. Trabajamos técnicas de respiración. Le dejé tarea de escribir diario. Próxima cita en 1 semana."
+                    value={borrador}
+                    onChange={(e) => setBorrador(e.target.value)}
+                  />
+                  {isListening && (
+                    <div className="absolute bottom-4 right-4 flex items-center bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md animate-bounce">
+                      <div className="w-2 h-2 rounded-full bg-white mr-2 animate-ping" />
+                      Escuchando...
+                    </div>
+                  )}
+                </div>
               </div>
 
               {errorAi && (

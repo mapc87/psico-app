@@ -27,6 +27,11 @@ import SalaVirtual from './pages/SalaVirtual';
 import GestorPruebas from './pages/GestorPruebas';
 import Paquetes from './pages/Paquetes';
 
+// Portal del Paciente
+import PortalLayout from './layouts/PortalLayout';
+import PortalLogin from './pages/portal/PortalLogin';
+import PortalDashboard from './pages/portal/PortalDashboard';
+
 function AppRoutes() {
   return (
     <Routes>
@@ -37,6 +42,12 @@ function AppRoutes() {
       <Route path="/firmar/:id" element={<FirmaRemota />} />
       <Route path="/evaluacion/:id" element={<EvaluacionRemota />} />
       <Route path="/sala-virtual/:roomId" element={<SalaPaciente />} />
+
+      {/* Rutas Portal del Paciente */}
+      <Route path="/portal/login" element={<PortalLogin />} />
+      <Route element={<PortalLayout />}>
+        <Route path="/portal" element={<PortalDashboard />} />
+      </Route>
 
       {/* Rutas Privadas (Protegidas) */}
       <Route element={<ProtectedRoute />}>
@@ -74,12 +85,16 @@ function AppRoutes() {
   );
 }
 
+import ErrorBoundary from './components/ErrorBoundary';
+
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

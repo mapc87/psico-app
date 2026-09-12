@@ -58,6 +58,7 @@ export interface Paciente {
   
   // Datos del responsable
   nombre_responsable?: string;
+  pin_acceso?: string;
   parentesco?: string;
   telefono_responsable?: string;
   ocupacion_responsable?: string;

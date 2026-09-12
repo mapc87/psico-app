@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import type { EvaluacionPlantilla } from '../types';
 import Toast from '../components/common/Toast';
 import FormularioPrueba from '../components/evaluaciones/FormularioPrueba';
+import ModalConfirmacion from '../components/common/ModalConfirmacion';
 
 export default function GestorPruebas() {
   const { usuarioActual } = useAuth();
@@ -21,6 +22,23 @@ export default function GestorPruebas() {
       setToastConfig(prev => ({ ...prev, show: false }));
     }, 3000);
   };
+
+  const [modalConfirmacion, setModalConfirmacion] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const abrirConfirmacion = (title: string, message: string, onConfirm: () => void) => {
+    setModalConfirmacion({ isOpen: true, title, message, onConfirm });
+  };
+  const cerrarConfirmacion = () => setModalConfirmacion(prev => ({ ...prev, isOpen: false }));
 
   const fetchPlantillas = async () => {
     setIsLoading(true);
@@ -57,18 +75,23 @@ export default function GestorPruebas() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta prueba? Esta acción no se puede deshacer.')) {
-      try {
-        const { error } = await supabase.from('evaluaciones_plantillas').delete().eq('id', id);
-        if (error) throw error;
-        showToast('Prueba eliminada exitosamente', 'success');
-        fetchPlantillas();
-      } catch (error: any) {
-        console.error('Error deleting plantilla:', error);
-        showToast('Error al eliminar la prueba', 'error');
+  const handleDelete = (id: string) => {
+    abrirConfirmacion(
+      "Eliminar Prueba",
+      "¿Estás seguro de eliminar esta prueba? Esta acción es irreversible.",
+      async () => {
+        try {
+          const { error } = await supabase.from('evaluaciones_plantillas').delete().eq('id', id);
+          if (error) throw error;
+          showToast('Prueba eliminada exitosamente', 'success');
+          fetchPlantillas();
+        } catch (error: any) {
+          console.error('Error deleting plantilla:', error);
+          showToast('Error al eliminar la prueba', 'error');
+        }
+        cerrarConfirmacion();
       }
-    }
+    );
   };
 
   const plantillasGlobales = plantillas.filter(p => p.clinica_id === null);
@@ -186,6 +209,15 @@ export default function GestorPruebas() {
           }} 
         />
       )}
+
+      <ModalConfirmacion 
+        isOpen={modalConfirmacion.isOpen}
+        title={modalConfirmacion.title}
+        message={modalConfirmacion.message}
+        onConfirm={modalConfirmacion.onConfirm}
+        onCancel={cerrarConfirmacion}
+        confirmText="Sí, eliminar"
+      />
 
       <Toast 
         show={toastConfig.show} 

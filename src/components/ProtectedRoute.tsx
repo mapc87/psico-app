@@ -51,7 +51,9 @@ export default function ProtectedRoute({ requireAdmin = false, children }: { req
       // Proteger rutas principales dinámicamente
       const matchingModule = APP_MODULES.find(mod => mod.path && path.startsWith(mod.path));
       if (matchingModule && !permisos[matchingModule.id as keyof typeof permisos]) {
-        return <Navigate to="/dashboard" replace />;
+        if (path !== '/dashboard') {
+          return <Navigate to="/dashboard" replace />;
+        }
       }
       
       // Proteger rutas de administración que intenten acceder por URL

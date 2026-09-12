@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Search, Plus, User, Users, FolderOpen, Edit2, UserCog, X, Save, Trash2 } from 'lucide-react';
+import { Search, Plus, User, Users, FolderOpen, Edit2, UserCog, X, Save, Trash2, Mail } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
+import { emailService } from '../services/email/emailService';
+import ModalConfirmacion from '../components/common/ModalConfirmacion';
+import Toast from '../components/common/Toast';
 import type { Paciente } from '../types';
 
 export default function Pacientes() {
@@ -16,6 +19,16 @@ export default function Pacientes() {
   const mensajeExito = location.state?.mensaje;
 
   const [permisos, setPermisos] = useState<Record<string, boolean> | null>(null);
+  const [pacienteAEliminar, setPacienteAEliminar] = useState<{id: string, nombre: string} | null>(null);
+  const [toast, setToast] = useState<{ isVisible: boolean; message: string; type?: 'success' | 'error' | 'info' }>({
+    isVisible: false,
+    message: ''
+  });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ isVisible: true, message, type });
+    setTimeout(() => setToast(prev => ({ ...prev, isVisible: false })), 3500);
+  };
 
   const { usuarioActual } = useAuth();
 
@@ -69,22 +82,59 @@ export default function Pacientes() {
       ));
       setPacienteParaEstado(null);
     } else {
-      alert('Error al actualizar el estado del paciente.');
+      showToast('Error al actualizar el estado del paciente.', 'error');
     }
     
     setActualizandoEstado(false);
   };
 
-  const handleDeletePaciente = async (id: string, nombre: string) => {
-    const confirmMessage = `⚠️ ADVERTENCIA CRÍTICA ⚠️\n\nEstás a punto de eliminar al paciente "${nombre}".\n\nEliminar un Paciente borrará permanentemente TODO su expediente (citas, documentos, notas clínicas, recetas, etc.) debido a las relaciones en la base de datos.\n\nEste proceso es totalmente IRREVERSIBLE.\n\n¿Estás absolutamente seguro de continuar?`;
+  const handleDeletePaciente = async () => {
+    if (!pacienteAEliminar) return;
     
-    if (window.confirm(confirmMessage)) {
-      const { error } = await supabase.from('pacientes').delete().eq('id', id);
-      if (!error) {
-        setPacientes(pacientes.filter(p => p.id !== id));
-      } else {
-        alert('Error al eliminar el paciente. ' + error.message);
+    const { error } = await supabase.from('pacientes').delete().eq('id', pacienteAEliminar.id);
+    
+    if (!error) {
+      setPacientes(pacientes.filter(p => p.id !== pacienteAEliminar.id));
+      showToast('Paciente eliminado exitosamente', 'success');
+    } else {
+      showToast('Error al eliminar el paciente. ' + error.message, 'error');
+    }
+    setPacienteAEliminar(null);
+  };
+
+  const handleReenviarAcceso = async (paciente: Paciente) => {
+    if (!paciente.correo) {
+      showToast('El paciente no tiene un correo registrado. Edita su perfil para agregar un correo primero.', 'error');
+      return;
+    }
+    
+    let pinAEnviar = paciente.pin_acceso;
+    if (!pinAEnviar) {
+      pinAEnviar = Math.floor(100000 + Math.random() * 900000).toString();
+      try {
+        await supabase.from('pacientes').update({ pin_acceso: pinAEnviar }).eq('id', paciente.id);
+        setPacientes(prev => prev.map(p => p.id === paciente.id ? { ...p, pin_acceso: pinAEnviar } : p));
+      } catch (err) {
+        showToast('Error al generar el PIN de acceso. Por favor intenta de nuevo.', 'error');
+        return;
       }
+    }
+    
+    try {
+      const res = await emailService.enviarAccesoPortal(paciente.correo, {
+        pacienteNombre: paciente.nombre,
+        pinAcceso: pinAEnviar,
+        urlPortal: window.location.origin + '/portal/login'
+      }, usuarioActual?.clinica_id);
+      
+      if (res.success) {
+        showToast(`Credenciales reenviadas exitosamente a ${paciente.correo}`, 'success');
+      } else {
+        showToast('Error al enviar correo: ' + res.error, 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      showToast('Error de red al intentar reenviar las credenciales.', 'error');
     }
   };
 
@@ -227,6 +277,15 @@ export default function Pacientes() {
                           <Edit2 size={18} />
                         </Link>
                       )}
+                      {canEdit && (
+                        <button 
+                          onClick={() => handleReenviarAcceso(paciente)}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                          title="Reenviar Accesos al Portal"
+                        >
+                          <Mail size={18} />
+                        </button>
+                      )}
                       {canViewExpediente && (
                         <Link 
                           to={`/pacientes/${paciente.id}`}
@@ -238,7 +297,7 @@ export default function Pacientes() {
                       )}
                       {(usuarioActual?.rol === 'superadmin' || usuarioActual?.rol === 'admin') && (
                         <button 
-                          onClick={() => handleDeletePaciente(paciente.id, paciente.nombre)}
+                          onClick={() => setPacienteAEliminar({ id: paciente.id, nombre: paciente.nombre })}
                           className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                           title="Eliminar Paciente"
                         >
@@ -339,6 +398,23 @@ export default function Pacientes() {
           </div>
         </div>
       )}
+
+      <ModalConfirmacion 
+        isOpen={pacienteAEliminar !== null}
+        title="⚠️ ADVERTENCIA CRÍTICA ⚠️"
+        message={`Estás a punto de eliminar al paciente "${pacienteAEliminar?.nombre}". Eliminar un Paciente borrará permanentemente TODO su expediente (citas, documentos, notas clínicas, recetas, etc.) debido a las relaciones en la base de datos. Este proceso es totalmente IRREVERSIBLE. ¿Estás absolutamente seguro de continuar?`}
+        confirmText="Sí, eliminar permanentemente"
+        onConfirm={handleDeletePaciente}
+        onCancel={() => setPacienteAEliminar(null)}
+      />
+
+      <Toast 
+        isVisible={toast.isVisible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+      />
+
     </div>
   );
 }

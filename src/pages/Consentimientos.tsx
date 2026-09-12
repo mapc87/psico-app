@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { FileSignature, Plus, Edit2, Trash2, Save, X, BookOpen } from 'lucide-react';
+import ModalConfirmacion from '../components/common/ModalConfirmacion';
 import type { PlantillaDocumento } from '../types';
 
 const PLANTILLA_DEFECTO = `CONSENTIMIENTO INFORMADO PARA EVALUACIÓN Y TRATAMIENTO PSICOLÓGICO
@@ -30,7 +31,24 @@ export default function Consentimientos() {
   const { usuarioActual } = useAuth();
   const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentPlantilla, setCurrentPlantilla] = useState<Partial<PlantillaDocumento>>({});
+  const [currentPlantilla, setCurrentPlantilla] = useState<Partial<PlantillaDocumento>>({ titulo: '', contenido: '' });
+
+  const [modalConfirmacion, setModalConfirmacion] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const abrirConfirmacion = (title: string, message: string, onConfirm: () => void) => {
+    setModalConfirmacion({ isOpen: true, title, message, onConfirm });
+  };
+  const cerrarConfirmacion = () => setModalConfirmacion(prev => ({ ...prev, isOpen: false }));
   
   useEffect(() => {
     fetchPlantillas();
@@ -102,13 +120,18 @@ export default function Consentimientos() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("¿Estás seguro de eliminar esta plantilla? Esta acción es irreversible.")) {
-      const { error } = await supabase.from('plantillas_documentos').delete().eq('id', id);
-      if (!error) {
-        fetchPlantillas();
+  const handleDelete = (id: string) => {
+    abrirConfirmacion(
+      "Eliminar Plantilla",
+      "¿Estás seguro de eliminar esta plantilla? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('plantillas_documentos').delete().eq('id', id);
+        if (!error) {
+          fetchPlantillas();
+        }
+        cerrarConfirmacion();
       }
-    }
+    );
   };
 
   const openEditor = (plantilla?: PlantillaDocumento) => {
@@ -223,6 +246,15 @@ export default function Consentimientos() {
           )}
         </div>
       )}
+
+      <ModalConfirmacion 
+        isOpen={modalConfirmacion.isOpen}
+        title={modalConfirmacion.title}
+        message={modalConfirmacion.message}
+        onConfirm={modalConfirmacion.onConfirm}
+        onCancel={cerrarConfirmacion}
+        confirmText="Sí, eliminar"
+      />
     </div>
   );
 }

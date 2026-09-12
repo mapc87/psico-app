@@ -155,6 +155,7 @@ CREATE TABLE IF NOT EXISTS public.pacientes (
     ocupacion_responsable TEXT,
     estado_civil_padres TEXT,
     estado TEXT NOT NULL DEFAULT 'activo',
+    pin_acceso TEXT,
     notas_dinamica TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -774,6 +775,40 @@ CREATE POLICY "Permitir eliminar archivos a usuarios autenticados" ON storage.ob
 
 -- ==========================================
 -- FIN DEL SCRIPT MAESTRO
+-- ==========================================
+
+-- ==========================================
+-- FUNCIONES ADICIONALES Y RPC
+-- ==========================================
+
+-- Función segura para iniciar sesión en el portal de pacientes
+CREATE OR REPLACE FUNCTION public.login_portal_paciente(p_pin_acceso text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_paciente record;
+BEGIN
+  -- Buscar al paciente por su PIN único
+  SELECT id, nombre, clinica_id, estado 
+  INTO v_paciente
+  FROM pacientes
+  WHERE pin_acceso = p_pin_acceso
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+
+  RETURN row_to_json(v_paciente)::jsonb;
+END;
+$$;
+
+-- Otorgar permisos al rol anon y authenticated para ejecutarla
+GRANT EXECUTE ON FUNCTION public.login_portal_paciente(text) TO anon, authenticated;
+
 -- ==========================================
 
 

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, User, Phone, MapPin, Mail, CreditCard, FileText, Save, X } from 'lucide-react';
+import { ArrowLeft, User, Phone, MapPin, Mail, CreditCard, FileText, Save, X, AlertCircle } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
+import Toast from '../components/common/Toast';
 
 export default function EditarPaciente() {
   const { id } = useParams();
@@ -25,10 +26,21 @@ export default function EditarPaciente() {
     ocupacion_responsable: '',
     estado_civil_padres: '',
     notas_dinamica: '',
-    estado: 'activo'
+    estado: 'activo',
+    pin_acceso: ''
   });
 
   const [permisos, setPermisos] = useState<Record<string, boolean> | null>(null);
+  const [showPinConfirm, setShowPinConfirm] = useState(false);
+  const [toast, setToast] = useState<{ isVisible: boolean; message: string; type?: 'success' | 'error' | 'info' }>({
+    isVisible: false,
+    message: ''
+  });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToast({ isVisible: true, message, type });
+    setTimeout(() => setToast(prev => ({ ...prev, isVisible: false })), 3500);
+  };
 
   useEffect(() => {
     const fetchPermisos = async () => {
@@ -63,7 +75,8 @@ export default function EditarPaciente() {
             ocupacion_responsable: data.ocupacion_responsable || '',
             estado_civil_padres: data.estado_civil_padres || '',
             notas_dinamica: data.notas_dinamica || '',
-            estado: data.estado || 'activo'
+            estado: data.estado || 'activo',
+            pin_acceso: data.pin_acceso || ''
           });
         }
       } catch (error) {
@@ -96,7 +109,7 @@ export default function EditarPaciente() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usuarioActual || !id) {
-      alert('Error: Sesión no válida o paciente no encontrado.');
+      showToast('Error: Sesión no válida o paciente no encontrado.', 'error');
       return;
     }
     
@@ -108,10 +121,13 @@ export default function EditarPaciente() {
       
       if (error) throw error;
       
-      navigate(`/pacientes`, { state: { mensaje: 'Paciente actualizado exitosamente.' } });
+      showToast('Paciente actualizado exitosamente.', 'success');
+      setTimeout(() => {
+        navigate(`/pacientes`, { state: { mensaje: 'Paciente actualizado exitosamente.' } });
+      }, 1500);
     } catch (error) {
       console.error('Error al actualizar el paciente', error);
-      alert('Hubo un error al actualizar el paciente. Por favor intenta de nuevo.');
+      showToast('Hubo un error al actualizar el paciente. Por favor intenta de nuevo.', 'error');
     }
   };
 
@@ -170,6 +186,20 @@ export default function EditarPaciente() {
                   value={formData.dpi}
                   onChange={handleChange}
                 />
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-slate-600 mb-2">PIN de Acceso (Portal del Paciente)</label>
+              <div className="p-4 bg-violet-50 text-violet-700 font-bold rounded-xl border border-violet-100 flex items-center justify-between">
+                <span className="tracking-[0.2em] text-xl">{formData.pin_acceso || 'No asignado'}</span>
+                <button
+                  type="button"
+                  onClick={() => setShowPinConfirm(true)}
+                  className="px-4 py-2 bg-white rounded-lg text-sm hover:bg-violet-100 transition-colors cursor-pointer"
+                >
+                  Generar Nuevo
+                </button>
               </div>
             </div>
 
@@ -445,7 +475,63 @@ export default function EditarPaciente() {
         
       </form>
       )}
+
+      {/* Modal Confirmación de PIN */}
+      {showPinConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-4 text-amber-600">
+                <AlertCircle size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">¿Generar nuevo PIN?</h3>
+              <p className="text-slate-600 text-sm mb-6">
+                El paciente ya no podrá acceder a su portal con el PIN anterior. Deberás comunicarle el nuevo código generado.
+              </p>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPinConfirm(false)}
+                  className="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const nuevoPin = Math.floor(100000 + Math.random() * 900000).toString();
+                    setFormData({...formData, pin_acceso: nuevoPin});
+                    setShowPinConfirm(false);
+                    
+                    // Auto-guardar el PIN en la base de datos
+                    if (id) {
+                      try {
+                        const { error } = await supabase.from('pacientes').update({ pin_acceso: nuevoPin }).eq('id', id);
+                        if (error) throw error;
+                        showToast('El nuevo PIN ha sido generado y guardado exitosamente.', 'success');
+                      } catch (err) {
+                        console.error('Error auto-guardando PIN:', err);
+                        showToast('El PIN se generó pero hubo un error al guardarlo automáticamente. Por favor, presiona "Actualizar Paciente".', 'error');
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors shadow-lg shadow-amber-500/30"
+                >
+                  Generar Nuevo PIN
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Toast 
+        isVisible={toast.isVisible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+      />
     </div>
   );
 }
-

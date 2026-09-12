@@ -3,7 +3,8 @@ import { Users, Calendar, Activity, UserPlus, CalendarPlus, ChevronRight, Cake, 
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import type { Cita, Paciente, Rol, Clinica, EvaluacionPaciente, EvaluacionPlantilla } from '../types';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import type { Cita, Paciente, Rol, Clinica, EvaluacionPaciente, EvaluacionPlantilla, Factura, Diagnostico } from '../types';
 
 export default function Dashboard() {
   const { usuarioActual } = useAuth();
@@ -12,6 +13,8 @@ export default function Dashboard() {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [citas, setCitas] = useState<Cita[]>([]);
   const [evaluaciones, setEvaluaciones] = useState<EvaluacionPaciente[]>([]);
+  const [facturas, setFacturas] = useState<Factura[]>([]);
+  const [diagnosticos, setDiagnosticos] = useState<Diagnostico[]>([]);
   const [permisos, setPermisos] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,16 +49,20 @@ export default function Dashboard() {
           });
         }
 
-        // 2. Cargar Pacientes, Citas y Evaluaciones
-        const [pacientesRes, citasRes, evalRes] = await Promise.all([
+        // 2. Cargar Pacientes, Citas, Evaluaciones, Facturas, Diagnósticos
+        const [pacientesRes, citasRes, evalRes, facturasRes, diagRes] = await Promise.all([
           supabase.from('pacientes').select('*'),
           supabase.from('citas').select('*'),
-          supabase.from('evaluaciones_pacientes').select('*, plantilla:plantilla_id(*)').eq('estado', 'pendiente').order('fecha', { ascending: false }).limit(5)
+          supabase.from('evaluaciones_pacientes').select('*, plantilla:plantilla_id(*)').eq('estado', 'pendiente').order('fecha', { ascending: false }).limit(5),
+          supabase.from('facturas').select('*').gte('fecha_emision', new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString()),
+          supabase.from('diagnosticos').select('*')
         ]);
 
         if (pacientesRes.data) setPacientes(pacientesRes.data as Paciente[]);
         if (citasRes.data) setCitas(citasRes.data as Cita[]);
         if (evalRes.data) setEvaluaciones(evalRes.data as EvaluacionPaciente[]);
+        if (facturasRes.data) setFacturas(facturasRes.data as Factura[]);
+        if (diagRes.data) setDiagnosticos(diagRes.data as Diagnostico[]);
       }
 
       setLoading(false);
@@ -159,6 +166,30 @@ export default function Dashboard() {
     }
   };
 
+  // DATOS PARA GRÁFICOS
+  const procesarIngresos = () => {
+    const ingresosPorMes: Record<string, number> = {};
+    facturas.forEach(f => {
+      if (f.estado === 'pagada' || f.estado === 'parcial') {
+        const mes = new Date(f.fecha_emision).toLocaleString('es-ES', { month: 'short' });
+        ingresosPorMes[mes] = (ingresosPorMes[mes] || 0) + (f.monto_total - f.saldo_pendiente);
+      }
+    });
+    return Object.keys(ingresosPorMes).map(mes => ({ name: mes, total: ingresosPorMes[mes] }));
+  };
+
+  const procesarDiagnosticos = () => {
+    const conteo: Record<string, number> = {};
+    diagnosticos.forEach(d => {
+      conteo[d.enfermedad] = (conteo[d.enfermedad] || 0) + 1;
+    });
+    return Object.keys(conteo).map(enf => ({ name: enf, value: conteo[enf] })).sort((a,b) => b.value - a.value).slice(0, 5);
+  };
+
+  const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899'];
+  const datosIngresos = procesarIngresos();
+  const datosDiagnosticos = procesarDiagnosticos();
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
@@ -228,6 +259,62 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           
+          {/* GRÁFICOS AVANZADOS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+              <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Ingresos (Últimos Meses)</h3>
+              <div className="h-48 w-full">
+                {datosIngresos.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={datosIngresos} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                      <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Area type="monotone" dataKey="total" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sin datos financieros suficientes.</div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100">
+              <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Top Diagnósticos</h3>
+              <div className="h-48 w-full">
+                {datosDiagnosticos.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={datosDiagnosticos}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={70}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {datosDiagnosticos.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-400 text-sm">Sin diagnósticos registrados.</div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Agenda del Día */}
           {puedeVerAgenda && (
             <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Camera, Calendar, Phone, Mail, MapPin, Activity, CalendarPlus, Pill, Edit2, CheckCircle2, ChevronLeft, CreditCard, Droplets, Printer, Eye, Lock, BrainCircuit, Heart, ClipboardList, Shield, Video, ArrowLeft, User, Thermometer, Wind, Scale, AlertTriangle, Wallet, DollarSign, Receipt, AlertCircle, Sparkles, FileSignature, CheckCircle, Copy, Link as LinkIcon, PenTool, X, FileText, Clock, Paperclip, Package, Trash2 } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
@@ -25,7 +25,9 @@ import ModalNuevaTarea from '../components/tareas/ModalNuevaTarea';
 import Toast from '../components/common/Toast';
 import ArchivosTab from '../components/archivos/ArchivosTab';
 import { useReactToPrint } from 'react-to-print';
-import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla, TareaPaciente } from '../types';
+import { ExportadorExpediente } from '../components/pacientes/ExportadorExpediente';
+import ModalConfirmacion from '../components/common/ModalConfirmacion';
+import type { Examen, SignosVitales, ConsentimientoFirmado, PlantillaDocumento, EvaluacionPaciente, EvaluacionPlantilla, TareaPaciente, PaqueteSesion, PacientePaquete } from '../types';
 import type { SendEmailResult } from '../services/email/emailService';
 
 export default function PacienteDetalle() {
@@ -35,6 +37,7 @@ export default function PacienteDetalle() {
   const [isCitaModalOpen, setIsCitaModalOpen] = useState(false);
   const [isExamenModalOpen, setIsExamenModalOpen] = useState(false);
   const [isSignoModalOpen, setIsSignoModalOpen] = useState(false);
+  const navigate = useNavigate();
   const [isNotaModalOpen, setIsNotaModalOpen] = useState(false);
   const [isNotaIAModalOpen, setIsNotaIAModalOpen] = useState(false);
   const [isAnalisisIAModalOpen, setIsAnalisisIAModalOpen] = useState(false);
@@ -45,18 +48,6 @@ export default function PacienteDetalle() {
   const [isMedicamentoModalOpen, setIsMedicamentoModalOpen] = useState(false);
   const [examenParaImprimir, setExamenParaImprimir] = useState<Examen | null>(null);
   const [evaluacionParaImprimir, setEvaluacionParaImprimir] = useState<EvaluacionPaciente | null>(null);
-  
-  const printRef = useRef<HTMLDivElement>(null);
-  const recetaPrintRef = useRef<HTMLDivElement>(null);
-  const evaluacionPrintRef = useRef<HTMLDivElement>(null);
-
-  const handlePrintExamen = useReactToPrint({
-    contentRef: printRef,
-  });
-
-  const handlePrintEvaluacion = useReactToPrint({
-    contentRef: evaluacionPrintRef,
-  });
 
   const [paciente, setPaciente] = useState<any>(undefined);
   const [paqueteActivo, setPaqueteActivo] = useState<any>(null);
@@ -76,6 +67,24 @@ export default function PacienteDetalle() {
   const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
 
+  const printRef = useRef<HTMLDivElement>(null);
+  const recetaPrintRef = useRef<HTMLDivElement>(null);
+  const evaluacionPrintRef = useRef<HTMLDivElement>(null);
+  const exportadorRef = useRef<HTMLDivElement>(null);
+
+  const handlePrintExamen = useReactToPrint({
+    contentRef: printRef,
+  });
+
+  const handlePrintEvaluacion = useReactToPrint({
+    contentRef: evaluacionPrintRef,
+  });
+
+  const handlePrintExpediente = useReactToPrint({
+    contentRef: exportadorRef,
+    documentTitle: `Historia_Clinica_${paciente?.nombre?.replace(/\s+/g, '_') || 'Paciente'}`
+  });
+
   // Evaluaciones Psicométricas
   const [evaluaciones, setEvaluaciones] = useState<EvaluacionPaciente[]>([]);
   const [isAsignarEvaluacionModalOpen, setIsAsignarEvaluacionModalOpen] = useState(false);
@@ -93,6 +102,26 @@ export default function PacienteDetalle() {
     titulo: '',
     onSend: async () => ({ success: false, mode: 'demo' }),
   });
+
+  const [modalConfirmacion, setModalConfirmacion] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const abrirConfirmacion = (title: string, message: string, onConfirm: () => void) => {
+    setModalConfirmacion({ isOpen: true, title, message, onConfirm });
+  };
+
+  const cerrarConfirmacion = () => {
+    setModalConfirmacion(prev => ({ ...prev, isOpen: false }));
+  };
 
   const [toast, setToast] = useState<{ isVisible: boolean; message: string; type?: 'success' | 'error' | 'info' }>({
     isVisible: false,
@@ -555,36 +584,85 @@ export default function PacienteDetalle() {
     if (eData) setExamenes(eData);
   };
 
-  const handleDeleteNota = async (notaId: string) => {
-    if (window.confirm("¿Estás seguro de eliminar esta nota clínica? Esta acción es irreversible.")) {
-      const { error } = await supabase.from('notas_clinicas').delete().eq('id', notaId);
-      if (!error) refreshData();
-      else alert('Error al eliminar nota.');
-    }
+  const handleDeleteNota = (notaId: string) => {
+    abrirConfirmacion(
+      "Eliminar Nota Clínica",
+      "¿Estás seguro de eliminar esta nota clínica? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('notas_clinicas').delete().eq('id', notaId);
+        if (!error) refreshData();
+        else alert('Error al eliminar nota.');
+        cerrarConfirmacion();
+      }
+    );
   };
 
-  const handleDeleteDiagnostico = async (diagId: string) => {
-    if (window.confirm("¿Estás seguro de eliminar este diagnóstico? Esta acción es irreversible.")) {
-      const { error } = await supabase.from('diagnosticos').delete().eq('id', diagId);
-      if (!error) refreshData();
-      else alert('Error al eliminar diagnóstico.');
-    }
+  const handleDeleteDiagnostico = (diagId: string) => {
+    abrirConfirmacion(
+      "Eliminar Diagnóstico",
+      "¿Estás seguro de eliminar este diagnóstico? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('diagnosticos').delete().eq('id', diagId);
+        if (!error) refreshData();
+        else alert('Error al eliminar diagnóstico.');
+        cerrarConfirmacion();
+      }
+    );
   };
 
-  const handleDeleteMedicamento = async (medId: string) => {
-    if (window.confirm("¿Estás seguro de eliminar esta receta/medicamento? Esta acción es irreversible.")) {
-      const { error } = await supabase.from('medicamentos').delete().eq('id', medId);
-      if (!error) refreshData();
-      else alert('Error al eliminar medicamento.');
-    }
+  const handleDeleteMedicamento = (medId: string) => {
+    abrirConfirmacion(
+      "Eliminar Receta/Medicamento",
+      "¿Estás seguro de eliminar esta receta o medicamento? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('medicamentos').delete().eq('id', medId);
+        if (!error) refreshData();
+        else alert('Error al eliminar medicamento.');
+        cerrarConfirmacion();
+      }
+    );
   };
 
-  const handleDeleteExamen = async (examenId: string) => {
-    if (window.confirm("¿Estás seguro de eliminar esta orden de examen? Esta acción es irreversible.")) {
-      const { error } = await supabase.from('examenes').delete().eq('id', examenId);
-      if (!error) refreshData();
-      else alert('Error al eliminar examen.');
-    }
+  const handleDeleteExamen = (examenId: string) => {
+    abrirConfirmacion(
+      "Eliminar Orden de Examen",
+      "¿Estás seguro de eliminar esta orden de examen? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('examenes').delete().eq('id', examenId);
+        if (!error) refreshData();
+        else alert('Error al eliminar examen.');
+        cerrarConfirmacion();
+      }
+    );
+  };
+
+  const handleDeleteSignos = (signoId: string) => {
+    abrirConfirmacion(
+      "Eliminar Signos Vitales",
+      "¿Estás seguro de eliminar estos signos vitales? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('signos_vitales').delete().eq('id', signoId);
+        if (!error) setSignos(signos.filter(s => s.id !== signoId));
+        else alert('Error al eliminar signos vitales.');
+        cerrarConfirmacion();
+      }
+    );
+  };
+
+  const handleDeletePaciente = () => {
+    abrirConfirmacion(
+      "⚠️ ADVERTENCIA CRÍTICA ⚠️",
+      "¿Estás completamente seguro de eliminar a este paciente? Esta acción borrará TODO su expediente clínico, recetas, diagnósticos y citas. ES COMPLETAMENTE IRREVERSIBLE.",
+      async () => {
+        const { error } = await supabase.from('pacientes').delete().eq('id', id);
+        if (!error) {
+          navigate('/pacientes');
+        } else {
+          alert('Error al eliminar paciente. Asegúrate de tener permisos de administrador.');
+        }
+        cerrarConfirmacion();
+      }
+    );
   };
 
   // Filtrar tabs según permisos y configuración dinámica
@@ -646,6 +724,20 @@ export default function PacienteDetalle() {
               Citas
             </button>
           )}
+          <Link 
+            to={`/pacientes/${paciente.id}/editar`}
+            className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-violet-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
+          >
+            <Edit2 size={16} className="mr-2" />
+            Editar Paciente
+          </Link>
+          <button 
+            onClick={handleDeletePaciente}
+            className="flex items-center px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 rounded-xl border border-rose-100 shadow-sm text-sm font-bold transition-all cursor-pointer"
+          >
+            <Trash2 size={16} className="mr-2" />
+            Eliminar Paciente
+          </button>
           <button 
             onClick={() => setIsGestorDocumentosOpen(true)}
             className="flex items-center px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl border border-slate-200 shadow-sm text-sm font-bold transition-all cursor-pointer"
@@ -653,8 +745,26 @@ export default function PacienteDetalle() {
             <FileSignature size={16} className="mr-2" />
             Documentos Legales
           </button>
+          <button 
+            onClick={handlePrintExpediente}
+            className="flex items-center px-4 py-2 bg-slate-800 text-white hover:bg-slate-900 rounded-xl border border-slate-700 shadow-sm text-sm font-bold transition-all cursor-pointer"
+          >
+            <FileText size={16} className="mr-2" />
+            Exportar Expediente
+          </button>
         </div>
       </div>
+
+      {/* COMPONENTES OCULTOS DE IMPRESIÓN */}
+      <ExportadorExpediente 
+        ref={exportadorRef}
+        paciente={paciente}
+        notas={notas}
+        diagnosticos={diagnosticos}
+        medicamentos={medicamentos}
+        examenes={examenes}
+        signos={signos}
+      />
 
       {/* Header del Expediente */}
       <div className="bg-white/80 backdrop-blur-md p-6 sm:p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white flex flex-col lg:flex-row items-center lg:items-start justify-between relative overflow-hidden gap-6">
@@ -1931,6 +2041,15 @@ export default function PacienteDetalle() {
         isOpen={isTareaModalOpen}
         onClose={() => setIsTareaModalOpen(false)}
         onSave={handleSaveTarea}
+      />
+
+      <ModalConfirmacion 
+        isOpen={modalConfirmacion.isOpen}
+        title={modalConfirmacion.title}
+        message={modalConfirmacion.message}
+        onConfirm={modalConfirmacion.onConfirm}
+        onCancel={cerrarConfirmacion}
+        confirmText="Sí, eliminar"
       />
 
       {/* Toast Flotante Elegante */}

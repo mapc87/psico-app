@@ -60,6 +60,12 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
   - Se rediseñaron los formularios de "Nuevo Paciente" y "Editar Paciente" para incluir la selección de estado.
   - Se reemplazó el botón de "Ver Expediente" por un ícono más intuitivo (`FolderOpen`).
 
+### Portal del Paciente y Accesos
+- **Autenticación con PIN**: Los pacientes pueden ingresar a su portal remoto mediante su correo o DPI y un PIN único de 6 dígitos (`pin_acceso`).
+- **Seguridad (RPC)**: Para cumplir con las políticas RLS y evitar exponer la tabla de pacientes, el login del portal utiliza una función segura de PostgreSQL (`login_portal_paciente`) configurada como `SECURITY DEFINER`.
+- **Generación Automática**: El sistema ahora genera, guarda y envía automáticamente los PIN de acceso sin interrupciones ni recargas. Se reemplazaron todas las notificaciones nativas (`alert()`) por un componente `Toast` moderno y flotante en toda la gestión de accesos.
+- **Correcciones Recientes**: Se arregló un bucle infinito (ERR_INSUFFICIENT_RESOURCES) en `PortalDashboard.tsx` causado por la re-creación de objetos del `localStorage` en los hooks de React.
+
 ### Consentimientos Informados y Firmas Digitales
 - Se creó la tabla `plantillas_documentos` para gestionar plantillas predeterminadas de clínica (con un trigger para crear la plantilla estándar automáticamente al registrar una clínica).
 - Se implementó la firma presencial (lienzo táctil en `ModalFirma.tsx`) desde el expediente del paciente.

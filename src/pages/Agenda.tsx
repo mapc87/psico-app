@@ -4,6 +4,7 @@ import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { emailService } from '../services/email/emailService';
 import ModalNuevaCita from '../components/citas/ModalNuevaCita';
+import ModalConfirmacion from '../components/common/ModalConfirmacion';
 import type { Cita, Paciente } from '../types';
 
 interface CitaConPaciente extends Cita {
@@ -21,6 +22,23 @@ export default function Agenda() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSendingReminders, setIsSendingReminders] = useState(false);
   const [remindersMessage, setRemindersMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const [modalConfirmacion, setModalConfirmacion] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const abrirConfirmacion = (title: string, message: string, onConfirm: () => void) => {
+    setModalConfirmacion({ isOpen: true, title, message, onConfirm });
+  };
+  const cerrarConfirmacion = () => setModalConfirmacion(prev => ({ ...prev, isOpen: false }));
 
   const fetchDatos = async () => {
     if (!usuarioActual?.clinica_id) return;
@@ -99,15 +117,20 @@ export default function Agenda() {
     }
   };
 
-  const handleDeleteCita = async (id: string) => {
-    if (window.confirm("¿Estás seguro de eliminar esta cita? Esta acción es irreversible.")) {
-      const { error } = await supabase.from('citas').delete().eq('id', id);
-      if (!error) {
-        fetchDatos();
-      } else {
-        alert('Error al eliminar la cita.');
+  const handleDeleteCita = (id: string) => {
+    abrirConfirmacion(
+      "Eliminar Cita",
+      "¿Estás seguro de eliminar esta cita? Esta acción es irreversible.",
+      async () => {
+        const { error } = await supabase.from('citas').delete().eq('id', id);
+        if (!error) {
+          fetchDatos();
+        } else {
+          alert('Error al eliminar la cita.');
+        }
+        cerrarConfirmacion();
       }
-    }
+    );
   };
 
   const handleSaveCita = async (fecha_hora: string, motivo: string, paciente_id?: string, modalidad?: 'presencial' | 'virtual', enlace_video?: string) => {
@@ -416,6 +439,15 @@ export default function Agenda() {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveCita}
         pacientes={pacientesDb.filter(p => p.estado === 'activo')}
+      />
+
+      <ModalConfirmacion 
+        isOpen={modalConfirmacion.isOpen}
+        title={modalConfirmacion.title}
+        message={modalConfirmacion.message}
+        onConfirm={modalConfirmacion.onConfirm}
+        onCancel={cerrarConfirmacion}
+        confirmText="Sí, eliminar"
       />
     </div>
   );

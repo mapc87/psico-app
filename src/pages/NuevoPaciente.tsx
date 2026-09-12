@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Phone, MapPin, Mail, CreditCard, FileText, Save, X } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
+import { emailService } from '../services/email/emailService';
 
 export default function NuevoPaciente() {
   const { usuarioActual } = useAuth();
@@ -24,7 +25,8 @@ export default function NuevoPaciente() {
     ocupacion_responsable: '',
     estado_civil_padres: '',
     notas_dinamica: '',
-    estado: 'activo'
+    estado: 'activo',
+    pin_acceso: Math.floor(100000 + Math.random() * 900000).toString()
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,6 +45,15 @@ export default function NuevoPaciente() {
       const { error } = await supabase.from('pacientes').insert([nuevoPaciente]);
       
       if (error) throw error;
+      
+      // Enviar correo de bienvenida y acceso si hay correo
+      if (formData.correo && formData.pin_acceso) {
+        await emailService.enviarAccesoPortal(formData.correo, {
+          pacienteNombre: formData.nombre,
+          pinAcceso: formData.pin_acceso,
+          urlPortal: window.location.origin + '/portal/login'
+        }, usuarioActual.clinica_id);
+      }
       
       // Mostrar feedback y redirigir
       navigate('/pacientes', { state: { mensaje: 'Paciente guardado exitosamente.' } });
@@ -104,6 +115,14 @@ export default function NuevoPaciente() {
                   value={formData.dpi}
                   onChange={handleChange}
                 />
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-bold text-slate-600 mb-2">PIN de Acceso (Portal del Paciente)</label>
+              <div className="p-4 bg-violet-50 text-violet-700 font-bold rounded-xl border border-violet-100 flex items-center justify-between">
+                <span className="tracking-[0.2em] text-xl">{formData.pin_acceso}</span>
+                <span className="text-xs text-violet-500 font-normal">Este PIN se usará para que el paciente acceda a su portal web. Entrégaselo al paciente.</span>
               </div>
             </div>
 

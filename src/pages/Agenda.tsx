@@ -293,7 +293,7 @@ export default function Agenda() {
         {cita.modalidad === 'virtual' && cita.estado === 'programada' && !isPasada && (
           <div className="mb-4">
             <button 
-              onClick={() => window.open(cita.enlace_video, '_blank')}
+              onClick={() => window.open(`/videoconsulta/${cita.id}`, '_blank')}
               className="w-full flex justify-center items-center py-2 px-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-sm font-bold rounded-xl hover:shadow-md transition-all duration-300"
             >
               <Video size={16} className="mr-2" />

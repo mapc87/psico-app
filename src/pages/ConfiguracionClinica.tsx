@@ -343,7 +343,7 @@ export default function ConfiguracionClinica() {
       </div>
 
       <Toast 
-        show={toastConfig.show} 
+        isVisible={toastConfig.show} 
         message={toastConfig.message} 
         type={toastConfig.type} 
         onClose={() => setToastConfig(prev => ({ ...prev, show: false }))} 

@@ -352,7 +352,7 @@ export default function Perfil() {
       </form>
 
       <Toast
-        show={toastConfig.show}
+        isVisible={toastConfig.show}
         message={toastConfig.message}
         type={toastConfig.type}
         onClose={() => setToastConfig(prev => ({ ...prev, show: false }))}

@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams } from 'react-router-dom';
-import { JitsiMeeting } from '@jitsi/react-sdk';
-import { BrainCircuit } from 'lucide-react';
+import { BrainCircuit, Video } from 'lucide-react';
 
 export default function SalaPaciente() {
   const { roomId } = useParams<{ roomId: string }>();
-  const [hasJoined, setHasJoined] = useState(false);
 
   if (!roomId) return <div>Sala no válida</div>;
 
@@ -23,51 +21,26 @@ export default function SalaPaciente() {
       </div>
 
       {/* Área de Video */}
-      <div className="flex-1 w-full bg-black relative">
-        {!hasJoined && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-slate-900">
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-violet-400 font-medium">Conectando a la sala virtual...</p>
-            </div>
+      <div className="flex-1 w-full bg-slate-900 flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl relative flex flex-col items-center justify-center p-8 text-center border border-slate-800">
+          <div className="w-24 h-24 bg-slate-800 rounded-3xl flex items-center justify-center mb-6 shadow-xl border border-slate-700">
+            <Video className="text-blue-500" size={48} />
           </div>
-        )}
-        
-        <JitsiMeeting
-          domain="meet.ffmuc.net"
-          roomName={`psicoapp-videoconsulta-${roomId}`}
-          configOverwrite={{
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            disableModeratorIndicator: true,
-            startScreenSharing: false,
-            enableEmailInStats: false,
-            prejoinPageEnabled: true // Que el paciente pueda configurar su cámara antes de entrar
-          }}
-          interfaceConfigOverwrite={{
-            DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-            TOOLBAR_BUTTONS: [
-              'microphone', 'camera', 'desktop', 'fullscreen',
-              'fodeviceselection', 'hangup', 'chat', 'settings',
-              'videoquality', 'filmstrip', 'tileview'
-            ]
-          }}
-          userInfo={{
-            displayName: 'Paciente'
-          }}
-          onApiReady={(externalApi) => {
-            // Se disparará cuando la API cargue
-            externalApi.addListener('videoConferenceJoined', () => {
-              setHasJoined(true);
-            });
-          }}
-          getIFrameRef={(iframeRef) => {
-            iframeRef.style.height = '100%';
-            iframeRef.style.width = '100%';
-          }}
-        />
+          
+          <h2 className="text-3xl font-bold text-white mb-4">Videoconsulta Lista</h2>
+          
+          <p className="text-slate-400 max-w-lg mb-10 text-lg leading-relaxed">
+            Para garantizar la mejor calidad de conexión y evitar interrupciones, la videollamada se abrirá en una ventana segura de forma externa.
+          </p>
+          
+          <button 
+            onClick={() => window.open(`https://meet.jit.si/psicoapp-videoconsulta-${roomId}`, 'JitsiVideo', 'width=1024,height=768')}
+            className="flex items-center px-10 py-5 bg-blue-600 hover:bg-blue-500 text-white text-xl font-bold rounded-2xl transition-all shadow-lg hover:shadow-blue-500/25 hover:-translate-y-1"
+          >
+            <Video className="mr-3" size={28} />
+            Unirse a la Videollamada
+          </button>
+        </div>
       </div>
     </div>
   );

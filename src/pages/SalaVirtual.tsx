@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { JitsiMeeting } from '@jitsi/react-sdk';
 import { supabase } from '../services/supabase/client';
-import { ArrowLeft, User, Activity, FileText, ClipboardList } from 'lucide-react';
+import { ArrowLeft, User, Activity, FileText, ClipboardList, Video } from 'lucide-react';
 import type { Cita, Paciente } from '../types';
 
 export default function SalaVirtual() {
@@ -86,33 +86,31 @@ export default function SalaVirtual() {
           </div>
         </div>
         
-        <div className="flex-1 w-full relative">
-          <JitsiMeeting
-            domain="meet.ffmuc.net"
-            roomName={roomName}
-            configOverwrite={{
-              startWithAudioMuted: false,
-              startWithVideoMuted: false,
-              prejoinPageEnabled: false
-            }}
-            interfaceConfigOverwrite={{
-              DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
-              SHOW_JITSI_WATERMARK: false,
-              SHOW_WATERMARK_FOR_GUESTS: false,
-              TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'desktop', 'fullscreen',
-                'fodeviceselection', 'hangup', 'chat', 'settings',
-                'videoquality', 'filmstrip', 'tileview'
-              ]
-            }}
-            userInfo={{
-              displayName: 'Dr. (Organizador)'
-            }}
-            getIFrameRef={(iframeRef) => {
-              iframeRef.style.height = '100%';
-              iframeRef.style.width = '100%';
-            }}
-          />
+        <div className="flex-1 w-full bg-slate-900 flex flex-col items-center justify-center p-8 text-center border-r border-slate-800">
+          <div className="w-20 h-20 bg-slate-800 rounded-2xl flex items-center justify-center mb-6 shadow-xl">
+            <Video className="text-blue-500" size={40} />
+          </div>
+          
+          <h2 className="text-2xl font-bold text-white mb-4">Videoconsulta Lista</h2>
+          
+          <p className="text-slate-400 max-w-md mb-8 leading-relaxed">
+            Debido a las políticas recientes de seguridad de Jitsi (para evitar desconexiones a los 5 minutos), la videollamada debe abrirse en una ventana separada.
+          </p>
+          
+          <button 
+            onClick={() => window.open(`https://meet.jit.si/${roomName}`, 'JitsiVideo', 'width=1024,height=768')}
+            className="flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
+          >
+            <Video className="mr-3" size={24} />
+            Abrir Sala de Videollamada
+          </button>
+          
+          <div className="mt-8 p-4 bg-slate-800/50 rounded-xl max-w-md border border-slate-700">
+            <p className="text-sm text-slate-400 mb-2">
+              <strong className="text-slate-300 block mb-1">💡 Tip para doctores:</strong>
+              Puedes mantener esta ventana de PsicoApp abierta al lado o en otra pantalla para tomar las notas clínicas mientras hablas con el paciente.
+            </p>
+          </div>
         </div>
       </div>
 

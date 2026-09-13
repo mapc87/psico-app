@@ -98,12 +98,12 @@ export default function PortalDashboard() {
                     {new Date(cita.fecha_hora).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                   </p>
                   <span className="mt-2 inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
-                    {cita.modalidad === 'virtual' ? 'Videoconsulta' : 'Presencial'}
+                    {cita.modalidad === 'virtual' || cita.modalidad === 'en_linea' ? 'Videoconsulta' : 'Presencial'}
                   </span>
                   
-                  {cita.modalidad === 'virtual' && cita.enlace_video && (
+                  {(cita.modalidad === 'virtual' || cita.modalidad === 'en_linea' || cita.enlace_video) && (
                     <a 
-                      href={`/sala-virtual/${cita.enlace_video}`}
+                      href={`/sala-virtual/${cita.enlace_video || cita.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-4 w-full flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"

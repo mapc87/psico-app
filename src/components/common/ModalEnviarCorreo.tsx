@@ -139,7 +139,7 @@ export default function ModalEnviarCorreo({
                 <button
                   type="button"
                   onClick={onClose}
-                  disabled={isSaving => isSending}
+                  disabled={isSending}
                   className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl text-sm transition-colors cursor-pointer"
                 >
                   Cancelar

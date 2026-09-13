@@ -493,8 +493,14 @@ SELECT public.aplicar_politicas_clinica();
 DROP POLICY IF EXISTS "usuarios_select_policy" ON public.usuarios;
 CREATE POLICY "usuarios_select_policy" ON public.usuarios FOR SELECT USING (id = auth.uid() OR auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "usuarios_update_policy" ON public.usuarios;
+CREATE POLICY "usuarios_update_policy" ON public.usuarios FOR UPDATE USING (id = auth.uid());
+
 DROP POLICY IF EXISTS "clinicas_select_policy" ON public.clinicas;
 CREATE POLICY "clinicas_select_policy" ON public.clinicas FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "clinicas_update_policy" ON public.clinicas;
+CREATE POLICY "clinicas_update_policy" ON public.clinicas FOR UPDATE USING (id = (SELECT clinica_id FROM public.usuarios WHERE id = auth.uid()));
 
 DROP POLICY IF EXISTS "roles_select_policy" ON public.roles;
 CREATE POLICY "roles_select_policy" ON public.roles FOR SELECT USING (auth.role() = 'authenticated');

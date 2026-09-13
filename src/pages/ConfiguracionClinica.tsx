@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
-import { Settings, Save, Building2, Landmark, FileText, MapPin, Phone, Hash, Mail, Key, Eye, EyeOff } from 'lucide-react';
+import { Settings, Save, Building2, Landmark, FileText, MapPin, Phone, Hash, Mail, Key, Eye, EyeOff , Upload, Image as ImageIcon} from 'lucide-react';
 import Toast from '../components/common/Toast';
 import type { Clinica } from '../types';
 
@@ -29,6 +29,8 @@ export default function ConfiguracionClinica() {
   const [razonSocial, setRazonSocial] = useState('');
   const [direccionFiscal, setDireccionFiscal] = useState('');
   const [noPatente, setNoPatente] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (usuarioActual?.clinica_id) {
@@ -55,6 +57,7 @@ export default function ConfiguracionClinica() {
       setRazonSocial(data.razon_social || '');
       setDireccionFiscal(data.direccion_fiscal || '');
       setNoPatente(data.no_patente || '');
+      setLogoUrl(data.logo_url || '');
 
       // Email config from DB
       setResendApiKey(data.resend_api_key || '');
@@ -75,6 +78,30 @@ export default function ConfiguracionClinica() {
     if (!usuarioActual?.clinica_id) return;
     setSaving(true);
 
+        let currentLogoUrl = clinica?.logo_url || '';
+    if (logoFile) {
+      const fileExt = logoFile.name.split('.').pop();
+      const fileName = ${usuarioActual.clinica_id}-.;
+      const filePath = ${fileName};
+
+      const { error: uploadError } = await supabase.storage
+        .from('clinicas_logos')
+        .upload(filePath, logoFile, { upsert: true });
+
+      if (uploadError) {
+        console.error('Error uploading logo:', uploadError);
+        showToast('Error al subir el logo.', 'error');
+        setSaving(false);
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('clinicas_logos')
+        .getPublicUrl(filePath);
+
+      currentLogoUrl = publicUrl;
+    }
+
     const updates = {
       nombre,
       nombre_comercial: nombreComercial,
@@ -86,6 +113,7 @@ export default function ConfiguracionClinica() {
       no_patente: noPatente,
       resend_api_key: resendApiKey,
       email_remitente: emailRemitente,
+      logo_url: currentLogoUrl,
     };
 
     const { error } = await supabase
@@ -130,7 +158,48 @@ export default function ConfiguracionClinica() {
               InformaciÃ³n Comercial
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Logo Section */}
+              <div className="md:col-span-2 flex flex-col md:flex-row gap-6 items-center p-6 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="w-32 h-32 rounded-2xl bg-white border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden shrink-0 relative group">
+                  {logoUrl || logoFile ? (
+                    <>
+                      <img 
+                        src={logoFile ? URL.createObjectURL(logoFile) : logoUrl} 
+                        alt="Logo Clínica" 
+                        className="w-full h-full object-contain p-2"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Upload className="text-white" size={24} />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-slate-400 flex flex-col items-center">
+                      <ImageIcon size={32} className="mb-2" />
+                      <span className="text-xs font-medium">Subir Logo</span>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        if (e.target.files[0].size > 2 * 1024 * 1024) {
+                          showToast('El logo no debe superar los 2MB', 'error');
+                          return;
+                        }
+                        setLogoFile(e.target.files[0]);
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 mb-1">Logo de la Clínica</h4>
+                  <p className="text-sm text-slate-500 mb-3">Sube el logo de tu clínica para que aparezca en todas las recetas, facturas y reportes médicos.</p>
+                  <p className="text-xs text-slate-400 bg-white px-3 py-1.5 rounded border border-slate-200 inline-block">JPG, PNG o SVG. Máximo 2MB.</p>
+                </div>
+              </div>
               <div className="space-y-2 md:col-span-2">
                 <label className="text-sm font-bold text-slate-700">Nombre de la ClÃ­nica (Interno)</label>
                 <div className="relative">
@@ -206,7 +275,48 @@ export default function ConfiguracionClinica() {
               Datos Fiscales (SAT)
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Logo Section */}
+              <div className="md:col-span-2 flex flex-col md:flex-row gap-6 items-center p-6 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="w-32 h-32 rounded-2xl bg-white border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden shrink-0 relative group">
+                  {logoUrl || logoFile ? (
+                    <>
+                      <img 
+                        src={logoFile ? URL.createObjectURL(logoFile) : logoUrl} 
+                        alt="Logo Clínica" 
+                        className="w-full h-full object-contain p-2"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Upload className="text-white" size={24} />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-slate-400 flex flex-col items-center">
+                      <ImageIcon size={32} className="mb-2" />
+                      <span className="text-xs font-medium">Subir Logo</span>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        if (e.target.files[0].size > 2 * 1024 * 1024) {
+                          showToast('El logo no debe superar los 2MB', 'error');
+                          return;
+                        }
+                        setLogoFile(e.target.files[0]);
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 mb-1">Logo de la Clínica</h4>
+                  <p className="text-sm text-slate-500 mb-3">Sube el logo de tu clínica para que aparezca en todas las recetas, facturas y reportes médicos.</p>
+                  <p className="text-xs text-slate-400 bg-white px-3 py-1.5 rounded border border-slate-200 inline-block">JPG, PNG o SVG. Máximo 2MB.</p>
+                </div>
+              </div>
               <div className="space-y-2">
                 <label className="text-sm font-bold text-slate-700">NIT</label>
                 <div className="relative">
@@ -281,7 +391,48 @@ export default function ConfiguracionClinica() {
             </h3>
             <p className="text-sm text-slate-500 mb-6">Configura tu cuenta de <a href="https://resend.com" target="_blank" rel="noreferrer" className="text-violet-600 font-semibold hover:underline">Resend.com</a> para enviar correos reales (consentimientos, recetas, citas). Sin esta configuraciÃ³n el sistema funciona en modo demo (sin envÃ­os reales).</p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Logo Section */}
+              <div className="md:col-span-2 flex flex-col md:flex-row gap-6 items-center p-6 bg-slate-50 border border-slate-100 rounded-2xl">
+                <div className="w-32 h-32 rounded-2xl bg-white border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden shrink-0 relative group">
+                  {logoUrl || logoFile ? (
+                    <>
+                      <img 
+                        src={logoFile ? URL.createObjectURL(logoFile) : logoUrl} 
+                        alt="Logo Clínica" 
+                        className="w-full h-full object-contain p-2"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Upload className="text-white" size={24} />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-slate-400 flex flex-col items-center">
+                      <ImageIcon size={32} className="mb-2" />
+                      <span className="text-xs font-medium">Subir Logo</span>
+                    </div>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        if (e.target.files[0].size > 2 * 1024 * 1024) {
+                          showToast('El logo no debe superar los 2MB', 'error');
+                          return;
+                        }
+                        setLogoFile(e.target.files[0]);
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-800 mb-1">Logo de la Clínica</h4>
+                  <p className="text-sm text-slate-500 mb-3">Sube el logo de tu clínica para que aparezca en todas las recetas, facturas y reportes médicos.</p>
+                  <p className="text-xs text-slate-400 bg-white px-3 py-1.5 rounded border border-slate-200 inline-block">JPG, PNG o SVG. Máximo 2MB.</p>
+                </div>
+              </div>
               <div className="space-y-2 md:col-span-2">
                 <label className="text-sm font-bold text-slate-700">API Key de Resend</label>
                 <div className="relative">

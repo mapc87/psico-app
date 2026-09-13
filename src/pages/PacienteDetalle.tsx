@@ -1671,6 +1671,7 @@ export default function PacienteDetalle() {
             pacienteId: 0, medicoId: 0, fecha_solicitud: '', estado: 'pendiente', tipo_examen: ''
           }}
           medicoNombre={usuarioActual?.nombre}
+          clinicaLogo={clinicaData?.logo_url}
         />
       </div>
 
@@ -1689,6 +1690,7 @@ export default function PacienteDetalle() {
           clinicaDireccion={clinicaData?.direccion_fiscal || clinicaData?.direccion}
           clinicaTelefono={clinicaData?.telefono_contacto}
           clinicaNit={clinicaData?.nit}
+          clinicaLogo={clinicaData?.logo_url}
         />
       </div>
 
@@ -1701,7 +1703,8 @@ export default function PacienteDetalle() {
             pacienteNombre={paciente.nombre}
             pacienteEdad={calcularEdad(paciente.fecha_nacimiento) || 0}
             medicoNombre={usuarioActual?.nombre}
-            clinicaNombre="Clínica Psicológica"
+            clinicaNombre={clinicaData?.nombre_comercial || clinicaData?.nombre || "Clínica Psicológica"}
+            clinicaLogo={clinicaData?.logo_url}
           />
         )}
       </div>

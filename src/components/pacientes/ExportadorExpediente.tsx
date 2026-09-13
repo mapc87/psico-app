@@ -8,22 +8,32 @@ interface ExportadorExpedienteProps {
   medicamentos: Medicamento[];
   examenes: Examen[];
   signos: SignoVital[];
+  clinicaNombre: string;
+  medicoNombre: string;
+  clinicaLogo?: string;
 }
 
 export const ExportadorExpediente = React.forwardRef<HTMLDivElement, ExportadorExpedienteProps>(
-  ({ paciente, notas, diagnosticos, medicamentos, examenes, signos }, ref) => {
+  ({ paciente, notas, diagnosticos, medicamentos, examenes, signos, clinicaNombre, medicoNombre, clinicaLogo }, ref) => {
     return (
       <div className="hidden">
         <div ref={ref} className="p-10 bg-white text-black font-sans w-full max-w-4xl mx-auto print:block print:p-0">
           
           {/* Encabezado */}
-          <div className="border-b-2 border-slate-800 pb-6 mb-8 flex justify-between items-end">
-            <div>
-              <h1 className="text-3xl font-bold uppercase tracking-wider text-slate-900">Historia Clínica</h1>
-              <p className="text-slate-500 mt-1">Expediente Médico y Psicológico</p>
+          <div className="border-b-2 border-slate-800 pb-6 mb-8 flex justify-between items-start">
+            <div className="flex items-center">
+              {clinicaLogo && (
+                <img src={clinicaLogo} alt="Logo Clínica" className="h-16 object-contain mr-4" />
+              )}
+              <div>
+                <h1 className="text-3xl font-black uppercase tracking-wider text-slate-900">{clinicaNombre || 'Historia Clínica'}</h1>
+                <p className="text-slate-600 font-bold mt-1 text-lg">Dr/a. {medicoNombre}</p>
+                <p className="text-slate-500 mt-1">Expediente Médico y Psicológico Completo</p>
+              </div>
             </div>
-            <div className="text-right text-sm text-slate-600">
-              <p>Fecha de Emisión: {new Date().toLocaleDateString()}</p>
+            <div className="text-right text-sm text-slate-600 self-end">
+              <p><strong>Fecha de Emisión:</strong> {new Date().toLocaleDateString()}</p>
+              <p><strong>Hora:</strong> {new Date().toLocaleTimeString()}</p>
             </div>
           </div>
 

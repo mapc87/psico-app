@@ -785,6 +785,9 @@ export default function PacienteDetalle() {
         medicamentos={medicamentos}
         examenes={examenes}
         signos={signos}
+        clinicaNombre={clinicaData?.nombre_comercial || clinicaData?.nombre}
+        clinicaLogo={clinicaData?.logo_url}
+        medicoNombre={usuarioActual?.nombre || ''}
       />
 
       {/* Header del Expediente */}

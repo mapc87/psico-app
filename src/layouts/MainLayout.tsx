@@ -92,7 +92,7 @@ export default function MainLayout() {
 
         <div className={`p-6 flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center px-4' : ''}`}>
           {clinicaLogo ? (
-            <img src={clinicaLogo} alt="Logo Clínica" className={`object-contain shrink-0 ${isSidebarCollapsed ? 'w-10 h-10' : 'w-10 h-10 mr-3'}`} />
+            <img src={clinicaLogo} alt="Logo Clínica" className={`object-contain shrink-0 ${isSidebarCollapsed ? 'w-10 h-10' : 'w-14 h-14 mr-3'}`} />
           ) : (
             <div className={`w-9 h-9 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0 ${isSidebarCollapsed ? '' : 'mr-3'}`}>
               <Activity className="text-white" size={20} />

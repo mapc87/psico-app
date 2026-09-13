@@ -87,7 +87,7 @@ export default function SalaVirtual() {
         
         <div className="flex-1 w-full relative">
           <JitsiMeeting
-            domain="meet.jit.si"
+            domain="meet.ffmuc.net"
             roomName={roomName}
             configOverwrite={{
               startWithAudioMuted: false,

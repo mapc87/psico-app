@@ -13,19 +13,24 @@ interface RecetaPrintProps {
   clinicaDireccion?: string;
   clinicaTelefono?: string;
   clinicaNit?: string;
+  clinicaLogo?: string;
 }
 
 const RecetaPrint = forwardRef<HTMLDivElement, RecetaPrintProps>(
-  ({ pacienteNombre, pacienteEdad, fecha, medicamentos, medicoNombre = 'Médico Tratante', medicoProfesion, medicoColegiado, clinicaNombre, clinicaDireccion, clinicaTelefono, clinicaNit }, ref) => {
+  ({ pacienteNombre, pacienteEdad, fecha, medicamentos, medicoNombre = 'Médico Tratante', medicoProfesion, medicoColegiado, clinicaNombre, clinicaDireccion, clinicaTelefono, clinicaNit, clinicaLogo }, ref) => {
     return (
       <div ref={ref} className="p-12 max-w-4xl mx-auto bg-white min-h-[1056px] text-slate-800" style={{ fontFamily: "'Inter', sans-serif" }}>
         
         {/* Cabecera de la Clínica */}
         <div className="flex justify-between items-start border-b-2 border-slate-800 pb-6 mb-8">
-          <div>
-            <h1 className="text-3xl font-black tracking-tighter text-slate-900">
-              {clinicaNombre || 'CLÍNICA'}
-            </h1>
+          <div className="flex items-center">
+            {clinicaLogo && (
+              <img src={clinicaLogo} alt="Logo Clínica" className="h-16 object-contain mr-4" />
+            )}
+            <div>
+              <h1 className="text-3xl font-black tracking-tighter text-slate-900">
+                {clinicaNombre || 'CLÍNICA'}
+              </h1>
             {clinicaDireccion && (
               <p className="text-sm text-slate-500 mt-1">{clinicaDireccion}</p>
             )}
@@ -35,6 +40,7 @@ const RecetaPrint = forwardRef<HTMLDivElement, RecetaPrintProps>(
             {clinicaNit && (
               <p className="text-sm text-slate-500">NIT: {clinicaNit}</p>
             )}
+            </div>
           </div>
           <div className="text-right">
             <h2 className="text-xl font-bold text-slate-800">{medicoNombre}</h2>

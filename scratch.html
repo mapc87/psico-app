@@ -1,0 +1,309 @@
+﻿<section>
+  <div class="cover"></div>
+  <section class="content-registry">
+
+    <form action="" [formGroup]="formUser">
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="card card-mobile">
+            <div class="card-body text-center" >
+              <div class="profile-user position-relative d-inline-block mx-auto  mb-2">
+                <img src="/assets/logos/logo-sar.png" class="rounded-circle avatar-xl img-thumbnail" alt="...">
+                <button class="btn btn-icon btn-light up-photo">
+                  <span translate="no" class="material-icons">
+                    photo_camera
+                  </span>
+                </button>
+              </div>
+              <h5 class="mb-1">{{ nombres?.value ?? "Nombre usuario"}}</h5>
+              <p class="text-muted mb-0">{{ cargo?.value ?? "Cargo / puesto" }}</p>
+            </div>
+          </div>
+
+          <div class="card card-mobile mt-3">
+            <div class="card-header pb-1">
+              <h6>ConfiguraciÃ³n del usuario</h6>
+            </div>
+            <div class="card-body">
+              <ul class="list-group list-group-options">
+
+                <label class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span>Tarjeta de manipulaciÃ³n de alimentos</span>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox"  formControlName="tieneTarjetaManipulacionAlimentos"  (change)="validFormControl('tieneTarjetaManipulacionAlimentos')">
+                    </div>
+                  </div>
+                </label>
+                <label class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span>Tarjeta de salud</span>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox"  formControlName="tieneTarjetaSalud"  (change)="validFormControl('tieneTarjetaSalud')">
+                    </div>
+                  </div>
+                </label>
+                <label class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span>Tarjeta de pulmones</span>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox"  formControlName="tieneTarjetaPulmones"  (change)="validFormControl('tieneTarjetaPulmones')">
+                    </div>
+                  </div>
+                </label>
+                <label class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span>Antecedentes penales</span>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox"  formControlName="antecedentesPenales" (change)="validFormControl('antecedentesPenales')">
+                    </div>
+                  </div>
+                </label>
+                <label class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span>Antecedentes policiales</span>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox"  formControlName="antecedentesPoliciales" (change)="validFormControl('antecedentesPoliciales')">
+                    </div>
+                  </div>
+                </label>
+                <label class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span>Activar usuario</span>
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox"  formControlName="estado">
+                    </div>
+                  </div>
+                </label>
+              </ul>
+
+            </div>
+          </div>
+
+        </div>
+
+        <div class="col-md-8">
+          <div class="card card-mobile">
+            <div class="card-header">
+              <h6>Datos Generales</h6>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">CÃ³digo Ãšnico de IdentificaciÃ³n (CUI)</label>
+                  <input type="text" class="form-control" formControlName="cui">
+                  @if (cui?.invalid && (cui?.dirty || cui?.touched)) {
+                    <div>
+                      @if (cui?.errors?.['required']) {
+                        <small class="text-danger">Ingrese un nÃºmero de CUI</small>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">NÃºmero de IdentificaciÃ³n Tributaria (NIT)</label>
+                  <input type="text" class="form-control" formControlName="nit">
+                  @if (nit?.invalid && (nit?.dirty || nit?.touched)) {
+                    <div>
+                      @if (nit?.errors?.['required']) {
+                        <small class="text-danger">Ingrese un NIT</small>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Nombres</label>
+                  <input type="text" class="form-control" formControlName="nombres">
+                  @if (nombres?.invalid && (nombres?.dirty || nombres?.touched)) {
+                    <div>
+                      @if (nombres?.errors?.['required']) {
+                        <small class="text-danger">Campo obligatorio, ingrese un nombre</small>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Apellidos</label>
+                  <input type="text" class="form-control" formControlName="apellidos">
+                  @if (apellidos?.invalid && (apellidos?.dirty || apellidos?.touched)) {
+                    <div>
+                      @if (apellidos?.errors?.['required']) {
+                        <small class="text-danger">Campo obligatorio, ingrese un apellido</small>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Correo electrÃ³nico</label>
+                  <input type="text" class="form-control" formControlName="email">
+                  @if (email?.invalid && (email?.dirty || email?.touched)) {
+                    <div>
+                      @if (email?.hasError('required')) {
+                        <small class="text-danger">Campo obligatorio, ingrese un correo electrÃ³nico</small>
+                      }
+                      @if (email?.hasError('pattern')) {
+                        <small class="text-danger">Ingrese un correo electrÃ³nico  vÃ¡lido</small>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Cargo</label>
+                  <input type="text" class="form-control" formControlName="cargo">
+                  @if (cargo?.invalid && (cargo?.dirty || cargo?.touched)) {
+                    <div>
+                      @if (cargo?.errors?.['required']) {
+                        <small class="text-danger">Campo obligatorio, ingrese un cargo o puesto</small>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Telefono</label>
+                  <input type="text" class="form-control" formControlName="telefono">
+                  @if (telefono?.invalid && (telefono?.dirty || telefono?.touched)) {
+                    <div>
+                      @if (telefono?.errors?.['required']) {
+                        <small class="text-danger">Campo obligatorio, ingrese un cargo o puesto</small>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">DirecciÃ³n</label>
+                  <input type="text" class="form-control" formControlName="direccion">
+                  @if (direccion?.invalid && (direccion?.dirty || direccion?.touched)) {
+                    <div>
+                      @if (direccion?.errors?.['required']) {
+                        <small class="text-danger">Campo obligatorio, ingrese un cargo o puesto</small>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="col-md-6 d-none" id="tarjetaManipulacionAlimentos">
+                  <label class="form-label">NÃºmero de tarjeta de manipulaciÃ³n de alimentos </label>
+                  <input type="text" class="form-control" formControlName="tarjetaManipulacionAlimentos">
+                  @if (tarjetaManipulacionAlimentos?.invalid && (tarjetaManipulacionAlimentos?.dirty || tarjetaManipulacionAlimentos?.touched)) {
+                    <div>
+                      @if (tarjetaManipulacionAlimentos?.errors?.['required']) {
+                        <small class="text-danger">Campo obligatorio, ingrese un cargo o puesto</small>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="col-md-6 d-none" id="tarjetaSalud">
+                  <label class="form-label">NÃºmero de tarjeta salud</label>
+                  <input type="text" class="form-control" formControlName="tarjetaSalud">
+                  @if (tarjetaSalud?.invalid && (tarjetaSalud?.dirty || tarjetaSalud?.touched)) {
+                    <div>
+                      @if (tarjetaSalud?.errors?.['required']) {
+                        <small class="text-danger">Campo obligatorio, ingrese un cargo o puesto</small>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="col-md-6 d-none" id="tarjetaPulmones">
+                  <label class="form-label">NÃºmero de tarjeta pulmones</label>
+                  <input type="text" class="form-control" formControlName="tarjetaPulmones">
+                  @if (tarjetaPulmones?.invalid && (tarjetaPulmones?.dirty || tarjetaPulmones?.touched)) {
+                    <div>
+                      @if (tarjetaPulmones?.errors?.['required']) {
+                        <small class="text-danger">Campo obligatorio, ingrese un cargo o puesto</small>
+                      }
+                    </div>
+                  }
+                </div>
+
+                <!-- <div class="col-md-6 d-none" id="tarjetaManipulacionAlimentos">
+                <label class="form-label">NÃºmero de tarjeta de manipulaciÃ³n de alimentos </label>
+                <input type="text" class="form-control" formControlName="tarjetaManipulacionAlimentos">
+                <div *ngIf="tarjetaManipulacionAlimentos?.invalid && (tarjetaManipulacionAlimentos?.dirty || tarjetaManipulacionAlimentos?.touched)">
+                  <small *ngIf="tarjetaManipulacionAlimentos?.errors?.['required']" class="text-danger">Campo obligatorio, ingrese un cargo o puesto</small>
+                </div>
+              </div> -->
+
+
+              <div class="col-md-6 d-none" id="fechaVencimientoPenales">
+                <label class="form-label">Fecha Vencimiento Penales</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  [bsConfig]="{ dateInputFormat: 'DD/MM/YYYY' }"
+                  bsDatepicker
+                  id="fechaVencimientoPenales"
+                  autocomplete="off"
+                  formControlName="fechaVencimientoPenales"
+                  >
+                  @if (fechaVencimientoPenales?.invalid && (fechaVencimientoPenales?.dirty || fechaVencimientoPenales?.touched)) {
+                    <div>
+                      @if (fechaVencimientoPenales?.errors?.['required']) {
+                        <small class="text-danger">Campo obligatorio, ingrese la fecha de vencimiento</small>
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="col-md-6 d-none" id="fechaVencimientoPoliciales">
+                  <label class="form-label">Fecha Vencimiento policiales</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    [bsConfig]="{ dateInputFormat: 'DD/MM/YYYY' }"
+                    bsDatepicker
+                    id="fechaVencimientoPoliciales"
+                    autocomplete="off"
+                    formControlName="fechaVencimientoPoliciales"
+                    >
+                    @if (fechaVencimientoPoliciales?.invalid && (fechaVencimientoPoliciales?.dirty || fechaVencimientoPoliciales?.touched)) {
+                      <div>
+                        @if (fechaVencimientoPoliciales?.errors?.['required']) {
+                          <small class="text-danger">Campo obligatorio, ingrese la fecha de vencimiento</small>
+                        }
+                      </div>
+                    }
+                  </div>
+
+
+                  <!-- <hr class="mt-4"> -->
+                  <h6 class="mt-4 mb-0">Contacto de emergencia</h6>
+                  <div class="col-md-6">
+                    <label class="form-label">Nombres</label>
+                    <input type="text" class="form-control" formControlName="contactoEmergencia">
+                    @if (contactoEmergencia?.invalid && (contactoEmergencia?.dirty || contactoEmergencia?.touched)) {
+                      <div>
+                        @if (contactoEmergencia?.errors?.['required']) {
+                          <small class="text-danger">Campo obligatorio, ingrese un cargo o puesto</small>
+                        }
+                      </div>
+                    }
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Telefono</label>
+                    <input type="tel" class="form-control" formControlName="telefonoEmergencia">
+                    @if (telefonoEmergencia?.invalid && (telefonoEmergencia?.dirty || telefonoEmergencia?.touched)) {
+                      <div>
+                        @if (telefonoEmergencia?.errors?.['required']) {
+                          <small class="text-danger">Campo obligatorio, ingrese un cargo o puesto</small>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+
+              </div>
+              <div class="card-footer" style="display: block;">
+                <div class="hstack gap-2 justify-content-end">
+                  <button type="button" class="btn btn-danger text-white" (click)="backUsers()">Cancelar</button>
+                  <button class="btn btn-primary text-white" (click)="saveUser()">{{ saveBtnName }}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </section>
+  </section>
+

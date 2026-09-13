@@ -15,11 +15,13 @@ import ModalNuevoDiagnostico from '../components/diagnosticos/ModalNuevoDiagnost
 import ModalNuevoMedicamento from '../components/medicamentos/ModalNuevoMedicamento';
 import RecetaPrint from '../components/medicamentos/RecetaPrint';
 import ModalFirma from '../components/documentos/ModalFirma';
+import ModalFirmaFisica from '../components/documentos/ModalFirmaFisica';
 import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
 import ModalAsignarEvaluacion from '../components/evaluaciones/ModalAsignarEvaluacion';
 import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEvaluacion';
 import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones';
 import EvaluacionPrint from '../components/evaluaciones/EvaluacionPrint';
+import DocumentoPrint from '../components/documentos/DocumentoPrint';
 import ModalAnalisisIA from '../components/evaluaciones/ModalAnalisisIA';
 import ModalNuevaTarea from '../components/tareas/ModalNuevaTarea';
 import Toast from '../components/common/Toast';
@@ -64,13 +66,16 @@ export default function PacienteDetalle() {
   const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
   const [clinicaData, setClinicaData] = useState<any>(null);;
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
+  const [isFirmaFisicaModalOpen, setIsFirmaFisicaModalOpen] = useState(false);
   const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
+  const [documentoAImprimir, setDocumentoAImprimir] = useState<ConsentimientoFirmado | null>(null);
 
   const printRef = useRef<HTMLDivElement>(null);
   const recetaPrintRef = useRef<HTMLDivElement>(null);
   const evaluacionPrintRef = useRef<HTMLDivElement>(null);
   const exportadorRef = useRef<HTMLDivElement>(null);
+  const documentoPrintRef = useRef<HTMLDivElement>(null);
 
   const handlePrintExamen = useReactToPrint({
     contentRef: printRef,
@@ -83,6 +88,11 @@ export default function PacienteDetalle() {
   const handlePrintExpediente = useReactToPrint({
     contentRef: exportadorRef,
     documentTitle: `Historia_Clinica_${paciente?.nombre?.replace(/\s+/g, '_') || 'Paciente'}`
+  });
+
+  const handlePrintDocumento = useReactToPrint({
+    contentRef: documentoPrintRef,
+    documentTitle: `Documento_${documentoAImprimir?.titulo?.replace(/\s+/g, '_') || 'Legal'}`
   });
 
   // Evaluaciones Psicométricas
@@ -528,6 +538,17 @@ export default function PacienteDetalle() {
     return Math.max(0, edad);
   };
 
+  const handleFirmaFisicaSuccess = async () => {
+    const { data: consentimientosData } = await supabase
+      .from('consentimientos_firmados')
+      .select('*')
+      .eq('paciente_id', id!)
+      .order('fecha_firma', { ascending: false });
+    if (consentimientosData) setConsentimientos(consentimientosData);
+    setIsFirmaFisicaModalOpen(false);
+    setConsentimientoActivo(null);
+  };
+
   const handleSaveFirma = async (dataUrl: string) => {
     if (!consentimientoActivo) return;
     
@@ -764,6 +785,9 @@ export default function PacienteDetalle() {
         medicamentos={medicamentos}
         examenes={examenes}
         signos={signos}
+        clinicaNombre={clinicaData?.nombre_comercial || clinicaData?.nombre}
+        clinicaLogo={clinicaData?.logo_url}
+        medicoNombre={usuarioActual?.nombre || ''}
       />
 
       {/* Header del Expediente */}
@@ -1647,17 +1671,29 @@ export default function PacienteDetalle() {
 
 
 
-      {consentimientoActivo && (
-        <ModalFirma
-          isOpen={isFirmaModalOpen}
-          onClose={() => {
-            setIsFirmaModalOpen(false);
-            setConsentimientoActivo(null);
-          }}
-          onSave={handleSaveFirma}
-          documentoTitulo={consentimientoActivo.titulo}
-          pacienteNombre={paciente.nombre}
-        />
+      {usuarioActual?.clinica_id && consentimientoActivo && (
+        <>
+          <ModalFirma
+            isOpen={isFirmaModalOpen}
+            onClose={() => {
+              setIsFirmaModalOpen(false);
+              setConsentimientoActivo(null);
+            }}
+            onSave={handleSaveFirma}
+            documentoTitulo={consentimientoActivo.titulo}
+            pacienteNombre={paciente.nombre}
+          />
+          <ModalFirmaFisica
+            isOpen={isFirmaFisicaModalOpen}
+            onClose={() => {
+              setIsFirmaFisicaModalOpen(false);
+              setConsentimientoActivo(null);
+            }}
+            documentoId={consentimientoActivo.id}
+            clinicaId={usuarioActual.clinica_id}
+            onSuccess={handleFirmaFisicaSuccess}
+          />
+        </>
       )}
 
       {/* Contenedor Oculto para Impresión de Exámenes */}
@@ -1671,6 +1707,7 @@ export default function PacienteDetalle() {
             pacienteId: 0, medicoId: 0, fecha_solicitud: '', estado: 'pendiente', tipo_examen: ''
           }}
           medicoNombre={usuarioActual?.nombre}
+          clinicaLogo={clinicaData?.logo_url}
         />
       </div>
 
@@ -1689,6 +1726,7 @@ export default function PacienteDetalle() {
           clinicaDireccion={clinicaData?.direccion_fiscal || clinicaData?.direccion}
           clinicaTelefono={clinicaData?.telefono_contacto}
           clinicaNit={clinicaData?.nit}
+          clinicaLogo={clinicaData?.logo_url}
         />
       </div>
 
@@ -1701,7 +1739,24 @@ export default function PacienteDetalle() {
             pacienteNombre={paciente.nombre}
             pacienteEdad={calcularEdad(paciente.fecha_nacimiento) || 0}
             medicoNombre={usuarioActual?.nombre}
-            clinicaNombre="Clínica Psicológica"
+            clinicaNombre={clinicaData?.nombre_comercial || clinicaData?.nombre || "Clínica Psicológica"}
+            clinicaLogo={clinicaData?.logo_url}
+          />
+        )}
+      </div>
+
+      {/* Contenedor Oculto para Impresión de Documentos Legales */}
+      <div className="hidden">
+        {documentoAImprimir && (
+          <DocumentoPrint
+            ref={documentoPrintRef}
+            documento={documentoAImprimir}
+            pacienteNombre={paciente.nombre}
+            pacienteIdentificacion={paciente.dpi || paciente.cui}
+            clinicaNombre={clinicaData?.nombre_comercial || clinicaData?.nombre}
+            clinicaDireccion={clinicaData?.direccion_fiscal || clinicaData?.direccion}
+            clinicaTelefono={clinicaData?.telefono_contacto || clinicaData?.telefono}
+            clinicaLogo={clinicaData?.logo_url}
           />
         )}
       </div>
@@ -1863,43 +1918,45 @@ export default function PacienteDetalle() {
                       Generar Documento
                     </button>
                     {/* Dropdown de plantillas */}
-                    <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-slate-100 shadow-xl rounded-2xl p-2.5 hidden group-hover:block peer-hover:block hover:block z-20">
-                      <p className="text-xs font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Seleccionar Plantilla</p>
-                      {plantillas.map(p => (
-                        <div key={p.id} className="p-2 hover:bg-slate-50 rounded-xl transition-colors border-b border-slate-50 last:border-0">
-                          <p className="text-sm font-bold text-slate-800 mb-1.5 px-1 truncate" title={p.titulo}>{p.titulo}</p>
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <button
-                              onClick={() => {
-                                const nuevoConsentimiento: ConsentimientoFirmado = {
-                                  id: 'temp-' + Date.now(),
-                                  clinica_id: usuarioActual!.clinica_id,
-                                  paciente_id: id!,
-                                  plantilla_id: p.id,
-                                  titulo: p.titulo,
-                                  contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
-                                  firma_data_url: '',
-                                  fecha_firma: new Date().toISOString(),
-                                  estado: 'pendiente'
-                                };
-                                setConsentimientoActivo(nuevoConsentimiento);
-                                setIsFirmaModalOpen(true);
-                              }}
-                              className="px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer"
-                            >
-                              <PenTool size={12} className="mr-1" />
-                              Presencial
-                            </button>
-                            <button
-                              onClick={() => handleCrearYEnviarDocumentoRemoto(p)}
-                              className="px-2 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer shadow-sm"
-                            >
-                              <Mail size={12} className="mr-1" />
-                              Por Correo
-                            </button>
+                    <div className="absolute top-full pt-2 right-0 w-72 hidden group-hover:block peer-hover:block hover:block z-20">
+                      <div className="bg-white border border-slate-100 shadow-xl rounded-2xl p-2.5">
+                        <p className="text-xs font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Seleccionar Plantilla</p>
+                        {plantillas.map(p => (
+                          <div key={p.id} className="p-2 hover:bg-slate-50 rounded-xl transition-colors border-b border-slate-50 last:border-0">
+                            <p className="text-sm font-bold text-slate-800 mb-1.5 px-1 truncate" title={p.titulo}>{p.titulo}</p>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <button
+                                onClick={() => {
+                                  const nuevoConsentimiento: ConsentimientoFirmado = {
+                                    id: 'temp-' + Date.now(),
+                                    clinica_id: usuarioActual!.clinica_id,
+                                    paciente_id: id!,
+                                    plantilla_id: p.id,
+                                    titulo: p.titulo,
+                                    contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
+                                    firma_data_url: '',
+                                    fecha_firma: new Date().toISOString(),
+                                    estado: 'pendiente'
+                                  };
+                                  setConsentimientoActivo(nuevoConsentimiento);
+                                  setIsFirmaModalOpen(true);
+                                }}
+                                className="px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer"
+                              >
+                                <PenTool size={12} className="mr-1" />
+                                Presencial
+                              </button>
+                              <button
+                                onClick={() => handleCrearYEnviarDocumentoRemoto(p)}
+                                className="px-2 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer shadow-sm"
+                              >
+                                <Mail size={12} className="mr-1" />
+                                Por Correo
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -1935,15 +1992,44 @@ export default function PacienteDetalle() {
                         </div>
                       </div>
 
-                      {doc.estado === 'firmado' && doc.firma_data_url && (
+                      {doc.estado === 'firmado' && (
                         <div className="mt-4 pt-4 border-t border-slate-100 flex-1 flex flex-col justify-end">
-                          <p className="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Firma Digital</p>
-                          <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 h-24 flex items-center justify-center">
-                            <img src={doc.firma_data_url} alt="Firma del paciente" className="max-h-full opacity-80" />
-                          </div>
+                          {doc.metodo_firma === 'fisica' ? (
+                            <>
+                              <p className="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Firma Física</p>
+                              <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 h-24 flex flex-col items-center justify-center text-center">
+                                <CheckCircle size={24} className="text-indigo-400 mb-2" />
+                                <p className="text-xs font-semibold text-slate-600">Documento firmado en físico</p>
+                              </div>
+                              {doc.archivo_adjunto_url && (
+                                <a href={doc.archivo_adjunto_url} target="_blank" rel="noopener noreferrer" className="mt-2 w-full py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold flex items-center justify-center hover:bg-indigo-100 transition-colors">
+                                  <FileText size={14} className="mr-1" />
+                                  Ver Respaldo
+                                </a>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Firma Digital</p>
+                              <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 h-24 flex items-center justify-center">
+                                <img src={doc.firma_data_url} alt="Firma del paciente" className="max-h-full opacity-80" />
+                              </div>
+                            </>
+                          )}
                           <p className="text-xs text-slate-400 mt-2 text-right">
                             Firmado el {new Date(doc.fecha_firma).toLocaleDateString()}
                           </p>
+
+                          <button 
+                            onClick={() => {
+                              setDocumentoAImprimir(doc);
+                              setTimeout(() => handlePrintDocumento(), 100);
+                            }}
+                            className="w-full mt-3 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition-colors flex items-center justify-center shadow-sm"
+                          >
+                            <Printer size={16} className="mr-2 text-slate-500" />
+                            Imprimir Documento
+                          </button>
                         </div>
                       )}
 
@@ -1978,6 +2064,28 @@ export default function PacienteDetalle() {
                           >
                             <LinkIcon size={16} className="mr-2" />
                             Copiar Enlace (Remoto)
+                          </button>
+
+                          <button 
+                            onClick={() => {
+                              setDocumentoAImprimir(doc);
+                              setTimeout(() => handlePrintDocumento(), 100);
+                            }}
+                            className="w-full py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition-colors flex items-center justify-center shadow-sm"
+                          >
+                            <Printer size={16} className="mr-2 text-slate-500" />
+                            Imprimir (Para Firma Física)
+                          </button>
+
+                          <button 
+                            onClick={() => {
+                              setConsentimientoActivo(doc);
+                              setIsFirmaFisicaModalOpen(true);
+                            }}
+                            className="w-full mt-2 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold transition-colors flex items-center justify-center shadow-sm"
+                          >
+                            <CheckCircle size={16} className="mr-2" />
+                            Marcar como Firmado Físicamente
                           </button>
                         </div>
                       )}

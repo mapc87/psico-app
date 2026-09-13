@@ -15,21 +15,31 @@ export default function MainLayout() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [clinicaNombre, setClinicaNombre] = useState<string>('PsicoApp');
+  const [clinicaLogo, setClinicaLogo] = useState<string | null>(null);
 
   // Inicializar el timeout de inactividad
   useInactivityTimeout();
 
   useEffect(() => {
-    const fetchPermisos = async () => {
+    const fetchPermisosYClinica = async () => {
       if (usuarioActual?.rol_id) {
         const { data } = await supabase.from('roles').select('permisos').eq('id', usuarioActual.rol_id).single();
         if (data && data.permisos) {
           setPermisos(data.permisos as Permisos);
         }
       }
+      
+      if (usuarioActual?.clinica_id) {
+        const { data } = await supabase.from('clinicas').select('nombre_comercial, nombre, logo_url').eq('id', usuarioActual.clinica_id).single();
+        if (data) {
+          setClinicaNombre(data.nombre_comercial || data.nombre || 'PsicoApp');
+          setClinicaLogo(data.logo_url);
+        }
+      }
     };
-    fetchPermisos();
-  }, [usuarioActual?.rol_id]);
+    fetchPermisosYClinica();
+  }, [usuarioActual?.rol_id, usuarioActual?.clinica_id]);
 
   const handleLogout = () => {
     logout();
@@ -81,11 +91,21 @@ export default function MainLayout() {
         </button>
 
         <div className={`p-6 flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center px-4' : ''}`}>
-          <div className={`w-9 h-9 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0 ${isSidebarCollapsed ? '' : 'mr-3'}`}>
-            <Activity className="text-white" size={20} />
-          </div>
+          {clinicaLogo ? (
+            <img src={clinicaLogo} alt="Logo Clínica" className={`object-contain shrink-0 ${isSidebarCollapsed ? 'w-10 h-10' : 'w-14 h-14 mr-3'}`} />
+          ) : (
+            <div className={`w-9 h-9 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0 ${isSidebarCollapsed ? '' : 'mr-3'}`}>
+              <Activity className="text-white" size={20} />
+            </div>
+          )}
+          
           {!isSidebarCollapsed && (
-            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 tracking-tight transition-opacity duration-300">PsicoApp</h1>
+            <div className="flex flex-col overflow-hidden">
+              <h1 className="text-lg font-black text-slate-800 tracking-tight truncate" title={clinicaNombre}>{clinicaNombre}</h1>
+              {clinicaNombre !== 'PsicoApp' && (
+                <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">by PsicoApp</span>
+              )}
+            </div>
           )}
         </div>
         

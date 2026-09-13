@@ -8,22 +8,34 @@ interface ExportadorExpedienteProps {
   medicamentos: Medicamento[];
   examenes: Examen[];
   signos: SignoVital[];
+  clinicaNombre: string;
+  medicoNombre: string;
+  clinicaLogo?: string;
 }
 
 export const ExportadorExpediente = React.forwardRef<HTMLDivElement, ExportadorExpedienteProps>(
-  ({ paciente, notas, diagnosticos, medicamentos, examenes, signos }, ref) => {
+  ({ paciente, notas, diagnosticos, medicamentos, examenes, signos, clinicaNombre, medicoNombre, clinicaLogo }, ref) => {
     return (
       <div className="hidden">
-        <div ref={ref} className="p-10 bg-white text-black font-sans w-full max-w-4xl mx-auto print:block print:p-0">
+        <div ref={ref} className="p-10 bg-white text-black font-sans w-full max-w-4xl mx-auto print:block print:p-8">
           
           {/* Encabezado */}
-          <div className="border-b-2 border-slate-800 pb-6 mb-8 flex justify-between items-end">
-            <div>
-              <h1 className="text-3xl font-bold uppercase tracking-wider text-slate-900">Historia Clínica</h1>
-              <p className="text-slate-500 mt-1">Expediente Médico y Psicológico</p>
+          <div className="border-b-2 border-slate-800 pb-4 mb-6 flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              {clinicaLogo && (
+                <img src={clinicaLogo} alt="Logo Clínica" className="h-16 w-auto object-contain" />
+              )}
+              <div>
+                <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900 leading-none mb-1">
+                  {clinicaNombre || 'Historia Clínica'}
+                </h1>
+                <p className="text-slate-700 font-bold text-sm">Dr/a. {medicoNombre}</p>
+                <p className="text-slate-500 text-xs">Expediente Médico y Psicológico</p>
+              </div>
             </div>
-            <div className="text-right text-sm text-slate-600">
-              <p>Fecha de Emisión: {new Date().toLocaleDateString()}</p>
+            <div className="text-right text-xs text-slate-500">
+              <p className="mb-0.5"><strong className="text-slate-700">Fecha:</strong> {new Date().toLocaleDateString()}</p>
+              <p><strong className="text-slate-700">Hora:</strong> {new Date().toLocaleTimeString()}</p>
             </div>
           </div>
 

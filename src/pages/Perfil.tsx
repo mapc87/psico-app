@@ -76,22 +76,25 @@ export default function Perfil() {
           setLoading(false);
           return;
         }
-        const { error: verifyError } = await supabase.auth.signInWithPassword({
-          email: usuarioActual.email || email,
-          password: currentPassword
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: usuarioActual.email || '',
+          password: currentPassword,
         });
-        if (verifyError) {
+        if (signInError) {
           showToast('La contraseña actual es incorrecta', 'error');
           setLoading(false);
           return;
         }
       }
 
-      // 2. Actualizar Auth (email y/o contraseña)
+      // 2. Actualizar Auth de Supabase (Email o Password)
       let emailUpdated = false;
       let passwordUpdated = false;
       const authUpdates: any = {};
-      if (email !== usuarioActual.email) authUpdates.email = email;
+      
+      // Ya no permitimos cambiar el email, pero si se pudiera, sería aquí
+      // if (email !== usuarioActual.email) authUpdates.email = email;
+      
       if (password) authUpdates.password = password;
 
       if (Object.keys(authUpdates).length > 0) {
@@ -106,7 +109,6 @@ export default function Perfil() {
         .from('usuarios')
         .update({
           nombre,
-          email,
           telefono: telefono || null,
           direccion: direccion || null,
           dpi: dpi || null,
@@ -130,39 +132,20 @@ export default function Perfil() {
           setPassword('');
           setConfirmPassword('');
         }
-        setTimeout(() => window.location.reload(), 1500);
       }
 
     } catch (error: any) {
       console.error('Error actualizando perfil:', error);
-      showToast(error.message || 'Hubo un error al actualizar el perfil', 'error');
+      const errMsg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+      showToast(errMsg || 'Hubo un error al actualizar el perfil', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const SectionTitle = ({ icon, title }: { icon: React.ReactNode; title: string }) => (
-    <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-      <span className="text-slate-400">{icon}</span>
-      {title}
-    </h3>
-  );
-
-  const Field = ({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) => (
-    <div className="space-y-2">
-      <label className={labelClass}>{label}</label>
-      <div className="relative">
-        <div className={iconWrapClass}>{icon}</div>
-        {children}
-      </div>
-    </div>
-  );
-
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
-
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex justify-between items-center relative overflow-hidden">
+    <div className="max-w-5xl mx-auto pb-12">
+      <div className="bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 flex justify-between items-center relative overflow-hidden mb-8">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-100 to-fuchsia-100 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         <div className="relative z-10">
           <h2 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
@@ -181,98 +164,168 @@ export default function Perfil() {
 
         {/* ── Información Básica ── */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-8">
-          <SectionTitle icon={<Shield size={20} />} title="Información Básica" />
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><span className="text-slate-400"><Shield size={20} /></span>Información Básica</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Field label="Nombre Completo" icon={<User size={18} />}>
-              <input type="text" required value={nombre} onChange={e => setNombre(e.target.value)}
-                className={inputClass} placeholder="Tu nombre completo" />
-            </Field>
-            <Field label="Correo Electrónico" icon={<Mail size={18} />}>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                className={inputClass} placeholder="tu@correo.com" />
-            </Field>
+            
+            <div className="space-y-2">
+              <label className={labelClass}>Nombre Completo</label>
+              <div className="relative">
+                <div className={iconWrapClass}><User size={18} /></div>
+                <input type="text" required value={nombre} onChange={e => setNombre(e.target.value.replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s]/g, ''))}
+                  className={inputClass} placeholder="Tu nombre completo" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelClass}>Correo Electrónico</label>
+              <div className="relative">
+                <div className={iconWrapClass}><Mail size={18} /></div>
+                <input type="email" required value={email} disabled onChange={e => setEmail(e.target.value)}
+                  className={`${inputClass} bg-slate-100 text-slate-400 cursor-not-allowed`} placeholder="tu@correo.com" />
+              </div>
+            </div>
+
           </div>
         </div>
 
         {/* ── Información de Contacto ── */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-8">
-          <SectionTitle icon={<Phone size={20} />} title="Información de Contacto" />
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><span className="text-slate-400"><Phone size={20} /></span>Información de Contacto</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Field label="Teléfono" icon={<Phone size={18} />}>
-              <input type="tel" value={telefono} onChange={e => setTelefono(e.target.value)}
-                className={inputClass} placeholder="+502 0000-0000" />
-            </Field>
-            <Field label="Dirección" icon={<MapPin size={18} />}>
-              <input type="text" value={direccion} onChange={e => setDireccion(e.target.value)}
-                className={inputClass} placeholder="Ciudad, País" />
-            </Field>
+            
+            <div className="space-y-2">
+              <label className={labelClass}>Teléfono</label>
+              <div className="relative">
+                <div className={iconWrapClass}><Phone size={18} /></div>
+                <input type="tel" value={telefono} onChange={e => setTelefono(e.target.value.replace(/\D/g, ''))}
+                  className={inputClass} placeholder="+502 0000-0000" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelClass}>Dirección</label>
+              <div className="relative">
+                <div className={iconWrapClass}><MapPin size={18} /></div>
+                <input type="text" value={direccion} onChange={e => setDireccion(e.target.value)}
+                  className={inputClass} placeholder="Ciudad, País" />
+              </div>
+            </div>
+
           </div>
         </div>
 
         {/* ── Información Personal ── */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-8">
-          <SectionTitle icon={<CreditCard size={20} />} title="Información Personal" />
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><span className="text-slate-400"><CreditCard size={20} /></span>Información Personal</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Field label="DPI / Documento de Identidad" icon={<CreditCard size={18} />}>
-              <input type="text" value={dpi} onChange={e => setDpi(e.target.value)}
-                className={inputClass} placeholder="0000 00000 0000" />
-            </Field>
-            <Field label="Fecha de Nacimiento" icon={<Calendar size={18} />}>
-              <input type="date" value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)}
-                className={inputClass} />
-            </Field>
-            <Field label="Género" icon={<User size={18} />}>
-              <select value={genero} onChange={e => setGenero(e.target.value)}
-                className={`${inputClass} appearance-none`}>
-                <option value="">-- Seleccionar --</option>
-                <option value="masculino">Masculino</option>
-                <option value="femenino">Femenino</option>
-                <option value="otro">Otro</option>
-                <option value="prefiero_no_decir">Prefiero no decir</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
-                <ChevronDown size={16} />
+            
+            <div className="space-y-2">
+              <label className={labelClass}>DPI / Documento de Identidad</label>
+              <div className="relative">
+                <div className={iconWrapClass}><CreditCard size={18} /></div>
+                <input type="text" value={dpi} onChange={e => setDpi(e.target.value.replace(/\D/g, ''))}
+                  className={inputClass} placeholder="0000 00000 0000" />
               </div>
-            </Field>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelClass}>Fecha de Nacimiento</label>
+              <div className="relative">
+                <div className={iconWrapClass}><Calendar size={18} /></div>
+                <input type="date" value={fechaNacimiento} onChange={e => setFechaNacimiento(e.target.value)}
+                  className={inputClass} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelClass}>Género</label>
+              <div className="relative">
+                <div className={iconWrapClass}><User size={18} /></div>
+                <select value={genero} onChange={e => setGenero(e.target.value)}
+                  className={`${inputClass} appearance-none`}>
+                  <option value="">-- Seleccionar --</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="femenino">Femenino</option>
+                  <option value="otro">Otro</option>
+                  <option value="prefiero_no_decir">Prefiero no decir</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                  <ChevronDown size={16} />
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
         {/* ── Información Profesional ── */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-8">
-          <SectionTitle icon={<Briefcase size={20} />} title="Información Profesional" />
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><span className="text-slate-400"><Briefcase size={20} /></span>Información Profesional</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Field label="Profesión" icon={<Briefcase size={18} />}>
-              <input type="text" value={profesion} onChange={e => setProfesion(e.target.value)}
-                className={inputClass} placeholder="Ej: Psicólogo Clínico" />
-            </Field>
-            <Field label="Especialidad" icon={<Award size={18} />}>
-              <input type="text" value={especialidad} onChange={e => setEspecialidad(e.target.value)}
-                className={inputClass} placeholder="Ej: Terapia Cognitivo-Conductual" />
-            </Field>
-            <Field label="No. Colegiado" icon={<Award size={18} />}>
-              <input type="text" value={noColegiado} onChange={e => setNoColegiado(e.target.value)}
-                className={inputClass} placeholder="Ej: 12345" />
-            </Field>
+            
+            <div className="space-y-2">
+              <label className={labelClass}>Profesión</label>
+              <div className="relative">
+                <div className={iconWrapClass}><Briefcase size={18} /></div>
+                <input type="text" value={profesion} onChange={e => setProfesion(e.target.value.replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s]/g, ''))}
+                  className={inputClass} placeholder="Ej: Psicólogo Clínico" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelClass}>Especialidad</label>
+              <div className="relative">
+                <div className={iconWrapClass}><Award size={18} /></div>
+                <input type="text" value={especialidad} onChange={e => setEspecialidad(e.target.value.replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s]/g, ''))}
+                  className={inputClass} placeholder="Ej: Terapia Cognitivo-Conductual" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelClass}>No. Colegiado</label>
+              <div className="relative">
+                <div className={iconWrapClass}><Award size={18} /></div>
+                <input type="text" value={noColegiado} onChange={e => setNoColegiado(e.target.value.replace(/\D/g, ''))}
+                  className={inputClass} placeholder="Ej: 12345" />
+              </div>
+            </div>
+
           </div>
         </div>
 
         {/* ── Seguridad ── */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-8">
-          <SectionTitle icon={<Lock size={20} />} title="Seguridad" />
+          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2"><span className="text-slate-400"><Lock size={20} /></span>Seguridad</h3>
           <p className="text-sm text-slate-500 mb-6 -mt-2">Si no deseas cambiar tu contraseña, deja estos campos en blanco.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Field label="Contraseña Actual" icon={<Lock size={18} />}>
-              <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
-                className={inputClass} placeholder="••••••••" />
-            </Field>
-            <Field label="Nueva Contraseña" icon={<Lock size={18} />}>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                className={inputClass} placeholder="••••••••" />
-            </Field>
-            <Field label="Confirmar Nueva Contraseña" icon={<Lock size={18} />}>
-              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                className={inputClass} placeholder="••••••••" />
-            </Field>
+            
+            <div className="space-y-2">
+              <label className={labelClass}>Contraseña Actual</label>
+              <div className="relative">
+                <div className={iconWrapClass}><Lock size={18} /></div>
+                <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
+                  className={inputClass} placeholder="••••••••" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelClass}>Nueva Contraseña</label>
+              <div className="relative">
+                <div className={iconWrapClass}><Lock size={18} /></div>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  className={inputClass} placeholder="••••••••" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className={labelClass}>Confirmar Nueva Contraseña</label>
+              <div className="relative">
+                <div className={iconWrapClass}><Lock size={18} /></div>
+                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                  className={inputClass} placeholder="••••••••" />
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -299,7 +352,7 @@ export default function Perfil() {
       </form>
 
       <Toast
-        show={toastConfig.show}
+        isVisible={toastConfig.show}
         message={toastConfig.message}
         type={toastConfig.type}
         onClose={() => setToastConfig(prev => ({ ...prev, show: false }))}

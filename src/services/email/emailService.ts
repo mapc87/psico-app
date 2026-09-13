@@ -63,10 +63,7 @@ async function sendEmailViaResend(to: string, subject: string, html: string, cli
   }
 
   try {
-    const endpoint =
-      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? '/api/resend/emails'
-        : 'https://api.resend.com/emails';
+    const endpoint = '/api/resend/emails';
 
     const response = await fetch(endpoint, {
       method: 'POST',

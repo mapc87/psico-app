@@ -246,7 +246,9 @@ export default function Personal() {
                       <button onClick={() => empleado.email && setResetConfirm({ email: empleado.email, nombre: empleado.nombre })} className="p-2 text-violet-500 hover:bg-violet-50 rounded-lg transition-colors cursor-pointer" title="Resetear contraseña"><Key size={16} /></button>
                       <button onClick={() => handleToggleActivo(empleado)} className={`p-2 rounded-lg transition-colors cursor-pointer ${empleado.activo === false ? 'text-green-500 hover:bg-green-50' : 'text-amber-500 hover:bg-amber-50'}`} title={empleado.activo === false ? "Activar usuario" : "Desactivar/Bloquear usuario"}><Power size={16} /></button>
                       <button onClick={() => handleOpenEdit(empleado)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" title="Editar Rol"><Edit2 size={16} /></button>
-                      <button onClick={() => empleado.id && handleDelete(empleado.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Eliminar Empleado"><Trash2 size={16} /></button>
+                      {empleado.rol !== 'admin' && (
+                        <button onClick={() => empleado.id && handleDelete(empleado.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" title="Eliminar Empleado"><Trash2 size={16} /></button>
+                      )}
                     </div>
                   </li>
                 );

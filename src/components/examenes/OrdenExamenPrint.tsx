@@ -6,9 +6,10 @@ interface OrdenExamenPrintProps {
   examen: Examen | null;
   paciente: Paciente | undefined;
   medico: Usuario | null;
+  clinicaLogo?: string;
 }
 
-const OrdenExamenPrint = forwardRef<HTMLDivElement, OrdenExamenPrintProps>(({ examen, paciente, medico }, ref) => {
+const OrdenExamenPrint = forwardRef<HTMLDivElement, OrdenExamenPrintProps>(({ examen, paciente, medico, clinicaLogo }, ref) => {
   if (!examen || !paciente || !medico) return null;
 
   return (
@@ -32,9 +33,13 @@ const OrdenExamenPrint = forwardRef<HTMLDivElement, OrdenExamenPrintProps>(({ ex
       {/* Encabezado */}
       <div className="flex justify-between items-start border-b-2 border-slate-200 pb-8 mb-8">
         <div className="flex items-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-2xl flex items-center justify-center shadow-lg text-white mr-4">
-            <Activity size={36} />
-          </div>
+          {clinicaLogo ? (
+            <img src={clinicaLogo} alt="Logo Clínica" className="h-20 object-contain mr-4" />
+          ) : (
+            <div className="w-16 h-16 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-2xl flex items-center justify-center shadow-lg text-white mr-4">
+              <Activity size={36} />
+            </div>
+          )}
           <div>
             <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">PsicoApp</h1>
             <p className="text-slate-500 font-medium">Clínica de Especialidades Psicológicas</p>

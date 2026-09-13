@@ -8,9 +8,10 @@ interface Props {
   pacienteEdad: number;
   medicoNombre?: string;
   clinicaNombre?: string;
+  clinicaLogo?: string;
 }
 
-const EvaluacionPrint = forwardRef<HTMLDivElement, Props>(({ evaluacion, pacienteNombre, pacienteEdad, medicoNombre, clinicaNombre }, ref) => {
+const EvaluacionPrint = forwardRef<HTMLDivElement, Props>(({ evaluacion, pacienteNombre, pacienteEdad, medicoNombre, clinicaNombre, clinicaLogo }, ref) => {
   if (!evaluacion || !evaluacion.plantilla) return <div ref={ref}></div>;
 
   const { plantilla, respuestas, puntaje_total, interpretacion, fecha } = evaluacion;
@@ -20,12 +21,18 @@ const EvaluacionPrint = forwardRef<HTMLDivElement, Props>(({ evaluacion, pacient
       
       {/* Encabezado */}
       <div className="flex justify-between items-start border-b-2 border-slate-800 pb-6 mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 flex items-center">
-            <BrainCircuit size={32} className="mr-3" />
-            INFORME PSICOMÉTRICO
-          </h1>
-          <p className="text-slate-600 mt-2 font-medium">{clinicaNombre || 'Clínica Psicológica'}</p>
+        <div className="flex items-center">
+          {clinicaLogo ? (
+            <img src={clinicaLogo} alt="Logo Clínica" className="h-16 object-contain mr-4" />
+          ) : (
+            <BrainCircuit size={32} className="mr-3 text-slate-800" />
+          )}
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 flex items-center">
+              INFORME PSICOMÉTRICO
+            </h1>
+            <p className="text-slate-600 mt-2 font-medium">{clinicaNombre || 'Clínica Psicológica'}</p>
+          </div>
         </div>
         <div className="text-right text-sm">
           <p><strong>Fecha de Emisión:</strong> {new Date().toLocaleDateString()}</p>

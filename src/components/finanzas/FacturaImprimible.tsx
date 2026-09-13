@@ -12,13 +12,18 @@ export default function FacturaImprimible({ factura, clinicaConfig }: FacturaImp
       
       {/* Membrete Clínica */}
       <div className="flex justify-between items-start mb-8 pb-6 border-b-2 border-slate-200">
-        <div>
-          <h1 className="font-black text-2xl uppercase tracking-wide text-slate-800 mb-2">
-            {clinicaConfig?.nombre_comercial || clinicaConfig?.nombre || 'CLÍNICA'}
-          </h1>
-          <p className="text-slate-500 uppercase text-xs font-semibold">{clinicaConfig?.direccion_fiscal || clinicaConfig?.direccion || 'DIRECCIÓN NO REGISTRADA'}</p>
-          {clinicaConfig?.telefono_contacto && <p className="text-slate-500 text-xs font-semibold mt-1">TEL: {clinicaConfig.telefono_contacto}</p>}
-          {clinicaConfig?.nit && <p className="text-slate-500 text-xs font-semibold mt-1">NIT: {clinicaConfig.nit}</p>}
+        <div className="flex items-center">
+          {clinicaConfig?.logo_url && (
+            <img src={clinicaConfig.logo_url} alt="Logo Clínica" className="h-20 object-contain mr-4" />
+          )}
+          <div>
+            <h1 className="font-black text-2xl uppercase tracking-wide text-slate-800 mb-2">
+              {clinicaConfig?.nombre_comercial || clinicaConfig?.nombre || 'CLÍNICA'}
+            </h1>
+            <p className="text-slate-500 uppercase text-xs font-semibold">{clinicaConfig?.direccion_fiscal || clinicaConfig?.direccion || 'DIRECCIÓN NO REGISTRADA'}</p>
+            {clinicaConfig?.telefono_contacto && <p className="text-slate-500 text-xs font-semibold mt-1">TEL: {clinicaConfig.telefono_contacto}</p>}
+            {clinicaConfig?.nit && <p className="text-slate-500 text-xs font-semibold mt-1">NIT: {clinicaConfig.nit}</p>}
+          </div>
         </div>
         <div className="text-right">
           <p className="text-slate-400 font-bold uppercase text-xs mb-1">Factura Electrónica</p>

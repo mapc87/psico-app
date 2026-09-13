@@ -538,6 +538,17 @@ export default function PacienteDetalle() {
     return Math.max(0, edad);
   };
 
+  const handleFirmaFisicaSuccess = async () => {
+    const { data: consentimientosData } = await supabase
+      .from('consentimientos_firmados')
+      .select('*')
+      .eq('paciente_id', id!)
+      .order('fecha_firma', { ascending: false });
+    if (consentimientosData) setConsentimientos(consentimientosData);
+    setIsFirmaFisicaModalOpen(false);
+    setConsentimientoActivo(null);
+  };
+
   const handleSaveFirma = async (dataUrl: string) => {
     if (!consentimientoActivo) return;
     
@@ -1677,7 +1688,7 @@ export default function PacienteDetalle() {
             }}
             documentoId={consentimientoActivo.id}
             clinicaId={usuarioActual.clinica_id}
-            onSuccess={cargarDatos}
+            onSuccess={handleFirmaFisicaSuccess}
           />
         </>
       )}

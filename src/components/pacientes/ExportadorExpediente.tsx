@@ -17,7 +17,7 @@ export const ExportadorExpediente = React.forwardRef<HTMLDivElement, ExportadorE
   ({ paciente, notas, diagnosticos, medicamentos, examenes, signos, clinicaNombre, medicoNombre, clinicaLogo }, ref) => {
     return (
       <div className="hidden">
-        <div ref={ref} className="p-10 bg-white text-black font-sans w-full max-w-4xl mx-auto print:block print:p-0">
+        <div ref={ref} className="p-10 bg-white text-black font-sans w-full max-w-4xl mx-auto print:block print:p-8">
           
           {/* Encabezado */}
           <div className="border-b-2 border-slate-800 pb-4 mb-6 flex justify-between items-center">

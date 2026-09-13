@@ -90,20 +90,22 @@ export default function MainLayout() {
           {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
 
-        <div className={`p-6 flex items-center relative z-10 ${isSidebarCollapsed ? 'justify-center px-4' : ''}`}>
+        <div className={`p-6 flex flex-col items-center justify-center relative z-10 text-center gap-3 border-b border-slate-100/50 mb-2`}>
           {clinicaLogo ? (
-            <img src={clinicaLogo} alt="Logo Clínica" className={`object-contain shrink-0 ${isSidebarCollapsed ? 'w-10 h-10' : 'w-14 h-14 mr-3'}`} />
+            <img src={clinicaLogo} alt="Logo Clínica" className={`object-contain shrink-0 ${isSidebarCollapsed ? 'w-10 h-10' : 'w-24 h-24'}`} />
           ) : (
-            <div className={`w-9 h-9 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0 ${isSidebarCollapsed ? '' : 'mr-3'}`}>
-              <Activity className="text-white" size={20} />
+            <div className={`w-9 h-9 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 shrink-0 ${isSidebarCollapsed ? '' : 'w-12 h-12'}`}>
+              <Activity className="text-white" size={isSidebarCollapsed ? 20 : 24} />
             </div>
           )}
           
           {!isSidebarCollapsed && (
-            <div className="flex flex-col overflow-hidden">
-              <h1 className="text-lg font-black text-slate-800 tracking-tight truncate" title={clinicaNombre}>{clinicaNombre}</h1>
+            <div className="flex flex-col items-center overflow-hidden w-full">
+              <h1 className="text-xl font-black text-slate-800 tracking-tight leading-tight w-full" style={{ wordBreak: 'break-word' }}>
+                {clinicaNombre}
+              </h1>
               {clinicaNombre !== 'PsicoApp' && (
-                <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">by PsicoApp</span>
+                <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mt-1">by PsicoApp</span>
               )}
             </div>
           )}

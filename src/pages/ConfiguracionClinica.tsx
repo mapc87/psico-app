@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import { Settings, Save, Building2, Landmark, FileText, MapPin, Phone, Hash, Mail, Key, Eye, EyeOff , Upload, Image as ImageIcon} from 'lucide-react';
@@ -81,8 +81,8 @@ export default function ConfiguracionClinica() {
         let currentLogoUrl = clinica?.logo_url || '';
     if (logoFile) {
       const fileExt = logoFile.name.split('.').pop();
-      const fileName = ${usuarioActual.clinica_id}-.;
-      const filePath = ${fileName};
+      const fileName = `${usuarioActual.clinica_id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('clinicas_logos')
@@ -122,10 +122,10 @@ export default function ConfiguracionClinica() {
       .eq('id', usuarioActual.clinica_id);
 
     if (!error) {
-      showToast('Configuración de clínica actualizada correctamente.', 'success');
+      showToast('ConfiguraciÃ³n de clÃ­nica actualizada correctamente.', 'success');
     } else {
       console.error(error);
-      showToast('Error al guardar la configuración.', 'error');
+      showToast('Error al guardar la configuraciÃ³n.', 'error');
     }
     setSaving(false);
   };
@@ -140,10 +140,10 @@ export default function ConfiguracionClinica() {
         <div>
           <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
             <Settings className="text-violet-600" size={36} />
-            Ajustes de Clínica
+            Ajustes de ClÃ­nica
           </h1>
           <p className="text-slate-500 font-medium mt-2">
-            Administra la información general y fiscal de tu clínica. Estos datos se utilizarán en facturas y consentimientos.
+            Administra la informaciÃ³n general y fiscal de tu clÃ­nica. Estos datos se utilizarÃ¡n en facturas y consentimientos.
           </p>
         </div>
       </div>
@@ -151,11 +151,11 @@ export default function ConfiguracionClinica() {
       <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
         <form onSubmit={handleGuardarConfiguracion} className="p-8 space-y-10">
           
-          {/* Información Comercial */}
+          {/* InformaciÃ³n Comercial */}
           <div>
             <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center border-b border-slate-100 pb-3">
               <Building2 className="text-violet-500 mr-2" size={20} />
-              Información Comercial
+              InformaciÃ³n Comercial
             </h3>
             
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -166,7 +166,7 @@ export default function ConfiguracionClinica() {
                     <>
                       <img 
                         src={logoFile ? URL.createObjectURL(logoFile) : logoUrl} 
-                        alt="Logo Cl�nica" 
+                        alt="Logo Clínica" 
                         className="w-full h-full object-contain p-2"
                       />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -195,13 +195,13 @@ export default function ConfiguracionClinica() {
                   />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-800 mb-1">Logo de la Cl�nica</h4>
-                  <p className="text-sm text-slate-500 mb-3">Sube el logo de tu cl�nica para que aparezca en todas las recetas, facturas y reportes m�dicos.</p>
-                  <p className="text-xs text-slate-400 bg-white px-3 py-1.5 rounded border border-slate-200 inline-block">JPG, PNG o SVG. M�ximo 2MB.</p>
+                  <h4 className="font-bold text-slate-800 mb-1">Logo de la Clínica</h4>
+                  <p className="text-sm text-slate-500 mb-3">Sube el logo de tu clínica para que aparezca en todas las recetas, facturas y reportes médicos.</p>
+                  <p className="text-xs text-slate-400 bg-white px-3 py-1.5 rounded border border-slate-200 inline-block">JPG, PNG o SVG. Máximo 2MB.</p>
                 </div>
               </div>
               <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-bold text-slate-700">Nombre de la Clínica (Interno)</label>
+                <label className="text-sm font-bold text-slate-700">Nombre de la ClÃ­nica (Interno)</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                     <Building2 size={18} />
@@ -212,13 +212,13 @@ export default function ConfiguracionClinica() {
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
                     className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 font-medium text-slate-700"
-                    placeholder="Ej. Clínica Bienestar"
+                    placeholder="Ej. ClÃ­nica Bienestar"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Nombre Comercial (Público)</label>
+                <label className="text-sm font-bold text-slate-700">Nombre Comercial (PÃºblico)</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                     <Building2 size={18} />
@@ -251,7 +251,7 @@ export default function ConfiguracionClinica() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-bold text-slate-700">Teléfono Oficial de Contacto</label>
+                <label className="text-sm font-bold text-slate-700">TelÃ©fono Oficial de Contacto</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                     <Phone size={18} />
@@ -268,7 +268,7 @@ export default function ConfiguracionClinica() {
             </div>
           </div>
 
-          {/* Información Fiscal (SAT) */}
+          {/* InformaciÃ³n Fiscal (SAT) */}
           <div>
             <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center border-b border-slate-100 pb-3">
               <Landmark className="text-violet-500 mr-2" size={20} />
@@ -283,7 +283,7 @@ export default function ConfiguracionClinica() {
                     <>
                       <img 
                         src={logoFile ? URL.createObjectURL(logoFile) : logoUrl} 
-                        alt="Logo Cl�nica" 
+                        alt="Logo Clínica" 
                         className="w-full h-full object-contain p-2"
                       />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -312,9 +312,9 @@ export default function ConfiguracionClinica() {
                   />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-800 mb-1">Logo de la Cl�nica</h4>
-                  <p className="text-sm text-slate-500 mb-3">Sube el logo de tu cl�nica para que aparezca en todas las recetas, facturas y reportes m�dicos.</p>
-                  <p className="text-xs text-slate-400 bg-white px-3 py-1.5 rounded border border-slate-200 inline-block">JPG, PNG o SVG. M�ximo 2MB.</p>
+                  <h4 className="font-bold text-slate-800 mb-1">Logo de la Clínica</h4>
+                  <p className="text-sm text-slate-500 mb-3">Sube el logo de tu clínica para que aparezca en todas las recetas, facturas y reportes médicos.</p>
+                  <p className="text-xs text-slate-400 bg-white px-3 py-1.5 rounded border border-slate-200 inline-block">JPG, PNG o SVG. Máximo 2MB.</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -344,13 +344,13 @@ export default function ConfiguracionClinica() {
                     value={noPatente}
                     onChange={(e) => setNoPatente(e.target.value)}
                     className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 font-medium text-slate-700"
-                    placeholder="Número de registro mercantil"
+                    placeholder="NÃºmero de registro mercantil"
                   />
                 </div>
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-bold text-slate-700">Razón Social (Nombre Legal ante SAT)</label>
+                <label className="text-sm font-bold text-slate-700">RazÃ³n Social (Nombre Legal ante SAT)</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                     <Landmark size={18} />
@@ -360,13 +360,13 @@ export default function ConfiguracionClinica() {
                     value={razonSocial}
                     onChange={(e) => setRazonSocial(e.target.value)}
                     className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 font-medium text-slate-700"
-                    placeholder="Ej. Servicios Médicos S.A."
+                    placeholder="Ej. Servicios MÃ©dicos S.A."
                   />
                 </div>
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-bold text-slate-700">Dirección Fiscal Registrada</label>
+                <label className="text-sm font-bold text-slate-700">DirecciÃ³n Fiscal Registrada</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 top-3 pointer-events-none text-slate-400">
                     <MapPin size={18} />
@@ -376,20 +376,20 @@ export default function ConfiguracionClinica() {
                     value={direccionFiscal}
                     onChange={(e) => setDireccionFiscal(e.target.value)}
                     className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 outline-none transition-all duration-300 font-medium text-slate-700 resize-none"
-                    placeholder="Dirección exacta registrada en la SAT..."
+                    placeholder="DirecciÃ³n exacta registrada en la SAT..."
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Configuración de Correo Electrónico */}
+          {/* ConfiguraciÃ³n de Correo ElectrÃ³nico */}
           <div>
             <h3 className="text-lg font-bold text-slate-800 mb-2 flex items-center border-b border-slate-100 pb-3">
               <Mail className="text-violet-500 mr-2" size={20} />
-              Configuración de Correo Electrónico
+              ConfiguraciÃ³n de Correo ElectrÃ³nico
             </h3>
-            <p className="text-sm text-slate-500 mb-6">Configura tu cuenta de <a href="https://resend.com" target="_blank" rel="noreferrer" className="text-violet-600 font-semibold hover:underline">Resend.com</a> para enviar correos reales (consentimientos, recetas, citas). Sin esta configuración el sistema funciona en modo demo (sin envíos reales).</p>
+            <p className="text-sm text-slate-500 mb-6">Configura tu cuenta de <a href="https://resend.com" target="_blank" rel="noreferrer" className="text-violet-600 font-semibold hover:underline">Resend.com</a> para enviar correos reales (consentimientos, recetas, citas). Sin esta configuraciÃ³n el sistema funciona en modo demo (sin envÃ­os reales).</p>
             
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Logo Section */}
@@ -399,7 +399,7 @@ export default function ConfiguracionClinica() {
                     <>
                       <img 
                         src={logoFile ? URL.createObjectURL(logoFile) : logoUrl} 
-                        alt="Logo Cl�nica" 
+                        alt="Logo Clínica" 
                         className="w-full h-full object-contain p-2"
                       />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -428,9 +428,9 @@ export default function ConfiguracionClinica() {
                   />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-800 mb-1">Logo de la Cl�nica</h4>
-                  <p className="text-sm text-slate-500 mb-3">Sube el logo de tu cl�nica para que aparezca en todas las recetas, facturas y reportes m�dicos.</p>
-                  <p className="text-xs text-slate-400 bg-white px-3 py-1.5 rounded border border-slate-200 inline-block">JPG, PNG o SVG. M�ximo 2MB.</p>
+                  <h4 className="font-bold text-slate-800 mb-1">Logo de la Clínica</h4>
+                  <p className="text-sm text-slate-500 mb-3">Sube el logo de tu clínica para que aparezca en todas las recetas, facturas y reportes médicos.</p>
+                  <p className="text-xs text-slate-400 bg-white px-3 py-1.5 rounded border border-slate-200 inline-block">JPG, PNG o SVG. Máximo 2MB.</p>
                 </div>
               </div>
               <div className="space-y-2 md:col-span-2">
@@ -454,7 +454,7 @@ export default function ConfiguracionClinica() {
                     {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-                <p className="text-xs text-slate-400">Obtén tu API key gratis en <span className="font-semibold">resend.com → API Keys</span>.</p>
+                <p className="text-xs text-slate-400">ObtÃ©n tu API key gratis en <span className="font-semibold">resend.com â†’ API Keys</span>.</p>
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -471,7 +471,7 @@ export default function ConfiguracionClinica() {
                     placeholder="noreply@tuclinica.com"
                   />
                 </div>
-                <p className="text-xs text-slate-400">Debe ser un dominio verificado en Resend. Si lo dejas vacío, se usará <span className="font-mono">onboarding@resend.dev</span> (solo para pruebas).</p>
+                <p className="text-xs text-slate-400">Debe ser un dominio verificado en Resend. Si lo dejas vacÃ­o, se usarÃ¡ <span className="font-mono">onboarding@resend.dev</span> (solo para pruebas).</p>
               </div>
             </div>
           </div>
@@ -485,7 +485,7 @@ export default function ConfiguracionClinica() {
               {saving ? 'Guardando...' : (
                 <>
                   <Save size={20} className="mr-2" />
-                  Guardar Configuración
+                  Guardar ConfiguraciÃ³n
                 </>
               )}
             </button>
@@ -502,3 +502,4 @@ export default function ConfiguracionClinica() {
     </div>
   );
 }
+

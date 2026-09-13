@@ -1915,43 +1915,45 @@ export default function PacienteDetalle() {
                       Generar Documento
                     </button>
                     {/* Dropdown de plantillas */}
-                    <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-slate-100 shadow-xl rounded-2xl p-2.5 hidden group-hover:block peer-hover:block hover:block z-20">
-                      <p className="text-xs font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Seleccionar Plantilla</p>
-                      {plantillas.map(p => (
-                        <div key={p.id} className="p-2 hover:bg-slate-50 rounded-xl transition-colors border-b border-slate-50 last:border-0">
-                          <p className="text-sm font-bold text-slate-800 mb-1.5 px-1 truncate" title={p.titulo}>{p.titulo}</p>
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <button
-                              onClick={() => {
-                                const nuevoConsentimiento: ConsentimientoFirmado = {
-                                  id: 'temp-' + Date.now(),
-                                  clinica_id: usuarioActual!.clinica_id,
-                                  paciente_id: id!,
-                                  plantilla_id: p.id,
-                                  titulo: p.titulo,
-                                  contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
-                                  firma_data_url: '',
-                                  fecha_firma: new Date().toISOString(),
-                                  estado: 'pendiente'
-                                };
-                                setConsentimientoActivo(nuevoConsentimiento);
-                                setIsFirmaModalOpen(true);
-                              }}
-                              className="px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer"
-                            >
-                              <PenTool size={12} className="mr-1" />
-                              Presencial
-                            </button>
-                            <button
-                              onClick={() => handleCrearYEnviarDocumentoRemoto(p)}
-                              className="px-2 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer shadow-sm"
-                            >
-                              <Mail size={12} className="mr-1" />
-                              Por Correo
-                            </button>
+                    <div className="absolute top-full pt-2 right-0 w-72 hidden group-hover:block peer-hover:block hover:block z-20">
+                      <div className="bg-white border border-slate-100 shadow-xl rounded-2xl p-2.5">
+                        <p className="text-xs font-bold text-slate-400 mb-2 px-2 uppercase tracking-wider">Seleccionar Plantilla</p>
+                        {plantillas.map(p => (
+                          <div key={p.id} className="p-2 hover:bg-slate-50 rounded-xl transition-colors border-b border-slate-50 last:border-0">
+                            <p className="text-sm font-bold text-slate-800 mb-1.5 px-1 truncate" title={p.titulo}>{p.titulo}</p>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <button
+                                onClick={() => {
+                                  const nuevoConsentimiento: ConsentimientoFirmado = {
+                                    id: 'temp-' + Date.now(),
+                                    clinica_id: usuarioActual!.clinica_id,
+                                    paciente_id: id!,
+                                    plantilla_id: p.id,
+                                    titulo: p.titulo,
+                                    contenido_firmado: p.contenido.replace(/{{PACIENTE_NOMBRE}}/g, paciente?.nombre || ''),
+                                    firma_data_url: '',
+                                    fecha_firma: new Date().toISOString(),
+                                    estado: 'pendiente'
+                                  };
+                                  setConsentimientoActivo(nuevoConsentimiento);
+                                  setIsFirmaModalOpen(true);
+                                }}
+                                className="px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer"
+                              >
+                                <PenTool size={12} className="mr-1" />
+                                Presencial
+                              </button>
+                              <button
+                                onClick={() => handleCrearYEnviarDocumentoRemoto(p)}
+                                className="px-2 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer shadow-sm"
+                              >
+                                <Mail size={12} className="mr-1" />
+                                Por Correo
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ) : (

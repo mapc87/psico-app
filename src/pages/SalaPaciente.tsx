@@ -34,7 +34,7 @@ export default function SalaPaciente() {
         )}
         
         <JitsiMeeting
-          domain="meet.jit.si"
+          domain="meet.ffmuc.net"
           roomName={`psicoapp-videoconsulta-${roomId}`}
           configOverwrite={{
             startWithAudioMuted: false,

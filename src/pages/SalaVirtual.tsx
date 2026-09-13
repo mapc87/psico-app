@@ -53,11 +53,12 @@ export default function SalaVirtual() {
     }
   };
 
-  if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-slate-900 text-white">Cargando sala...</div>;
-  if (!cita || !cita.enlace_video) return <div className="h-screen w-screen flex items-center justify-center bg-slate-900 text-white">Cita no válida o no tiene enlace virtual.</div>;
+  if (loading) return <div className="h-screen w-screen flex items-center justify-center bg-slate-900 text-white"><Activity className="animate-spin mr-2" /> Cargando sala...</div>;
+  if (!cita) return <div className="h-screen w-screen flex items-center justify-center bg-slate-900 text-white">Cita no válida.</div>;
 
-  const roomName = `psicoapp-videoconsulta-${cita.enlace_video}`;
-  const pacienteUrl = `${window.location.origin}/sala-virtual/${cita.enlace_video}`;
+  const roomId = cita.enlace_video || cita.id;
+  const roomName = `psicoapp-videoconsulta-${roomId}`;
+  const pacienteUrl = `${window.location.origin}/sala-virtual/${roomId}`;
 
   return (
     <div className="h-screen w-screen bg-slate-100 flex flex-col md:flex-row overflow-hidden">

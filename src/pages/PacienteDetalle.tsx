@@ -15,6 +15,7 @@ import ModalNuevoDiagnostico from '../components/diagnosticos/ModalNuevoDiagnost
 import ModalNuevoMedicamento from '../components/medicamentos/ModalNuevoMedicamento';
 import RecetaPrint from '../components/medicamentos/RecetaPrint';
 import ModalFirma from '../components/documentos/ModalFirma';
+import ModalFirmaFisica from '../components/documentos/ModalFirmaFisica';
 import ModalEnviarCorreo from '../components/common/ModalEnviarCorreo';
 import ModalAsignarEvaluacion from '../components/evaluaciones/ModalAsignarEvaluacion';
 import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEvaluacion';
@@ -65,6 +66,7 @@ export default function PacienteDetalle() {
   const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
   const [clinicaData, setClinicaData] = useState<any>(null);;
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
+  const [isFirmaFisicaModalOpen, setIsFirmaFisicaModalOpen] = useState(false);
   const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
   const [documentoAImprimir, setDocumentoAImprimir] = useState<ConsentimientoFirmado | null>(null);
@@ -1655,17 +1657,29 @@ export default function PacienteDetalle() {
 
 
 
-      {consentimientoActivo && (
-        <ModalFirma
-          isOpen={isFirmaModalOpen}
-          onClose={() => {
-            setIsFirmaModalOpen(false);
-            setConsentimientoActivo(null);
-          }}
-          onSave={handleSaveFirma}
-          documentoTitulo={consentimientoActivo.titulo}
-          pacienteNombre={paciente.nombre}
-        />
+      {usuarioActual?.clinica_id && consentimientoActivo && (
+        <>
+          <ModalFirma
+            isOpen={isFirmaModalOpen}
+            onClose={() => {
+              setIsFirmaModalOpen(false);
+              setConsentimientoActivo(null);
+            }}
+            onSave={handleSaveFirma}
+            documentoTitulo={consentimientoActivo.titulo}
+            pacienteNombre={paciente.nombre}
+          />
+          <ModalFirmaFisica
+            isOpen={isFirmaFisicaModalOpen}
+            onClose={() => {
+              setIsFirmaFisicaModalOpen(false);
+              setConsentimientoActivo(null);
+            }}
+            documentoId={consentimientoActivo.id}
+            clinicaId={usuarioActual.clinica_id}
+            onSuccess={cargarDatos}
+          />
+        </>
       )}
 
       {/* Contenedor Oculto para Impresión de Exámenes */}
@@ -1962,12 +1976,30 @@ export default function PacienteDetalle() {
                         </div>
                       </div>
 
-                      {doc.estado === 'firmado' && doc.firma_data_url && (
+                      {doc.estado === 'firmado' && (
                         <div className="mt-4 pt-4 border-t border-slate-100 flex-1 flex flex-col justify-end">
-                          <p className="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Firma Digital</p>
-                          <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 h-24 flex items-center justify-center">
-                            <img src={doc.firma_data_url} alt="Firma del paciente" className="max-h-full opacity-80" />
-                          </div>
+                          {doc.metodo_firma === 'fisica' ? (
+                            <>
+                              <p className="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Firma Física</p>
+                              <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 h-24 flex flex-col items-center justify-center text-center">
+                                <CheckCircle size={24} className="text-indigo-400 mb-2" />
+                                <p className="text-xs font-semibold text-slate-600">Documento firmado en físico</p>
+                              </div>
+                              {doc.archivo_adjunto_url && (
+                                <a href={doc.archivo_adjunto_url} target="_blank" rel="noopener noreferrer" className="mt-2 w-full py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold flex items-center justify-center hover:bg-indigo-100 transition-colors">
+                                  <FileText size={14} className="mr-1" />
+                                  Ver Respaldo
+                                </a>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Firma Digital</p>
+                              <div className="bg-slate-50 rounded-lg p-2 border border-slate-100 h-24 flex items-center justify-center">
+                                <img src={doc.firma_data_url} alt="Firma del paciente" className="max-h-full opacity-80" />
+                              </div>
+                            </>
+                          )}
                           <p className="text-xs text-slate-400 mt-2 text-right">
                             Firmado el {new Date(doc.fecha_firma).toLocaleDateString()}
                           </p>
@@ -1980,7 +2012,7 @@ export default function PacienteDetalle() {
                             className="w-full mt-3 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition-colors flex items-center justify-center shadow-sm"
                           >
                             <Printer size={16} className="mr-2 text-slate-500" />
-                            Imprimir Documento Firmado
+                            Imprimir Documento
                           </button>
                         </div>
                       )}
@@ -2027,6 +2059,17 @@ export default function PacienteDetalle() {
                           >
                             <Printer size={16} className="mr-2 text-slate-500" />
                             Imprimir (Para Firma Física)
+                          </button>
+
+                          <button 
+                            onClick={() => {
+                              setConsentimientoActivo(doc);
+                              setIsFirmaFisicaModalOpen(true);
+                            }}
+                            className="w-full mt-2 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold transition-colors flex items-center justify-center shadow-sm"
+                          >
+                            <CheckCircle size={16} className="mr-2" />
+                            Marcar como Firmado Físicamente
                           </button>
                         </div>
                       )}

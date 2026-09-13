@@ -206,6 +206,8 @@ export interface ConsentimientoFirmado {
   firma_data_url: string;
   fecha_firma: string;
   estado: 'pendiente' | 'firmado';
+  archivo_adjunto_url?: string;
+  metodo_firma?: 'digital' | 'fisica';
 }
 
 // === Evaluaciones Psicométricas ===

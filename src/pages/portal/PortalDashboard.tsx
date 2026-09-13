@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabase/client';
-import { Calendar, ClipboardList, FileText, Loader2 } from 'lucide-react';
+import { Calendar, ClipboardList, FileText, Loader2, Video } from 'lucide-react';
 import type { Cita, TareaPaciente, ArchivoPaciente } from '../../types';
 
 export default function PortalDashboard() {
@@ -100,6 +100,18 @@ export default function PortalDashboard() {
                   <span className="mt-2 inline-block px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
                     {cita.modalidad === 'virtual' ? 'Videoconsulta' : 'Presencial'}
                   </span>
+                  
+                  {cita.modalidad === 'virtual' && cita.enlace_video && (
+                    <a 
+                      href={`/sala-virtual/${cita.enlace_video}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 w-full flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"
+                    >
+                      <Video size={16} className="mr-2" />
+                      Unirse a Videollamada
+                    </a>
+                  )}
                 </div>
               ))}
             </div>

@@ -20,6 +20,7 @@ import ModalAsignarEvaluacion from '../components/evaluaciones/ModalAsignarEvalu
 import ModalRealizarEvaluacion from '../components/evaluaciones/ModalRealizarEvaluacion';
 import GraficoEvaluaciones from '../components/evaluaciones/GraficoEvaluaciones';
 import EvaluacionPrint from '../components/evaluaciones/EvaluacionPrint';
+import DocumentoPrint from '../components/documentos/DocumentoPrint';
 import ModalAnalisisIA from '../components/evaluaciones/ModalAnalisisIA';
 import ModalNuevaTarea from '../components/tareas/ModalNuevaTarea';
 import Toast from '../components/common/Toast';
@@ -66,11 +67,13 @@ export default function PacienteDetalle() {
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
   const [isGestorDocumentosOpen, setIsGestorDocumentosOpen] = useState(false);
   const [consentimientoActivo, setConsentimientoActivo] = useState<ConsentimientoFirmado | null>(null);
+  const [documentoAImprimir, setDocumentoAImprimir] = useState<ConsentimientoFirmado | null>(null);
 
   const printRef = useRef<HTMLDivElement>(null);
   const recetaPrintRef = useRef<HTMLDivElement>(null);
   const evaluacionPrintRef = useRef<HTMLDivElement>(null);
   const exportadorRef = useRef<HTMLDivElement>(null);
+  const documentoPrintRef = useRef<HTMLDivElement>(null);
 
   const handlePrintExamen = useReactToPrint({
     contentRef: printRef,
@@ -83,6 +86,11 @@ export default function PacienteDetalle() {
   const handlePrintExpediente = useReactToPrint({
     contentRef: exportadorRef,
     documentTitle: `Historia_Clinica_${paciente?.nombre?.replace(/\s+/g, '_') || 'Paciente'}`
+  });
+
+  const handlePrintDocumento = useReactToPrint({
+    contentRef: documentoPrintRef,
+    documentTitle: `Documento_${documentoAImprimir?.titulo?.replace(/\s+/g, '_') || 'Legal'}`
   });
 
   // Evaluaciones Psicométricas
@@ -1708,6 +1716,22 @@ export default function PacienteDetalle() {
           />
         )}
       </div>
+
+      {/* Contenedor Oculto para Impresión de Documentos Legales */}
+      <div className="hidden">
+        {documentoAImprimir && (
+          <DocumentoPrint
+            ref={documentoPrintRef}
+            documento={documentoAImprimir}
+            pacienteNombre={paciente.nombre}
+            pacienteIdentificacion={paciente.dpi || paciente.cui}
+            clinicaNombre={clinicaData?.nombre_comercial || clinicaData?.nombre}
+            clinicaDireccion={clinicaData?.direccion_fiscal || clinicaData?.direccion}
+            clinicaTelefono={clinicaData?.telefono_contacto || clinicaData?.telefono}
+            clinicaLogo={clinicaData?.logo_url}
+          />
+        )}
+      </div>
     
       {/* Modal Historial de Citas */}
       {isHistorialCitasOpen && (
@@ -1947,6 +1971,17 @@ export default function PacienteDetalle() {
                           <p className="text-xs text-slate-400 mt-2 text-right">
                             Firmado el {new Date(doc.fecha_firma).toLocaleDateString()}
                           </p>
+
+                          <button 
+                            onClick={() => {
+                              setDocumentoAImprimir(doc);
+                              setTimeout(() => handlePrintDocumento(), 100);
+                            }}
+                            className="w-full mt-3 py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition-colors flex items-center justify-center shadow-sm"
+                          >
+                            <Printer size={16} className="mr-2 text-slate-500" />
+                            Imprimir Documento Firmado
+                          </button>
                         </div>
                       )}
 
@@ -1981,6 +2016,17 @@ export default function PacienteDetalle() {
                           >
                             <LinkIcon size={16} className="mr-2" />
                             Copiar Enlace (Remoto)
+                          </button>
+
+                          <button 
+                            onClick={() => {
+                              setDocumentoAImprimir(doc);
+                              setTimeout(() => handlePrintDocumento(), 100);
+                            }}
+                            className="w-full py-2 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-bold transition-colors flex items-center justify-center shadow-sm"
+                          >
+                            <Printer size={16} className="mr-2 text-slate-500" />
+                            Imprimir (Para Firma Física)
                           </button>
                         </div>
                       )}

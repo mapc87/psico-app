@@ -31,6 +31,7 @@ export default function ModalNuevaFacturaGlobal({ isOpen, onClose, onSave }: Mod
           .from('pacientes')
           .select('id, nombre')
           .eq('clinica_id', usuarioActual.clinica_id)
+          .eq('estado', 'activo')
           .order('nombre', { ascending: true });
         
         if (data) setPacientes(data);

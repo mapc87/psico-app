@@ -31,15 +31,17 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 - Se estandarizó la moneda del sistema a **Quetzales (Q.)**.
 - Se adaptó la base de datos para soportar los requerimientos legales de Guatemala (SAT), incluyendo campos como **NIT**, **Razón Social** en los pacientes, y **Número de Factura, Serie y Autorización (FEL)** en las facturas.
 - Las clínicas pueden configurar sus propios datos fiscales (NIT, Dirección Fiscal, No. Patente, etc.) a través de `/configuracion`.
-- **Módulo de Finanzas Mejorado:** Se separó en 3 pestañas: Facturación, Control de Caja y Libro Mayor.
+- **Módulo de Finanzas Mejorado:** Se separó en 4 pestañas: Facturación, Control de Caja, Libro Mayor y Analíticas de BI.
 - **Control de Caja:** Se agregaron las tablas `cajas` y `movimientos_caja`. Es obligatorio tener una caja abierta para poder registrar el cobro de una factura. Permite registrar ingresos y egresos, y calcular el cuadre de efectivo.
+- **Exportación Contable (SAT):** Se agregó funcionalidad para exportar el reporte de facturación a Excel/CSV respetando los filtros activos de la tabla.
+- **Inteligencia de Negocios (BI):** Nueva pestaña interactiva con gráficas dinámicas (`recharts`) que muestran el flujo de ingresos mensuales y la distribución del estado de la cartera (Pagado vs Pendiente).
 - **Impresión Media Carta:** Se ajustó el módulo para imprimir facturas en formato formal de Media Carta (5.5 x 8.5 in) utilizando CSS `@media print`.
 
 ### Correos Electrónicos
 - Se implementó la integración con **EmailJS** para el envío de invitaciones de clínica y personal.
 
 ### Características adicionales
-- **Citas**: Sistema de agenda, recordatorios, y videoconsultas (Jitsi Meet).
+- **Citas**: Sistema de agenda, recordatorios, y videoconsultas (Migrado de Jitsi a ZegoCloud para video embebido sin límite de tiempo).
 - **Archivos Multimedia**: Subida de imágenes, PDFs y documentos directamente al expediente del paciente mediante Supabase Storage.
 - **Evaluaciones Psicométricas**:
   - Generación y asignación de tests (presenciales o enlaces remotos).
@@ -49,7 +51,9 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
   - Integración con IA (Google Gemini) para generar interpretaciones narrativas de resultados psicométricos.
 
 ### Mejoras de UI/UX Recientes
-- **Dashboard Principal**: Se rediseñó la tarjeta lateral, reemplazando "Cumpleañeros del Mes" por "Evaluaciones Pendientes" para dar seguimiento a los pacientes remotos.
+- **Dashboard Principal (Rediseño Clínico)**: 
+  - Se eliminaron las gráficas financieras (ingresos y diagnósticos) para acelerar la carga y hacer la vista más humana.
+  - Se implementaron widgets inteligentes que detectan de forma automática: "Notas Pendientes" (citas de los últimos 7 días sin SOAP), "Riesgo de Abandono" (pacientes activos con >30 días sin citas ni agendamientos futuros) y "Cumpleaños Próximos".
 - **Detalle de Pacientes**: 
   - Corrección de la lógica de edad (se parsean correctamente fechas pasadas nulas/vacías sin arrojar "0 años").
   - Extracción de la pestaña de "Citas" hacia un botón superior dedicado que despliega un modal centrado con el historial de citas y opciones de programación, para una visualización clínica más limpia de las pestañas médicas.

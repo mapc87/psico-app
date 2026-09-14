@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { JitsiMeeting } from '@jitsi/react-sdk';
+import { ZegoUIKitPrebuilt } from '@zegocloud/zego-uikit-prebuilt';
 import { supabase } from '../services/supabase/client';
-import { ArrowLeft, User, Activity, FileText, ClipboardList } from 'lucide-react';
+import { ArrowLeft, User, Activity, FileText, ClipboardList, Video } from 'lucide-react';
 import type { Cita, Paciente } from '../types';
 
 export default function SalaVirtual() {
@@ -57,8 +57,44 @@ export default function SalaVirtual() {
   if (!cita) return <div className="h-screen w-screen flex items-center justify-center bg-slate-900 text-white">Cita no válida.</div>;
 
   const roomId = cita.enlace_video || cita.id;
-  const roomName = `psicoapp-videoconsulta-${roomId}`;
-  const pacienteUrl = `${window.location.origin}/sala-virtual/${roomId}`;
+  const pacienteUrl = `${window.location.origin}/sala-paciente/${roomId}`;
+
+  const myMeeting = async (element: HTMLDivElement | null) => {
+    if (!element) return;
+    const appID = parseInt(import.meta.env.VITE_ZEGO_APP_ID || '0');
+    const serverSecret = import.meta.env.VITE_ZEGO_SERVER_SECRET || '';
+    
+    if (!appID || !serverSecret) {
+      console.error("ZegoCloud credentials missing in .env");
+      element.innerHTML = '<div class="text-white p-4">Faltan credenciales de ZegoCloud en .env (VITE_ZEGO_APP_ID, VITE_ZEGO_SERVER_SECRET)</div>';
+      return;
+    }
+
+    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+      appID, 
+      serverSecret, 
+      roomId, 
+      cita.medico_id.replace(/-/g, ''), 
+      "Médico"
+    );
+
+    const zp = ZegoUIKitPrebuilt.create(kitToken);
+    
+    zp.joinRoom({
+        container: element,
+        sharedLinks: [
+          {
+            name: 'Link Paciente',
+            url: pacienteUrl,
+          },
+        ],
+        scenario: {
+          mode: ZegoUIKitPrebuilt.OneONoneCall,
+        },
+        showRoomTimer: true,
+        showPreJoinView: false,
+    });
+  };
 
   return (
     <div className="h-screen w-screen bg-slate-100 flex flex-col md:flex-row overflow-hidden">
@@ -86,33 +122,8 @@ export default function SalaVirtual() {
           </div>
         </div>
         
-        <div className="flex-1 w-full relative">
-          <JitsiMeeting
-            domain="meet.ffmuc.net"
-            roomName={roomName}
-            configOverwrite={{
-              startWithAudioMuted: false,
-              startWithVideoMuted: false,
-              prejoinPageEnabled: false
-            }}
-            interfaceConfigOverwrite={{
-              DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
-              SHOW_JITSI_WATERMARK: false,
-              SHOW_WATERMARK_FOR_GUESTS: false,
-              TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'desktop', 'fullscreen',
-                'fodeviceselection', 'hangup', 'chat', 'settings',
-                'videoquality', 'filmstrip', 'tileview'
-              ]
-            }}
-            userInfo={{
-              displayName: 'Dr. (Organizador)'
-            }}
-            getIFrameRef={(iframeRef) => {
-              iframeRef.style.height = '100%';
-              iframeRef.style.width = '100%';
-            }}
-          />
+        <div className="flex-1 w-full bg-slate-900 overflow-hidden relative">
+          <div ref={myMeeting} className="w-full h-full" />
         </div>
       </div>
 

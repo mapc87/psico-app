@@ -45,7 +45,7 @@ export default function Agenda() {
     
     const [citasRes, pacientesRes] = await Promise.all([
       supabase.from('citas').select('*'), // RLS will filter by clinica_id
-      supabase.from('pacientes').select('*')
+      supabase.from('pacientes').select('*').eq('estado', 'activo')
     ]);
 
     if (citasRes.data) setCitasDb(citasRes.data as Cita[]);

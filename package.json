@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "@google/genai": "^2.21.0",
-    "@jitsi/react-sdk": "^1.4.4",
     "@supabase/supabase-js": "^2.112.1",
+    "@zegocloud/zego-uikit-prebuilt": "^2.18.4",
     "dexie": "^4.4.4",
     "dexie-react-hooks": "^4.4.0",
     "lucide-react": "^1.28.0",

@@ -32,7 +32,7 @@ export default function Paquetes() {
     setLoading(true);
     try {
       const [pacientesRes, paquetesRes] = await Promise.all([
-        supabase.from('pacientes').select('*').order('nombre'),
+        supabase.from('pacientes').select('*').eq('estado', 'activo').order('nombre'),
         supabase.from('paquetes_sesiones').select('*').eq('clinica_id', usuarioActual!.clinica_id).eq('activo', true).order('nombre')
       ]);
 

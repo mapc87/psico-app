@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Wallet, TrendingUp, AlertCircle, Search, Filter, Receipt, DollarSign, Calendar, Printer } from 'lucide-react';
+import { Wallet, TrendingUp, AlertCircle, Search, Filter, Receipt, DollarSign, Calendar, Printer, Download } from 'lucide-react';
 import { supabase } from '../services/supabase/client';
 import { useAuth } from '../context/AuthContext';
 import type { Factura, Clinica } from '../types';
@@ -93,6 +93,34 @@ export default function FinanzasGlobal() {
   const totalFacturado = facturasDelDia.reduce((acc, f) => acc + f.monto_total, 0);
   const totalPendiente = facturasDelDia.reduce((acc, f) => acc + f.saldo_pendiente, 0);
   const totalCobrado = totalFacturado - totalPendiente;
+
+  const handleExportCSV = () => {
+    const cabeceras = ['Fecha Emision', 'Serie y Numero', 'NIT', 'Cliente', 'Concepto', 'Monto Total', 'Saldo Pendiente', 'Estado'];
+    
+    const filas = facturasFiltradas.map(f => {
+      const fecha = new Date(f.fecha_emision).toLocaleDateString('es-ES');
+      const serieNum = `${f.serie || ''} ${f.numero_factura ? '#' + f.numero_factura : ''}`.trim() || 'S/N';
+      const nit = f.nit || 'CF';
+      const nombre = `"${(f.nombre_factura || f.pacientes?.nombre || 'Factura Directa').replace(/"/g, '""')}"`;
+      const concepto = `"${f.concepto.replace(/"/g, '""')}"`;
+      const total = f.monto_total.toFixed(2);
+      const saldo = f.saldo_pendiente.toFixed(2);
+      const estado = f.estado.toUpperCase();
+      
+      return [fecha, serieNum, nit, nombre, concepto, total, saldo, estado].join(',');
+    });
+
+    const csvContent = '\uFEFF' + [cabeceras.join(','), ...filas].join('\n'); // \uFEFF para UTF-8 BOM (Soporte Excel)
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Reporte_Contable_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading) {
     return <div className="p-8 text-center text-slate-500">Cargando datos financieros...</div>;
@@ -228,17 +256,26 @@ export default function FinanzasGlobal() {
             </div>
           </div>
 
-          <div className="relative w-full md:w-64">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-slate-400" />
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="relative w-full md:w-64">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={18} className="text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Buscar paciente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all duration-300 text-sm"
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Buscar paciente..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all duration-300 text-sm"
-            />
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center justify-center p-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-600 border border-slate-200 hover:border-emerald-200 rounded-xl transition-all shrink-0 shadow-sm"
+              title="Exportar Reporte Contable (CSV)"
+            >
+              <Download size={18} />
+            </button>
           </div>
         </div>
 

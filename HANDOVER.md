@@ -39,7 +39,7 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 - Se implementó la integración con **EmailJS** para el envío de invitaciones de clínica y personal.
 
 ### Características adicionales
-- **Citas**: Sistema de agenda, recordatorios, y videoconsultas (Jitsi Meet).
+- **Citas**: Sistema de agenda, recordatorios, y videoconsultas (Migrado de Jitsi a ZegoCloud para video embebido sin límite de tiempo).
 - **Archivos Multimedia**: Subida de imágenes, PDFs y documentos directamente al expediente del paciente mediante Supabase Storage.
 - **Evaluaciones Psicométricas**:
   - Generación y asignación de tests (presenciales o enlaces remotos).

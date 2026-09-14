@@ -322,48 +322,45 @@ export default function Dashboard() {
             </div>
           )}
 
+        </div>
+
+        {/* COLUMNA DERECHA: ALERTAS Y WIDGETS */}
+        <div className="space-y-8">
+
           {/* Riesgo de Abandono */}
           {puedeVerPacientes && (
             <div className="bg-gradient-to-br from-rose-50 to-orange-50 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-rose-100 overflow-hidden">
-               <div className="p-6 border-b border-rose-100/50 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-rose-800 flex items-center">
-                  <UserMinus className="mr-2 text-rose-500" size={20} />
-                  Pacientes en Riesgo de Abandono
+               <div className="p-5 border-b border-rose-100/50 flex justify-between items-center">
+                <h3 className="text-base font-bold text-rose-800 flex items-center">
+                  <UserMinus className="mr-2 text-rose-500" size={18} />
+                  Riesgo de Abandono
                 </h3>
               </div>
-              <div className="p-6">
-                <p className="text-sm text-rose-600 mb-6 font-medium">Pacientes activos sin citas futuras y más de 30 días desde su última sesión.</p>
+              <div className="p-5">
+                <p className="text-xs text-rose-600 mb-4 font-medium">Más de 30 días sin citas futuras.</p>
                 {pacientesRiesgo.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-3">
                     {pacientesRiesgo.map(paciente => (
-                      <Link key={paciente.id} to={`/pacientes/${paciente.id}`} className="flex items-center p-4 bg-white/60 hover:bg-white rounded-2xl border border-rose-100/50 transition-all group">
-                         <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center font-bold mr-3">
+                      <Link key={paciente.id} to={`/pacientes/${paciente.id}`} className="flex items-center p-3 bg-white/60 hover:bg-white rounded-xl border border-rose-100/50 transition-all group">
+                         <div className="w-8 h-8 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center font-bold mr-3 text-sm shrink-0">
                            {paciente.nombre.charAt(0)}
                          </div>
-                         <div className="flex-1">
-                           <p className="font-bold text-slate-800">{paciente.nombre}</p>
-                           <p className="text-xs text-rose-500">Contactar para seguimiento</p>
+                         <div className="flex-1 truncate">
+                           <p className="font-bold text-slate-800 text-sm truncate">{paciente.nombre}</p>
                          </div>
-                         <ChevronRight size={18} className="text-slate-300 group-hover:text-rose-500 transition-colors" />
+                         <ChevronRight size={16} className="text-rose-300 group-hover:text-rose-500 transition-colors shrink-0 ml-1" />
                       </Link>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-6">
-                    <p className="text-slate-500 font-medium flex items-center justify-center">
-                      <ClipboardCheck size={20} className="text-emerald-500 mr-2" />
-                      ¡Excelente retención! Todos tus pacientes están al día.
-                    </p>
+                  <div className="text-center py-4">
+                    <ClipboardCheck size={20} className="mx-auto text-emerald-300 mb-2" />
+                    <p className="text-xs text-emerald-600 font-medium">¡Todos al día!</p>
                   </div>
                 )}
               </div>
             </div>
           )}
-
-        </div>
-
-        {/* COLUMNA DERECHA: ALERTAS Y WIDGETS */}
-        <div className="space-y-8">
           
           {/* Cumpleaños Próximos */}
           {puedeVerPacientes && (

@@ -321,7 +321,86 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Notas Pendientes */}
+            {puedeVerPacientes && (
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
+                 <div className="p-5 border-b border-slate-100/50 bg-blue-50/30">
+                  <h3 className="text-base font-bold text-blue-700 flex items-center">
+                    <FileEdit className="mr-2 text-blue-500" size={18} />
+                    Notas Pendientes
+                  </h3>
+                </div>
+                <div className="p-5 h-full">
+                  {pacientesConNotasPendientes.length > 0 ? (
+                    <div className="space-y-3">
+                      <p className="text-xs text-slate-500 mb-3">Expedientes sin actualizar tras sesiones recientes:</p>
+                      {pacientesConNotasPendientes.map(cita => {
+                        const paciente = pacientes.find(p => p.id === cita.paciente_id);
+                        return (
+                          <div key={cita.id} className="flex items-center justify-between p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
+                            <div className="truncate pr-3">
+                              <p className="font-bold text-slate-800 text-sm truncate">{paciente?.nombre}</p>
+                              <p className="text-xs text-blue-600 truncate">Cita: {new Date(cita.fecha_hora).toLocaleDateString()}</p>
+                            </div>
+                            <Link to={`/pacientes/${cita.paciente_id}`} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors shrink-0">
+                              <FileEdit size={16} />
+                            </Link>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <ClipboardCheck size={24} className="mx-auto text-blue-200 mb-2" />
+                      <p className="text-sm font-semibold text-blue-600/70">¡Todas tus notas están al día!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
+            {/* Evaluaciones Pendientes */}
+            {puedeVerPacientes && (
+              <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
+                <div className="p-5 border-b border-slate-100/50 bg-indigo-50/30">
+                  <h3 className="text-base font-bold text-indigo-700 flex items-center">
+                    <ClipboardList className="mr-2 text-indigo-500" size={18} />
+                    Evaluaciones Pendientes
+                  </h3>
+                </div>
+                <div className="p-5 h-full">
+                  {evaluaciones.length > 0 ? (
+                    <div className="space-y-3">
+                      {evaluaciones.map(evaluacion => {
+                        const paciente = pacientes.find(p => p.id === evaluacion.paciente_id);
+                        return (
+                          <div key={evaluacion.id} className="flex items-center justify-between p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/50 group">
+                            <div className="flex items-center overflow-hidden">
+                              <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold mr-3 shrink-0">
+                                <BrainCircuit size={14} />
+                              </div>
+                              <div className="truncate">
+                                <p className="font-bold text-slate-800 text-sm truncate">{paciente?.nombre || 'Paciente'}</p>
+                                <p className="text-xs text-slate-500 truncate">{evaluacion.plantilla?.titulo}</p>
+                              </div>
+                            </div>
+                            <Link to={`/pacientes/${evaluacion.paciente_id}`} className="ml-2 p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all shrink-0">
+                              <ChevronRight size={16} />
+                            </Link>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-sm font-semibold text-indigo-600/70">No hay evaluaciones pendientes.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* COLUMNA DERECHA: ALERTAS Y WIDGETS */}
@@ -388,85 +467,6 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <p className="text-sm text-slate-400 text-center py-4">No hay cumpleaños cercanos.</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Notas Pendientes */}
-          {puedeVerPacientes && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
-               <div className="p-5 border-b border-slate-100/50 bg-blue-50/30">
-                <h3 className="text-base font-bold text-blue-700 flex items-center">
-                  <FileEdit className="mr-2 text-blue-500" size={18} />
-                  Notas Pendientes
-                </h3>
-              </div>
-              <div className="p-5">
-                {pacientesConNotasPendientes.length > 0 ? (
-                  <div className="space-y-3">
-                    <p className="text-xs text-slate-500 mb-3">Expedientes sin actualizar tras sesiones recientes:</p>
-                    {pacientesConNotasPendientes.map(cita => {
-                      const paciente = pacientes.find(p => p.id === cita.paciente_id);
-                      return (
-                        <div key={cita.id} className="flex items-center justify-between p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
-                          <div className="truncate pr-3">
-                            <p className="font-bold text-slate-800 text-sm truncate">{paciente?.nombre}</p>
-                            <p className="text-xs text-blue-600 truncate">Cita: {new Date(cita.fecha_hora).toLocaleDateString()}</p>
-                          </div>
-                          <Link to={`/pacientes/${cita.paciente_id}`} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors shrink-0">
-                            <FileEdit size={16} />
-                          </Link>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <ClipboardCheck size={24} className="mx-auto text-blue-200 mb-2" />
-                    <p className="text-sm font-semibold text-blue-600/70">¡Todas tus notas están al día!</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Evaluaciones Pendientes */}
-          {puedeVerPacientes && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden">
-              <div className="p-5 border-b border-slate-100/50 bg-indigo-50/30">
-                <h3 className="text-base font-bold text-indigo-700 flex items-center">
-                  <ClipboardList className="mr-2 text-indigo-500" size={18} />
-                  Evaluaciones Pendientes
-                </h3>
-              </div>
-              <div className="p-5">
-                {evaluaciones.length > 0 ? (
-                  <div className="space-y-3">
-                    {evaluaciones.map(evaluacion => {
-                      const paciente = pacientes.find(p => p.id === evaluacion.paciente_id);
-                      return (
-                        <div key={evaluacion.id} className="flex items-center justify-between p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/50 group">
-                          <div className="flex items-center overflow-hidden">
-                            <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold mr-3 shrink-0">
-                              <BrainCircuit size={14} />
-                            </div>
-                            <div className="truncate">
-                              <p className="font-bold text-slate-800 text-sm truncate">{paciente?.nombre || 'Paciente'}</p>
-                              <p className="text-xs text-slate-500 truncate">{evaluacion.plantilla?.titulo}</p>
-                            </div>
-                          </div>
-                          <Link to={`/pacientes/${evaluacion.paciente_id}`} className="ml-2 p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg transition-all shrink-0">
-                            <ChevronRight size={16} />
-                          </Link>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <p className="text-sm font-semibold text-indigo-600/70">No hay evaluaciones pendientes.</p>
-                  </div>
                 )}
               </div>
             </div>

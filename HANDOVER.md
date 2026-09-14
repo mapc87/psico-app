@@ -49,7 +49,9 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
   - Integración con IA (Google Gemini) para generar interpretaciones narrativas de resultados psicométricos.
 
 ### Mejoras de UI/UX Recientes
-- **Dashboard Principal**: Se rediseñó la tarjeta lateral, reemplazando "Cumpleañeros del Mes" por "Evaluaciones Pendientes" para dar seguimiento a los pacientes remotos.
+- **Dashboard Principal (Rediseño Clínico)**: 
+  - Se eliminaron las gráficas financieras (ingresos y diagnósticos) para acelerar la carga y hacer la vista más humana.
+  - Se implementaron widgets inteligentes que detectan de forma automática: "Notas Pendientes" (citas de los últimos 7 días sin SOAP), "Riesgo de Abandono" (pacientes activos con >30 días sin citas ni agendamientos futuros) y "Cumpleaños Próximos".
 - **Detalle de Pacientes**: 
   - Corrección de la lógica de edad (se parsean correctamente fechas pasadas nulas/vacías sin arrojar "0 años").
   - Extracción de la pestaña de "Citas" hacia un botón superior dedicado que despliega un modal centrado con el historial de citas y opciones de programación, para una visualización clínica más limpia de las pestañas médicas.

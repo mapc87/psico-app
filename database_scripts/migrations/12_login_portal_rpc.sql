@@ -9,7 +9,7 @@ DECLARE
   v_paciente record;
 BEGIN
   -- Buscar al paciente por su PIN único
-  SELECT id, nombre, clinica_id, estado 
+  SELECT id, nombre, clinica_id, estado, pin_acceso 
   INTO v_paciente
   FROM pacientes
   WHERE pin_acceso = p_pin_acceso

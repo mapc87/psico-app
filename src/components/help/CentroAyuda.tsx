@@ -109,8 +109,9 @@ const GUIAS: GuiaSeccion[] = [
     pasos: [
       { titulo: 'Emitir una factura', detalle: 'Expediente del paciente → pestaña "Finanzas" → clic en "Emitir Factura". Llena el concepto, monto total y fecha de vencimiento. Haz clic en "Guardar".' },
       { titulo: 'Registrar un pago', detalle: 'En la lista de facturas, las que tienen saldo pendiente muestran un botón "Registrar Pago". Haz clic, ingresa el monto abonado y el método de pago.' },
-      { titulo: 'Ver estado de cuenta', detalle: 'Las tarjetas superiores muestran el saldo total adeudado y la cantidad de facturas pendientes del paciente. Útil para el seguimiento de cobranza.' },
-      { titulo: 'Módulo global de finanzas', detalle: 'Ve a "Facturación" en el menú lateral para ver un resumen de todos los pacientes con saldo pendiente y el estado financiero global de la clínica.' },
+      { titulo: 'Módulo global de finanzas', detalle: 'Ve a "Facturación" en el menú lateral para ver un resumen de todas las facturas, cuentas por cobrar, y gestionar la Caja diaria.' },
+      { titulo: 'Exportar a Excel (SAT)', detalle: 'En la pestaña "Facturación y Cobros", haz clic en el botón de descarga 📥 junto a la barra de búsqueda para exportar un reporte en formato CSV (compatible con Excel) respetando los filtros de fecha o estado.' },
+      { titulo: 'Analíticas (BI)', detalle: 'En la pestaña "Analíticas de BI", podrás visualizar gráficas interactivas con la tendencia de tus ingresos mensuales y el estado general de liquidez y deudas.' },
     ]
   },
   {

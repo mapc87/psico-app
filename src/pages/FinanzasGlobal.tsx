@@ -9,6 +9,7 @@ import ModalNuevaFacturaGlobal from '../components/finanzas/ModalNuevaFacturaGlo
 import FacturaImprimible from '../components/finanzas/FacturaImprimible';
 import CajaPanel from '../components/finanzas/CajaPanel';
 import HistorialCaja from '../components/finanzas/HistorialCaja';
+import PanelAnaliticas from '../components/finanzas/PanelAnaliticas';
 
 interface FacturaExtendida extends Factura {
   pacientes?: {
@@ -20,7 +21,7 @@ export default function FinanzasGlobal() {
   const { usuarioActual } = useAuth();
   const [facturas, setFacturas] = useState<FacturaExtendida[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'facturacion' | 'caja' | 'historial'>('facturacion');
+  const [activeTab, setActiveTab] = useState<'facturacion' | 'caja' | 'historial' | 'analiticas'>('facturacion');
   
   const [filtroEstado, setFiltroEstado] = useState<'todas' | 'pendiente' | 'parcial' | 'pagada'>('todas');
   const [searchTerm, setSearchTerm] = useState('');
@@ -179,10 +180,21 @@ export default function FinanzasGlobal() {
         >
           Libro Mayor (Historial)
         </button>
+        <button
+          onClick={() => setActiveTab('analiticas')}
+          className={`pb-4 text-sm font-bold transition-all border-b-2 ${
+            activeTab === 'analiticas' 
+              ? 'border-emerald-500 text-emerald-600' 
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          Analíticas de BI
+        </button>
       </div>
 
       {activeTab === 'caja' && <CajaPanel />}
       {activeTab === 'historial' && <HistorialCaja />}
+      {activeTab === 'analiticas' && <PanelAnaliticas facturas={facturas} />}
 
       {activeTab === 'facturacion' && (
         <div className="space-y-8 animate-in fade-in duration-300">

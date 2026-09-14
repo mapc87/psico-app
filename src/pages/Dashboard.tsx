@@ -281,28 +281,28 @@ export default function Dashboard() {
                   Ver calendario completo <ChevronRight size={16} />
                 </Link>
               </div>
-              <div className="p-6">
+              <div className="p-4 max-h-[350px] overflow-y-auto custom-scrollbar">
                 {citasHoy.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {citasHoy.map(cita => {
                       const paciente = pacientes.find(p => p.id === cita.paciente_id);
                       return (
-                        <div key={cita.id} className="flex items-center p-4 rounded-2xl hover:bg-slate-50 transition-colors border border-slate-100 hover:border-violet-200 hover:shadow-sm group">
-                          <div className="w-20 text-center mr-4 border-r border-slate-200 pr-4">
-                            <p className="text-xl font-extrabold text-slate-700">
+                        <div key={cita.id} className="flex items-center p-3 rounded-2xl hover:bg-slate-50 transition-colors border border-slate-100 hover:border-violet-200 hover:shadow-sm group">
+                          <div className="w-16 text-center mr-3 border-r border-slate-200 pr-3">
+                            <p className="text-lg font-extrabold text-slate-700">
                               {new Date(cita.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
                           <div className="flex-1">
-                            <p className="font-bold text-slate-800 text-lg">{paciente?.nombre || 'Paciente Desconocido'}</p>
-                            <p className="text-sm text-slate-500 flex items-center mt-1">
-                              {cita.modalidad === 'virtual' ? <Activity size={14} className="mr-1 text-blue-500"/> : <Users size={14} className="mr-1 text-emerald-500"/>}
+                            <p className="font-bold text-slate-800 text-base">{paciente?.nombre || 'Paciente Desconocido'}</p>
+                            <p className="text-xs text-slate-500 flex items-center mt-0.5">
+                              {cita.modalidad === 'virtual' ? <Activity size={12} className="mr-1 text-blue-500"/> : <Users size={12} className="mr-1 text-emerald-500"/>}
                               {cita.motivo || 'Sesión programada'}
                             </p>
                           </div>
                           {puedeVerPacientes && (
-                            <Link to={`/pacientes/${cita.paciente_id}`} className="p-3 bg-violet-50 text-violet-600 hover:bg-violet-600 hover:text-white rounded-xl transition-all shadow-sm flex items-center opacity-0 group-hover:opacity-100">
-                              Expediente <ChevronRight size={16} className="ml-1"/>
+                            <Link to={`/pacientes/${cita.paciente_id}`} className="p-2 bg-violet-50 text-violet-600 hover:bg-violet-600 hover:text-white rounded-xl transition-all shadow-sm flex items-center opacity-0 group-hover:opacity-100">
+                              <ChevronRight size={16} />
                             </Link>
                           )}
                         </div>
@@ -310,12 +310,12 @@ export default function Dashboard() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-16">
-                    <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Calendar size={40} className="text-slate-300" />
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Calendar size={28} className="text-slate-300" />
                     </div>
-                    <p className="text-xl font-bold text-slate-500">No hay citas para hoy</p>
-                    <p className="text-slate-400 mt-2">Tu agenda está libre por el resto del día.</p>
+                    <p className="text-lg font-bold text-slate-500">No hay citas para hoy</p>
+                    <p className="text-slate-400 text-xs mt-1">Tu agenda está libre por el resto del día.</p>
                   </div>
                 )}
               </div>

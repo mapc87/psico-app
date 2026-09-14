@@ -71,9 +71,14 @@ Para evitar que cualquier persona se registre de manera libre en el sistema, se 
   - *Archivos:* Repositorio de nube (Supabase Storage) para exámenes externos, PDFs y radiografías.
   - *Citas (Agenda):* Gestión del calendario personal del doctor integrado con recordatorios automáticos (EmailJS).
 
-### Módulo de Contabilidad y Finanzas
+### Módulo de Contabilidad, Finanzas e Inteligencia de Negocios
 - **Reglas de Negocio:** Diseñado bajo los requerimientos de la SAT (Guatemala).
 - **Facturación:** Emisión de comprobantes, cálculos de saldos pendientes y formatos de impresión adaptables (`@media print`).
+- **Exportación Contable:** Descarga de reportes en formato CSV (optimizados para Excel con UTF-8 BOM), filtrados inteligentemente y listos para procesos de declaración de impuestos (SAT).
+- **Inteligencia de Negocios (BI):** Panel de analíticas gerenciales con:
+  - KPIs en tiempo real (Liquidez Real, Riesgo de Cartera, Efectividad de Cobro).
+  - Gráficas de tendencia de facturación agrupadas por mes (`recharts`).
+  - Distribución del estado de la cartera (Gráfica de Pastel).
 - **Control de Caja:** 
   - La lógica del negocio dictamina que **no se pueden procesar pagos si no hay una caja abierta**.
   - El usuario abre caja al iniciar el día con un monto inicial, registra facturas y gastos rápidos (egresos), y al finalizar el turno "cierra caja" para cuadrar el efectivo esperado vs el real.

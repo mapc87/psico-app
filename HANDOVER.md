@@ -31,8 +31,10 @@ El sistema soporta múltiples clínicas operando de forma aislada gracias a las 
 - Se estandarizó la moneda del sistema a **Quetzales (Q.)**.
 - Se adaptó la base de datos para soportar los requerimientos legales de Guatemala (SAT), incluyendo campos como **NIT**, **Razón Social** en los pacientes, y **Número de Factura, Serie y Autorización (FEL)** en las facturas.
 - Las clínicas pueden configurar sus propios datos fiscales (NIT, Dirección Fiscal, No. Patente, etc.) a través de `/configuracion`.
-- **Módulo de Finanzas Mejorado:** Se separó en 3 pestañas: Facturación, Control de Caja y Libro Mayor.
+- **Módulo de Finanzas Mejorado:** Se separó en 4 pestañas: Facturación, Control de Caja, Libro Mayor y Analíticas de BI.
 - **Control de Caja:** Se agregaron las tablas `cajas` y `movimientos_caja`. Es obligatorio tener una caja abierta para poder registrar el cobro de una factura. Permite registrar ingresos y egresos, y calcular el cuadre de efectivo.
+- **Exportación Contable (SAT):** Se agregó funcionalidad para exportar el reporte de facturación a Excel/CSV respetando los filtros activos de la tabla.
+- **Inteligencia de Negocios (BI):** Nueva pestaña interactiva con gráficas dinámicas (`recharts`) que muestran el flujo de ingresos mensuales y la distribución del estado de la cartera (Pagado vs Pendiente).
 - **Impresión Media Carta:** Se ajustó el módulo para imprimir facturas en formato formal de Media Carta (5.5 x 8.5 in) utilizando CSS `@media print`.
 
 ### Correos Electrónicos
